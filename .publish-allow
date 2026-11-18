@@ -1,0 +1,16 @@
+# Contains code from HoMM4Deadware (https://github.com/LeoDeadware/HoMM4Deadware): Copyright (c) 2026 LeoDeadware, MIT License.
+# Exceptions to tools/release/publish_check.py: glob + "# reason" (secrets are never allowed).
+heroes4-mac-assets.zip:*  # owner's decision 2026-11-02: our own Ukrainian-localization files (combat-wing collages, voice-over) stay in releases; the localization does not work without them
+Heroes IV.dmg:Heroes IV.app/Contents/Resources/wings/*  # owner's decision 2026-11-02 (as heroes4-mac-assets.zip): our own combat-wing collages
+HeroesIV-macos-*.dmg:Heroes IV.app/Contents/Resources/wings/*  # owner's decision 2026-11-02 (as Heroes IV.dmg): our own combat-wing collages, in the release apps too
+HeroesIV-android_arm64.apk:assets/wings/*  # the same collages in the Android app
+HeroesIV-ios.ipa:Payload/Heroes IV.app/wings/*  # the same collages in the iOS app
+*/Heroes IV/wings/*  # the same collages in the Linux app
+HeroesIV-android_arm64.apk:lib/arm64-v8a/libmain.so  # the app itself: the runtime, SDL3 and ffmpeg in one library
+HeroesIV-ios.ipa:Payload/Heroes IV.app/Heroes IV  # the app itself (static: runtime, SDL3, ffmpeg)
+HeroesIV.nro  # the Switch app itself (static), its romfs with the collages
+*/Heroes IV/heroes4  # the Linux app itself (static)
+HeroesIV-android_arm64.apk:res/*.png  # the app icon: the project's own shield (assets/icon), drawn at build time
+HeroesIV-ios.ipa:Payload/Heroes IV.app/AppIcon*.png  # the same icon
+*/Heroes IV/heroes4.png  # the same icon
+docs/gog_files.jpg  # a screenshot of the GOG library page (which installer files to download), not game data

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# devkitPro's Switch pkg-config with this project's prefix (H4_SWITCH_PREFIX: ffmpeg) too.
+export PKG_CONFIG_DIR= PKG_CONFIG_PATH= PKG_CONFIG_SYSROOT_DIR=
+export PKG_CONFIG_LIBDIR="${H4_SWITCH_PREFIX:+$H4_SWITCH_PREFIX/lib/pkgconfig:}${DEVKITPRO:-/opt/devkitpro}/portlibs/switch/lib/pkgconfig"
+[[ "$1" == '--version' ]] && exec pkg-config --version
+exec pkg-config --static "$@"

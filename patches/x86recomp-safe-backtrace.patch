@@ -1,0 +1,49 @@
+diff --git a/src/runtime/platform.cpp b/src/runtime/platform.cpp
+index 2ce5cb2..9083252 100644
+--- a/src/runtime/platform.cpp
++++ b/src/runtime/platform.cpp
+@@ -91,10 +91,14 @@ void RunOnStack(void* stack, size_t size, void (*fn)()) {
+ namespace {
+ ucontext_t g_caller_ctx, g_stack_ctx;
+ }
++// The stack RunOnStack switched to, for Backtrace (Apple): where its frames end.
++uintptr_t g_run_stack_lo = 0, g_run_stack_hi = 0;
+ 
+ #pragma clang diagnostic push
+ #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+ void RunOnStack(void* stack, size_t size, void (*fn)()) {
++  g_run_stack_lo = uintptr_t(stack);
++  g_run_stack_hi = uintptr_t(stack) + size;
+   getcontext(&g_stack_ctx);
+   g_stack_ctx.uc_stack.ss_sp = stack;
+   g_stack_ctx.uc_stack.ss_size = size;
+@@ -292,6 +296,29 @@ void BacktraceSymbolsFd(void* const* frames, int n, int fd) {
+   }
+ #endif
+ }
++#elif defined(__APPLE__) && TARGET_OS_OSX
++// backtrace() walks the frame pointers within the thread's own stack only when it can tell where
++// that is: on RunOnStack's stack (makecontext) its last frame can point past the top, and the read
++// there faulted (the watchdog's hitch samples, a few a second, from the game's thread). The same
++// walk here, never reading outside the stack the frames are on.
++int Backtrace(void** frames, int max) {
++  uintptr_t fp = uintptr_t(__builtin_frame_address(0));
++  const pthread_t self = pthread_self();
++  uintptr_t hi = uintptr_t(pthread_get_stackaddr_np(self));
++  uintptr_t lo = hi - pthread_get_stacksize_np(self);
++  if (fp < lo || fp >= hi) lo = g_run_stack_lo, hi = g_run_stack_hi;
++  int n = 0;
++  while (n < max && fp >= lo && fp + 2 * sizeof(uintptr_t) <= hi && fp % sizeof(uintptr_t) == 0) {
++    const uintptr_t* f = reinterpret_cast<const uintptr_t*>(fp);
++    const uintptr_t next = f[0], pc = f[1] & 0x00007FFFFFFFFFFFull;  // no pointer signature
++    if (!pc) break;
++    frames[n++] = reinterpret_cast<void*>(pc);
++    if (next <= fp) break;  // the outermost frame
++    fp = next;
++  }
++  return n;
++}
++void BacktraceSymbolsFd(void* const* frames, int n, int fd) { backtrace_symbols_fd(frames, n, fd); }
+ #else
+ int Backtrace(void** frames, int max) { return backtrace(frames, max); }
+ void BacktraceSymbolsFd(void* const* frames, int n, int fd) { backtrace_symbols_fd(frames, n, fd); }

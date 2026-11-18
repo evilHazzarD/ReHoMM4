@@ -1,0 +1,6 @@
+The Switch build is linked with newlib, the C library of devkitPro's devkitA64 toolchain. newlib is
+made of many parts, each under its own permissive license (BSD-style and similar; no copyleft parts
+are linked into applications). The full collection of these notices is COPYING.NEWLIB in the newlib
+source: https://sourceware.org/git/?p=newlib-cygwin.git;a=blob_plain;f=COPYING.NEWLIB
+The GCC runtime pieces linked in (libgcc, libstdc++) are under the GCC Runtime Library Exception,
+which places no conditions on the application they are linked into.

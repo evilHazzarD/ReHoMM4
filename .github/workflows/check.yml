@@ -1,0 +1,32 @@
+# Contains code from HoMM4Deadware (https://github.com/LeoDeadware/HoMM4Deadware): Copyright (c) 2026 LeoDeadware, MIT License.
+# Runs on every push: the pre-publish gate (no secrets, no game data, no vendored code) and
+# everything that builds without the game. The game itself needs your own GOG copy (the DMG, or tools/build.sh).
+name: check
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: publish check (tree + history)
+        run: python3 tools/release/publish_check.py --history ${{ github.event.repository.private && '--private' || '' }}
+      - name: release rule (Ukrainian + English versions, README says how to get each)
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        run: python3 tools/release/publish_check.py --release ${{ github.event.repository.private && '--private' || '' }}
+      - name: python tools compile
+        run: python3 -m py_compile tools/re/*.py tools/release/*.py platforms/*.py platforms/macos-dmg/*.py platforms/tools/*.py tools/re/collage/*.py
+      - name: shell scripts parse
+        run: for f in tools/*.sh tools/release/*.sh platforms/*.sh platforms/*/*.sh assets/icon/*.sh tests/scripts/*.sh; do bash -n "$f"; done
+      - name: collage tool compiles
+        run: c++ -std=c++17 -Wall -fsyntax-only tools/re/collage/collage.cpp

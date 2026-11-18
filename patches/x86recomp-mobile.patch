@@ -1,0 +1,2492 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 335e10c..6994e1c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -31,7 +31,7 @@ set(DXVK_NATIVE_DIR "" CACHE PATH "dxvk-native install prefix")
+ # raised by a fault is rethrown as if the faulting instruction had made a
+ # call (runtime/platform.h); that needs a frame record in every function
+ # that can fault on guest memory, leaf functions included.
+-if(APPLE)
++if(APPLE OR ANDROID)  # Android: the same redirect (platform.h)
+   set(RECOMP_FAULT_FRAME_FLAGS -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
+       CACHE INTERNAL "")
+ else()
+@@ -41,20 +41,41 @@ endif()
+ # For the helper functions below, which run in the game project's scope.
+ set(RECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "")
+ 
++# Mobile (iOS, Android): static, all in the one app binary. SDL3 and
++# ffmpeg are static there too, and every shared library would carry its
++# own copy of their state; an iOS app also embeds no loose dylibs. The game
++# links the HLE modules whole (recomp_link_hle below): their handlers
++# register from static initialisers nothing else refers to.
++# RECOMP_STATIC_APP: the same on a desktop, for an app shipped as one binary (the
++# Linux/Steam Deck build of a game project).
++option(RECOMP_STATIC_APP "runtime and HLE modules static, linked into the game" OFF)
++if(IOS OR ANDROID OR RECOMP_STATIC_APP)
++  set(RECOMP_LIB_TYPE STATIC CACHE INTERNAL "")
++  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
++else()
++  set(RECOMP_LIB_TYPE SHARED CACHE INTERNAL "")
++endif()
++
+ # The runtime, the HLE modules and their helpers are shared libraries
+ # (ARCHITECTURE.md "Game projects"): one copy of their state, and a change
+ # to one rebuilds only that library. Their thread-locals use the
+ # initial-exec model: the fault handler reads them, and a general-dynamic
+ # access can allocate. --no-undefined holds Linux to what macOS requires
+ # of a dylib: everything it uses comes from the libraries it links.
+-add_compile_options(-ftls-model=initial-exec)
+-if(NOT APPLE)
++# Android: the game is a library SDLActivity dlopen()s, and bionic refuses
++# initial-exec TLS there. Its default may allocate a thread's block on that
++# thread's first access: a first access in the fault handler is a known
++# risk on Android (not yet seen).
++if(NOT ANDROID)
++  add_compile_options(-ftls-model=initial-exec)
++endif()
++if(NOT APPLE AND NOT ANDROID)
+   string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
+ endif()
+ 
+ # Guest address space + PE mapping, and logging (runtime/log.h). Shared by
+ # the runtime, the x87 model and the lifter.
+-add_library(recomp_image SHARED
++add_library(recomp_image ${RECOMP_LIB_TYPE}
+   src/runtime/guest_memory.cpp
+   src/runtime/pe_image.cpp
+   src/runtime/unwind.cpp
+@@ -65,7 +86,7 @@ target_compile_features(recomp_image PUBLIC cxx_std_20)
+ # --- x87 and SSE models (SoftFloat 3e) ---------------------------------
+ include(cmake/softfloat.cmake)  # defines target `softfloat`
+ include(cmake/coremath.cmake)  # defines target `coremath`
+-add_library(recomp_x87 SHARED src/runtime/x87.cpp src/runtime/sse.cpp)
++add_library(recomp_x87 ${RECOMP_LIB_TYPE} src/runtime/x87.cpp src/runtime/sse.cpp)
+ target_include_directories(recomp_x87 PUBLIC src)
+ target_compile_features(recomp_x87 PUBLIC cxx_std_20)
+ target_link_libraries(recomp_x87 PRIVATE softfloat recomp_image)
+@@ -81,11 +102,15 @@ target_compile_options(softfloat PRIVATE -O2)
+ # ----------------------------------------------------------------------
+ 
+ # Lifter (build-time tool): x86-32 machine code -> C++.
+-add_subdirectory(tools/lifter)
++# Build-time tools run on the build machine: a cross build (iOS, Android)
++# uses the host build's recomp_lift.
++if(NOT CMAKE_CROSSCOMPILING)
++  add_subdirectory(tools/lifter)
++endif()
+ 
+ # Runtime core and the Win32 HLE. HLE handlers register themselves from
+ # static initialisers, which run when their library is loaded.
+-add_library(recomp_runtime SHARED
++add_library(recomp_runtime ${RECOMP_LIB_TYPE}
+   src/runtime/dispatch.cpp
+   src/runtime/pacing.cpp
+   src/runtime/platform.cpp
+@@ -121,7 +146,7 @@ endif()
+ if(FFMPEG_FOUND)
+   # The software mixer, its sources, the EAX model and the reverb; no HLE
+   # in it (it logs through the runtime's WarnF).
+-  add_library(recomp_audio SHARED
++  add_library(recomp_audio ${RECOMP_LIB_TYPE}
+     src/runtime/audio/source.cpp
+     src/runtime/audio/mixer.cpp
+     src/runtime/audio/reverb.cpp
+@@ -143,21 +168,21 @@ if(FFMPEG_FOUND)
+     PROPERTIES COMPILE_OPTIONS "-O2;-ffp-contract=off")
+ 
+   # Miles Sound System (mss32) on the software mixer.
+-  add_library(recomp_mss32 SHARED src/runtime/hle/mss32.cpp)
++  add_library(recomp_mss32 ${RECOMP_LIB_TYPE} src/runtime/hle/mss32.cpp)
+   target_link_libraries(recomp_mss32 PUBLIC recomp_runtime recomp_audio)
+ 
+   # DirectSound 8 (dsound) on the same software mixer.
+-  add_library(recomp_dsound SHARED src/runtime/hle/dsound.cpp)
++  add_library(recomp_dsound ${RECOMP_LIB_TYPE} src/runtime/hle/dsound.cpp)
+   target_link_libraries(recomp_dsound PUBLIC recomp_runtime recomp_audio)
+ 
+   # Bink video (binkw32) on ffmpeg; audio through the Miles mixer.
+-  add_library(recomp_bink SHARED src/runtime/hle/binkw32.cpp)
++  add_library(recomp_bink ${RECOMP_LIB_TYPE} src/runtime/hle/binkw32.cpp)
+   target_link_libraries(recomp_bink PUBLIC recomp_mss32)
+ endif()
+ 
+ # HLSL (D3DX 9's dialect) to GLSL (runtime/hlsl/hlsl.h); no HLE in it,
+ # also used by the recomp_hlslc dev tool.
+-add_library(recomp_hlsl SHARED
++add_library(recomp_hlsl ${RECOMP_LIB_TYPE}
+   src/runtime/hlsl/preprocess.cpp
+   src/runtime/hlsl/parse.cpp
+   src/runtime/hlsl/check.cpp
+@@ -166,25 +191,36 @@ add_library(recomp_hlsl SHARED
+   src/runtime/hlsl/bytecode.cpp)
+ target_include_directories(recomp_hlsl PUBLIC src)
+ target_compile_features(recomp_hlsl PUBLIC cxx_std_20)
+-add_subdirectory(tools/hlslc)
++if(NOT CMAKE_CROSSCOMPILING)
++  add_subdirectory(tools/hlslc)
++endif()
+ 
+ # gfx::Device and its backends; no HLE in it, shared by the graphics API
+ # modules below. Backends:
+ # - SDL_GPU (gfx/gpu_device.cpp): always; Vulkan, or Metal on macOS;
+ # - d3d9 through dxvk-native (gfx/d3d9_device.cpp): when DXVK_NATIVE_DIR
+ #   is set (Linux), with RECOMP_HAVE_D3D9 defined for the runtime too.
+-add_library(recomp_gfx SHARED
++# - Soft (gfx/soft_device.cpp): always; 2D only (DirectDraw games), frames
++#   made on the CPU and shown with SDL_Renderer: for hosts without SDL_GPU
++#   (the Switch: RECOMP_GPU off).
++option(RECOMP_GPU "SDL_GPU backend (Vulkan/Metal; glslang)" ON)
++add_library(recomp_gfx ${RECOMP_LIB_TYPE}
+   src/runtime/gfx/format.cpp
+   src/runtime/gfx/device.cpp
+-  src/runtime/gfx/gpu_device.cpp
+-  src/runtime/gfx/shader_compile.cpp)
++  src/runtime/gfx/soft_device.cpp)
+ target_include_directories(recomp_gfx PUBLIC src)
+ target_compile_features(recomp_gfx PUBLIC cxx_std_20)
++target_link_libraries(recomp_gfx PUBLIC SDL3::SDL3 recomp_hlsl PRIVATE recomp_image)
++if(RECOMP_GPU)
++target_sources(recomp_gfx PRIVATE
++  src/runtime/gfx/gpu_device.cpp
++  src/runtime/gfx/shader_compile.cpp)
++target_compile_definitions(recomp_gfx PUBLIC RECOMP_HAVE_GPU)
+ # Shaders translated at run time (Direct3D 9) are compiled then: glslang
+ # to SPIR-V, and SPIRV-Cross to MSL on macOS (gfx/shader_compile.cpp).
+ find_package(glslang CONFIG REQUIRED)
+-target_link_libraries(recomp_gfx PUBLIC SDL3::SDL3 recomp_hlsl
+-  PRIVATE recomp_image glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits)
++target_link_libraries(recomp_gfx
++  PRIVATE glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits)
+ if(APPLE)
+   # SPIRV-Cross's per-module configs do not find their dependencies.
+   find_package(spirv_cross_core CONFIG REQUIRED)
+@@ -201,6 +237,12 @@ if(APPLE)
+   find_program(RECOMP_SPIRV_CROSS spirv-cross REQUIRED)
+ endif()
+ set(_shader_dir "${CMAKE_CURRENT_BINARY_DIR}/gfx_shaders")
++# Android: many mobile GPUs (Mali) lack Vulkan's shaderClipDistance, so the
++# fixed-function user clip planes are left out there (gpu_device.cpp).
++set(_ff_defines "")
++if(ANDROID)
++  set(_ff_defines -DNO_CLIP_DISTANCE)
++endif()
+ set(_shader_name_vert kFfVert)
+ set(_shader_name_frag kFfFrag)
+ foreach(_stage vert frag)
+@@ -223,13 +265,14 @@ foreach(_stage vert frag)
+     add_custom_command(
+       OUTPUT "${_out}"
+       COMMAND "${CMAKE_COMMAND}" -E make_directory "${_shader_dir}"
+-      COMMAND "${RECOMP_GLSLANG}" -V --target-env vulkan1.0 --quiet
++      COMMAND "${RECOMP_GLSLANG}" -V --target-env vulkan1.0 --quiet ${_ff_defines}
+               --vn ${_shader_name_${_stage}} -o "${_out}" "${_src}"
+       DEPENDS "${_src}" VERBATIM)
+   endif()
+   target_sources(recomp_gfx PRIVATE "${_out}")
+ endforeach()
+ target_include_directories(recomp_gfx PRIVATE "${_shader_dir}")
++endif()  # RECOMP_GPU
+ # Per-pixel host paths: optimised in every build type.
+ set_source_files_properties(src/runtime/gfx/format.cpp
+   TARGET_DIRECTORY recomp_gfx PROPERTIES COMPILE_OPTIONS "-O2")
+@@ -248,23 +291,23 @@ if(DXVK_NATIVE_DIR)
+ endif()
+ 
+ # DirectDraw 7 / Direct3D 7 over gfx::Device.
+-add_library(recomp_d3d7 SHARED
++add_library(recomp_d3d7 ${RECOMP_LIB_TYPE}
+   src/runtime/hle/ddraw.cpp
+   src/runtime/hle/d3d7.cpp)
+ target_link_libraries(recomp_d3d7 PUBLIC recomp_runtime recomp_gfx)
+ 
+ # XInput 1.3 on SDL gamepads, and the WMI that tells games which
+ # DirectInput game controllers are XInput pads.
+-add_library(recomp_xinput SHARED src/runtime/hle/xinput.cpp src/runtime/hle/wbem.cpp)
++add_library(recomp_xinput ${RECOMP_LIB_TYPE} src/runtime/hle/xinput.cpp src/runtime/hle/wbem.cpp)
+ target_link_libraries(recomp_xinput PUBLIC recomp_runtime)
+ 
+ # DirectInput 8 (keyboard and mouse) on the event pump's raw input; it
+ # lists the XInput pads as game controllers.
+-add_library(recomp_dinput8 SHARED src/runtime/hle/dinput8.cpp)
++add_library(recomp_dinput8 ${RECOMP_LIB_TYPE} src/runtime/hle/dinput8.cpp)
+ target_link_libraries(recomp_dinput8 PUBLIC recomp_runtime recomp_xinput)
+ 
+ # Direct3D 9 and D3DX 9 over gfx::Device.
+-add_library(recomp_d3d9 SHARED src/runtime/hle/d3d9.cpp src/runtime/hle/d3d9_draw.cpp
++add_library(recomp_d3d9 ${RECOMP_LIB_TYPE} src/runtime/hle/d3d9.cpp src/runtime/hle/d3d9_draw.cpp
+   src/runtime/hle/d3d9_resource.cpp src/runtime/hle/d3dx9.cpp)
+ target_link_libraries(recomp_d3d9 PUBLIC recomp_runtime recomp_gfx recomp_hlsl)
+ # D3DX's maths rounds like the original only without contraction into FMA.
+@@ -272,7 +315,7 @@ set_source_files_properties(src/runtime/hle/d3dx9.cpp TARGET_DIRECTORY recomp_d3
+   PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
+ 
+ # OpenGL 1.x (opengl32, wgl, gdi32 pixel formats) over gfx::Device.
+-add_library(recomp_opengl SHARED
++add_library(recomp_opengl ${RECOMP_LIB_TYPE}
+   src/runtime/gl/context.cpp
+   src/runtime/hle/opengl32.cpp)
+ target_link_libraries(recomp_opengl PUBLIC recomp_runtime recomp_gfx)
+@@ -280,25 +323,41 @@ target_link_libraries(recomp_opengl PUBLIC recomp_runtime recomp_gfx)
+ # dbghelp (UnDecorateSymbolName) on LLVM's Microsoft demangler.
+ # The x64 C and C++ runtime DLLs (UCRT, VCRUNTIME140, MSVCP140): x64 guests
+ # import them, 32-bit ones link their CRT statically.
+-add_library(recomp_ucrt SHARED src/runtime/hle/ucrt.cpp src/runtime/hle/ucrt_stdio.cpp
++add_library(recomp_ucrt ${RECOMP_LIB_TYPE} src/runtime/hle/ucrt.cpp src/runtime/hle/ucrt_stdio.cpp
+             src/runtime/hle/ucrt_time.cpp
+             src/runtime/hle/vcruntime.cpp src/runtime/hle/vcruntime_eh.cpp
+             src/runtime/hle/msvcp140.cpp)
+ target_link_libraries(recomp_ucrt PUBLIC recomp_runtime PRIVATE coremath)
+ 
+ # Store and online service SDKs (GOG Galaxy, ...), answering as offline.
+-add_library(recomp_online SHARED src/runtime/hle/galaxy64.cpp)
++add_library(recomp_online ${RECOMP_LIB_TYPE} src/runtime/hle/galaxy64.cpp)
+ target_link_libraries(recomp_online PUBLIC recomp_runtime)
+ 
+ # SDL2.dll for x64 guests that link it themselves, on the host's SDL3.
+-add_library(recomp_sdl2 SHARED src/runtime/hle/sdl2.cpp src/runtime/hle/sdl2_video.cpp)
++add_library(recomp_sdl2 ${RECOMP_LIB_TYPE} src/runtime/hle/sdl2.cpp src/runtime/hle/sdl2_video.cpp)
+ target_link_libraries(recomp_sdl2 PUBLIC recomp_runtime SDL3::SDL3)
+ 
+-add_library(recomp_dbghelp SHARED src/runtime/hle/dbghelp.cpp)
++# Optional: only games that import dbghelp need it, and cross builds (iOS,
++# Android) have no LLVM for the target.
+ find_library(RECOMP_LLVM_DEMANGLE libLLVMDemangle.a
+-  PATHS "${RECOMP_LLVM_ROOT}/lib64" "${RECOMP_LLVM_ROOT}/lib" NO_DEFAULT_PATH REQUIRED)
+-target_link_libraries(recomp_dbghelp PUBLIC recomp_runtime "${RECOMP_LLVM_DEMANGLE}")
+-target_include_directories(recomp_dbghelp PRIVATE "${RECOMP_LLVM_ROOT}/include")
++  PATHS "${RECOMP_LLVM_ROOT}/lib64" "${RECOMP_LLVM_ROOT}/lib" NO_DEFAULT_PATH)
++if(RECOMP_LLVM_DEMANGLE)
++  add_library(recomp_dbghelp ${RECOMP_LIB_TYPE} src/runtime/hle/dbghelp.cpp)
++  target_link_libraries(recomp_dbghelp PUBLIC recomp_runtime "${RECOMP_LLVM_DEMANGLE}")
++  target_include_directories(recomp_dbghelp PRIVATE "${RECOMP_LLVM_ROOT}/include")
++endif()
++
++# recomp_link_hle(<target> <libs...>): links runtime/HLE libraries; where
++# they are static (mobile), whole, so their registrars are kept.
++function(recomp_link_hle target)
++  foreach(_lib ${ARGN})
++    if(RECOMP_LIB_TYPE STREQUAL "STATIC")
++      target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
++    else()
++      target_link_libraries(${target} PRIVATE ${_lib})
++    endif()
++  endforeach()
++endfunction()
+ 
+ # recomp_add_lifted(<target> <dir>): an OBJECT library of the lifter's
+ # output in <dir> (globbed, so re-run cmake after lifting), with the
+@@ -469,8 +528,10 @@ endfunction()
+ if(PROJECT_IS_TOP_LEVEL)
+   enable_testing()
+ endif()
+-add_subdirectory(tests)
++if(NOT CMAKE_CROSSCOMPILING)
++  add_subdirectory(tests)
++endif()
+ # Dev tool: renders the EAX capture cases with recomp_audio (eax_render).
+-if(PROJECT_IS_TOP_LEVEL AND FFMPEG_FOUND)
++if(PROJECT_IS_TOP_LEVEL AND FFMPEG_FOUND AND NOT CMAKE_CROSSCOMPILING)
+   add_subdirectory(tools/eax_capture)
+ endif()
+diff --git a/src/runtime/audio/digital_reverb.h b/src/runtime/audio/digital_reverb.h
+index 56cf4bb..16dc0a4 100644
+--- a/src/runtime/audio/digital_reverb.h
++++ b/src/runtime/audio/digital_reverb.h
+@@ -24,6 +24,7 @@
+ // their results are rounded to float and agreed with the original in
+ // every case tests/digital_reverb_test.cpp compares.
+ 
++#include <cstddef>
+ #include <cstdint>
+ #include <vector>
+ 
+diff --git a/src/runtime/dispatch.cpp b/src/runtime/dispatch.cpp
+index caa8e2d..d2b62e5 100644
+--- a/src/runtime/dispatch.cpp
++++ b/src/runtime/dispatch.cpp
+@@ -5,9 +5,10 @@
+ // for thunk addresses. Anything else is fatal: there is no interpreter
+ // fallback (CLAUDE.md).
+ 
+-#include <execinfo.h>
+ #include <pthread.h>
++#if !defined(__SWITCH__)
+ #include <sys/mman.h>
++#endif
+ #include <signal.h>
+ #include <unistd.h>
+ 
+@@ -141,8 +142,8 @@ namespace {
+     std::fprintf(stderr, "  host backtrace:\n");
+     std::fflush(stderr);
+     void* frames[64];
+-    int nf = backtrace(frames, 64);
+-    backtrace_symbols_fd(frames, nf, 2);
++    int nf = platform::Backtrace(frames, 64);
++    platform::BacktraceSymbolsFd(frames, nf, 2);
+   };
+   report();
+   std::string path = ReportPath("crash");
+@@ -198,6 +199,7 @@ thread_local std::exception_ptr t_fault_exception;
+   }
+ }
+ 
++#if !defined(__SWITCH__)
+ void FaultHandler(int sig, siginfo_t* si, void* uc) {
+   char buf[256];
+   uintptr_t a = reinterpret_cast<uintptr_t>(si->si_addr);
+@@ -252,11 +254,11 @@ void FaultHandler(int sig, siginfo_t* si, void* uc) {
+   // address in [sp] or the link register) still shows where it was.
+   if (fc.caller) {
+     void* caller = reinterpret_cast<void*>(fc.caller);
+-    backtrace_symbols_fd(&caller, 1, 2);
++    platform::BacktraceSymbolsFd(&caller, 1, 2);
+   }
+   void* frames[48];
+-  int nf = backtrace(frames, 48);
+-  backtrace_symbols_fd(frames, nf, 2);
++  int nf = platform::Backtrace(frames, 48);
++  platform::BacktraceSymbolsFd(frames, nf, 2);
+   _exit(4);
+ }
+ }  // namespace
+@@ -286,6 +288,16 @@ void InstallFaultHandler() {
+ }
+ }  // namespace
+ 
++#else
++}  // namespace (the one FaultHandler is in)
++// The Switch: no signals. A host fault ends the app (Atmosphere's crash
++// report); guest SEH for faults is not available.
++void InstallSignalStack() {}
++namespace {
++void InstallFaultHandler() {}
++}  // namespace
++#endif
++
+ void RegisterLiftedFunctions(const LiftedFn* fns, uint32_t count) {
+   g_lifted = fns;
+   g_lifted_count = count;
+diff --git a/src/runtime/gfx/device.cpp b/src/runtime/gfx/device.cpp
+index 83e87ce..d15ff9f 100644
+--- a/src/runtime/gfx/device.cpp
++++ b/src/runtime/gfx/device.cpp
+@@ -1,17 +1,45 @@
+ // Backend selection and presentation geometry for gfx::Device.
+ 
++#include <algorithm>
++#include <cmath>
+ #include "runtime/gfx/device.h"
+ 
+ #include <mutex>
+ 
+ namespace recomp::gfx {
+ 
++Rect FitRectIn(int src_w, int src_h, int dst_w, int dst_h);
++
+ namespace {
+ std::mutex g_present_mu;
+ Presentation g_present{};
++View g_view{};  // under g_present_mu
+ }  // namespace
+ 
++float g_inset_l = 0, g_inset_r = 0;
++
++void SetOutputInsets(float left, float right) {
++  g_inset_l = std::clamp(left, 0.0f, 0.25f);
++  g_inset_r = std::clamp(right, 0.0f, 0.25f);
++}
++
++void OutputInsets(float* left, float* right) {
++  *left = g_inset_l;
++  *right = g_inset_r;
++}
++
+ Rect FitRect(int src_w, int src_h, int dst_w, int dst_h) {
++  if (dst_w > 0 && (g_inset_l > 0 || g_inset_r > 0)) {
++    const int l = int(std::lround(g_inset_l * dst_w)), r = int(std::lround(g_inset_r * dst_w));
++    Rect in = FitRectIn(src_w, src_h, dst_w - l - r, dst_h);
++    in.left += l;
++    in.right += l;
++    return in;
++  }
++  return FitRectIn(src_w, src_h, dst_w, dst_h);
++}
++
++Rect FitRectIn(int src_w, int src_h, int dst_w, int dst_h) {
+   if (src_w <= 0 || src_h <= 0 || dst_w <= 0 || dst_h <= 0) return {0, 0, dst_w, dst_h};
+   int64_t w = dst_w, h = dst_h;
+   if (int64_t(dst_w) * src_h > int64_t(dst_h) * src_w)
+@@ -22,11 +50,85 @@ Rect FitRect(int src_w, int src_h, int dst_w, int dst_h) {
+   return {x, y, x + int(w), y + int(h)};
+ }
+ 
++void SetView(const View& v) {
++  View c = v;
++  c.w = std::clamp(c.w, 0.05f, 1.0f);
++  c.h = std::clamp(c.h, 0.05f, 1.0f);
++  c.x = std::clamp(c.x, 0.0f, 1.0f - c.w);
++  c.y = std::clamp(c.y, 0.0f, 1.0f - c.h);
++  std::lock_guard<std::mutex> l(g_present_mu);
++  g_view = c;
++}
++
++View GetView() {
++  std::lock_guard<std::mutex> l(g_present_mu);
++  return g_view;
++}
++
++RectF ZoomedRect(const Rect& r) {
++  const View v = GetView();
++  const float w = float(r.right - r.left) / v.w, h = float(r.bottom - r.top) / v.h;
++  const float l = float(r.left) - v.x * w, t = float(r.top) - v.y * h;
++  return {l, t, l + w, t + h};
++}
++
+ void NotePresentation(const Presentation& p) {
+   std::lock_guard<std::mutex> l(g_present_mu);
+   g_present = p;
+ }
+ 
++namespace present_state {
++std::mutex& OverlayMutex() {
++  static std::mutex m;
++  return m;
++}
++std::vector<PresentOverlay>& Overlays() {
++  static std::vector<PresentOverlay> v;
++  return v;
++}
++uint64_t& OverlayGen() {
++  static uint64_t g = 0;
++  return g;
++}
++std::mutex& PictureMutex() {
++  static std::mutex m;
++  return m;
++}
++PresentPicture* Pictures() {
++  static PresentPicture p[2];
++  return p;
++}
++}  // namespace present_state
++
++void SetPresentOverlays(std::vector<PresentOverlay> overlays) {
++  std::lock_guard<std::mutex> l(present_state::OverlayMutex());
++  present_state::Overlays() = std::move(overlays);
++  present_state::OverlayGen()++;
++}
++
++namespace {
++void SetPicture(int i, const uint32_t* argb, int w, int h) {
++  std::lock_guard<std::mutex> l(present_state::PictureMutex());
++  present_state::PresentPicture& p = present_state::Pictures()[i];
++  p.image.assign(argb, argb + size_t(w > 0 ? w : 0) * size_t(h > 0 ? h : 0));
++  p.iw = w;
++  p.ih = h;
++  p.gen++;
++}
++void SetPicturePos(int i, int x, int y, bool shown) {
++  std::lock_guard<std::mutex> l(present_state::PictureMutex());
++  present_state::PresentPicture& p = present_state::Pictures()[i];
++  p.x = x;
++  p.y = y;
++  p.shown = shown;
++}
++}  // namespace
++
++void SetPresentCursor(const uint32_t* argb, int w, int h) { SetPicture(0, argb, w, h); }
++void SetPresentCursorPos(int x, int y, bool shown) { SetPicturePos(0, x, y, shown); }
++void SetPresentBadge(const uint32_t* argb, int w, int h) { SetPicture(1, argb, w, h); }
++void SetPresentBadgePos(int x, int y, bool shown) { SetPicturePos(1, x, y, shown); }
++
+ Presentation LastPresentation() {
+   std::lock_guard<std::mutex> l(g_present_mu);
+   return g_present;
+@@ -41,7 +143,13 @@ std::unique_ptr<Device> CreateDevice(Backend b, SDL_Window* window) {
+       return nullptr;
+ #endif
+     case Backend::Gpu:
++#ifdef RECOMP_HAVE_GPU
+       return CreateGpuDevice(window);
++#else
++      return nullptr;
++#endif
++    case Backend::Soft:
++      return CreateSoftDevice(window);
+   }
+   return nullptr;
+ }
+diff --git a/src/runtime/gfx/device.h b/src/runtime/gfx/device.h
+index b429407..75958a7 100644
+--- a/src/runtime/gfx/device.h
++++ b/src/runtime/gfx/device.h
+@@ -22,6 +22,7 @@
+ 
+ #include <cstdint>
+ #include <memory>
++#include <mutex>
+ #include <vector>
+ 
+ #include "runtime/hlsl/hlsl.h"
+@@ -50,6 +51,9 @@ uint32_t RowCount(Format f, uint32_t height);
+ // Single-pixel conversion between uncompressed colour formats and 32-bit
+ // A8R8G8B8 (missing alpha reads as 0xFF). For blits and readbacks.
+ uint32_t DecodePixel(const uint8_t* p, Format f);
++// DecodePixel for every value of a 16-bit format (65536 entries, built on
++// first use), or null for other formats: blits convert by table lookup.
++const uint32_t* Decode16Table(Format f);
+ 
+ // A picture drawn over the presented frame at the window's resolution
+ // wherever the frame still shows `ref` there (the same picture as drawn
+@@ -69,6 +73,11 @@ void SetPresentOverlays(std::vector<PresentOverlay> overlays);
+ // below 0x80 transparent), and where its top-left corner is in the frame.
+ void SetPresentCursor(const uint32_t* argb, int w, int h);
+ void SetPresentCursorPos(int x, int y, bool shown);
++// A second such picture under the pointer, as the pointer's (alpha below
++// 0x80 transparent, at its top-left corner in the frame): the app's own
++// controls drawn over the game (a button, a note).
++void SetPresentBadge(const uint32_t* argb, int w, int h);
++void SetPresentBadgePos(int x, int y, bool shown);
+ void EncodePixel(uint8_t* p, Format f, uint32_t argb);
+ // Raw pixel value (as stored) for colour keys and fills.
+ uint32_t RawPixel(const uint8_t* p, Format f);
+@@ -299,12 +308,52 @@ class Device {
+ // system maps the pointer back through it.
+ Rect FitRect(int src_w, int src_h, int dst_w, int dst_h);
+ 
++// Margins kept clear on the left and right of every output, as fractions of
++// its width (a phone's safe area: the notch, the rounded corners). FitRect
++// fits into what is left; DesktopSize reports what is left. Set before the
++// game starts (main thread); 0 by default.
++void SetOutputInsets(float left, float right);
++void OutputInsets(float* left, float* right);
++
++// Zoom (touch screens' pinch): the part of the frame shown, as fractions of
++// it; {0, 0, 1, 1}, the whole frame, by default. Backends show that part in
++// FitRect's rectangle and the window system maps the pointer through it.
++// Any thread.
++struct View {
++  float x = 0, y = 0, w = 1, h = 1;
++  bool Zoomed() const { return w < 1 || h < 1; }
++};
++void SetView(const View& v);
++View GetView();
++// Where the whole frame lies under the view, for the frame shown in `r`
++// (FitRect's): r itself unzoomed, larger and partly outside r when zoomed.
++struct RectF {
++  float l, t, r, b;
++};
++RectF ZoomedRect(const Rect& r);
++
+ // The last frame any device showed, in pixels: the frame's size, the
+ // output's (swap chain) and FitRect's result. Zeros before the first.
+ struct Presentation {
+   int src_w, src_h, out_w, out_h;
+   Rect rect;
+ };
++// What SetPresentOverlays/Cursor/Badge set, for the backends (device.cpp).
++namespace present_state {
++std::mutex& OverlayMutex();
++std::vector<PresentOverlay>& Overlays();
++uint64_t& OverlayGen();  // bumped on every SetPresentOverlays
++struct PresentPicture {
++  std::vector<uint32_t> image;  // ARGB, iw x ih
++  int iw = 0, ih = 0;
++  uint64_t gen = 0;  // bumped when the picture changes
++  int x = 0, y = 0;
++  bool shown = false;
++};
++std::mutex& PictureMutex();
++PresentPicture* Pictures();  // [0] the pointer, [1] the badge
++}  // namespace present_state
++
+ // Backends call this when they show the front buffer.
+ void NotePresentation(const Presentation& p);
+ Presentation LastPresentation();
+@@ -316,11 +365,13 @@ uint32_t PrimitiveCountFromVertices(uint32_t prim_type, uint32_t verts);
+ enum class Backend {
+   D3D9,  // dxvk-native; only in builds with RECOMP_HAVE_D3D9
+   Gpu,   // SDL_GPU
++  Soft,  // 2D only: frames made on the CPU, shown with SDL_Renderer (soft_device.cpp)
+ };
+ // Null if `b` is not in this build or cannot start on this host.
+ std::unique_ptr<Device> CreateDevice(Backend b, SDL_Window* window);
+ 
+ std::unique_ptr<Device> CreateD3D9Device(SDL_Window* window);
+ std::unique_ptr<Device> CreateGpuDevice(SDL_Window* window);
++std::unique_ptr<Device> CreateSoftDevice(SDL_Window* window);
+ 
+ }  // namespace recomp::gfx
+diff --git a/src/runtime/gfx/format.cpp b/src/runtime/gfx/format.cpp
+index 28cc240..e1361dc 100644
+--- a/src/runtime/gfx/format.cpp
++++ b/src/runtime/gfx/format.cpp
+@@ -2,6 +2,8 @@
+ 
+ #include "runtime/gfx/device.h"
+ 
++#include <atomic>
++
+ namespace recomp::gfx {
+ 
+ uint32_t BitsPerPixel(Format f) {
+@@ -84,6 +86,27 @@ void PutRawPixel(uint8_t* p, Format f, uint32_t v) {
+   }
+ }
+ 
++const uint32_t* Decode16Table(Format f) {
++  if (BitsPerPixel(f) != 16 || f == Format::D16 || f == Format::D15S1) return nullptr;
++  struct Table {
++    std::atomic<uint32_t*> p{nullptr};
++  };
++  static Table tables[64];
++  const size_t i = size_t(f) % 64;
++  if (uint32_t* t = tables[i].p.load(std::memory_order_acquire)) return t;
++  auto* t = new uint32_t[65536];
++  for (uint32_t v = 0; v < 65536; v++) {
++    const uint8_t b[2] = {uint8_t(v), uint8_t(v >> 8)};
++    t[v] = DecodePixel(b, f);
++  }
++  uint32_t* expected = nullptr;
++  if (!tables[i].p.compare_exchange_strong(expected, t, std::memory_order_acq_rel)) {
++    delete[] t;
++    return expected;
++  }
++  return t;
++}
++
+ uint32_t DecodePixel(const uint8_t* p, Format f) {
+   uint32_t v = RawPixel(p, f);
+   switch (f) {
+diff --git a/src/runtime/gfx/gpu_device.cpp b/src/runtime/gfx/gpu_device.cpp
+index 6ec52fb..f6fde6b 100644
+--- a/src/runtime/gfx/gpu_device.cpp
++++ b/src/runtime/gfx/gpu_device.cpp
+@@ -370,18 +370,17 @@ struct OverlayParams {
+ };
+ 
+ // The overlays SetPresentOverlays set, and how often they were set.
+-std::mutex g_overlay_mu;
+-std::vector<PresentOverlay> g_overlays;
+-uint64_t g_overlay_gen = 0;
++std::mutex& g_overlay_mu = present_state::OverlayMutex();
++std::vector<PresentOverlay>& g_overlays = present_state::Overlays();
++uint64_t& g_overlay_gen = present_state::OverlayGen();
+ 
+ // The pointer SetPresentCursor(Pos) set: its picture (and how often it was
+ // set), where it is and whether it is shown.
+-std::mutex g_cursor_mu;
+-std::vector<uint32_t> g_cursor_image;
+-int g_cursor_iw = 0, g_cursor_ih = 0;
+-uint64_t g_cursor_gen = 0;
+-int g_cursor_x = 0, g_cursor_y = 0;
+-bool g_cursor_shown = false;
++// The badge (SetPresentBadge(Pos)) the same way: a picture over the frame
++// under the pointer.
++using present_state::PresentPicture;
++std::mutex& g_cursor_mu = present_state::PictureMutex();
++PresentPicture* const g_pics = present_state::Pictures();  // [0] the pointer, [1] the badge
+ 
+ // The pointer: its picture as it is, the transparent pixels dropped.
+ constexpr const char* kCursorFrag = R"(#version 450
+@@ -697,7 +696,24 @@ class GpuDevice final : public Device {
+     const char* entry = "main";
+     size_t vs_size = sizeof kFfVert, fs_size = sizeof kFfFrag;
+ #endif
++#if defined(__ANDROID__)
++    // Without shaderClipDistance (Mali and other mobile GPUs): ff.vert is
++    // built without user clip planes there (NO_CLIP_DISTANCE), so SetClipPlane
++    // does nothing on Android. 2D (DirectDraw) games never use them.
++    SDL_PropertiesID props = SDL_CreateProperties();
++    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
++    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_FEATURE_CLIP_DISTANCE_BOOLEAN, false);
++    // As SDL_CreateGPUDevice(..., false) elsewhere: the properties default to
++    // debug mode, whose checks cost every frame and assert on a viewport
++    // reaching past the target's edge (the cursor or an overlay at the
++    // screen's edge, which the GPU simply clips).
++    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, false);
++    dev_ = SDL_CreateGPUDeviceWithProperties(props);
++    SDL_DestroyProperties(props);
++    (void)format;
++#else
+     dev_ = SDL_CreateGPUDevice(format, false, nullptr);
++#endif
+     if (!dev_) {
+       WarnF("gfx: SDL_CreateGPUDevice: %s\n", SDL_GetError());
+       return false;
+@@ -815,8 +831,17 @@ class GpuDevice final : public Device {
+     // presentation tears in fullscreen).
+     SDL_GPUPresentMode mode = SDL_GPU_PRESENTMODE_VSYNC;
+     mailbox_emulated_ = false;
++    // Android: a present (vkQueuePresentKHR) is a SurfaceFlinger binder
++    // transaction, costly on the game thread at the game's own rate: there
++    // the presenting thread shows one frame per refresh even with mailbox.
++#if defined(__ANDROID__)
++    constexpr bool kMailboxOnGameThread = false;
++#else
++    constexpr bool kMailboxOnGameThread = true;
++#endif
+     if (!vsync) {
+-      if (SDL_WindowSupportsGPUPresentMode(dev_, window_, SDL_GPU_PRESENTMODE_MAILBOX)) {
++      if (kMailboxOnGameThread &&
++          SDL_WindowSupportsGPUPresentMode(dev_, window_, SDL_GPU_PRESENTMODE_MAILBOX)) {
+         mode = SDL_GPU_PRESENTMODE_MAILBOX;
+       } else {
+         mailbox_emulated_ = true;
+@@ -2522,6 +2547,11 @@ void r_color0(inout vec4 c) {
+   void Present(SDL_GPUCommandBuffer* cmd, SDL_GPUTexture* sc, Uint32 sw, Uint32 sh) {
+     const Rect r = FitRect(bb_w_, bb_h_, int(sw), int(sh));
+     const int w = r.right - r.left, h = r.bottom - r.top;
++    // Zoomed (gfx::SetView): that part of the frame fills r, scaled by the
++    // blit (the filters below work on the whole frame).
++    const View view = GetView();
++    const bool zoomed = view.Zoomed();
++    const RectF zr = ZoomedRect(r);
+     // The frame the filters scale: the front buffer, or debanded.
+     SDL_GPUTexture* src = front_;
+     if (deband_) {
+@@ -2547,6 +2577,12 @@ void r_color0(inout vec4 c) {
+     b.source.texture = src;
+     b.source.w = Uint32(bb_w_);
+     b.source.h = Uint32(bb_h_);
++    if (zoomed) {
++      b.source.x = Uint32(std::lround(view.x * float(bb_w_)));
++      b.source.y = Uint32(std::lround(view.y * float(bb_h_)));
++      b.source.w = std::max<Uint32>(1, Uint32(std::lround(view.w * float(bb_w_))));
++      b.source.h = std::max<Uint32>(1, Uint32(std::lround(view.h * float(bb_h_))));
++    }
+     b.destination.texture = sc;
+     b.destination.x = Uint32(r.left);
+     b.destination.y = Uint32(r.top);
+@@ -2564,8 +2600,8 @@ void r_color0(inout vec4 c) {
+       SDL_EndGPURenderPass(SDL_BeginGPURenderPass(cmd, &t, 1, nullptr));
+       b.load_op = SDL_GPU_LOADOP_LOAD;
+     }
+-    const bool scaled = w != bb_w_ || h != bb_h_;
+-    if (scaled && filter_ == kFsr) {
++    const bool scaled = zoomed || w != bb_w_ || h != bb_h_;
++    if (scaled && filter_ == kFsr && !zoomed) {
+       // FSR's EASU pass, into an output-sized texture.
+       SDL_GPUColorTargetInfo et{};
+       et.texture = FsrTexture(w, h);
+@@ -2585,7 +2621,7 @@ void r_color0(inout vec4 c) {
+       SDL_DrawGPUPrimitives(ep, 3, 1, 0, 0);
+       SDL_EndGPURenderPass(ep);
+     }
+-    if (scaled && filter_ >= 2) {
++    if (scaled && filter_ >= 2 && !zoomed) {
+       // A filter: drawn into the fitted rectangle, the bars cleared.
+       SDL_GPUColorTargetInfo t{};
+       t.texture = sc;
+@@ -2616,7 +2652,9 @@ void r_color0(inout vec4 c) {
+       b.filter = !scaled || filter_ == 0 ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
+       SDL_BlitGPUTexture(cmd, &b);
+     }
+-    if (overlay_ref_ && !overlays_.empty()) {
++    // Zoomed, the sharp overlays are left out (the frame holds their
++    // picture too); their viewports would reach outside the output.
++    if (overlay_ref_ && !overlays_.empty() && !zoomed) {
+       SDL_GPUColorTargetInfo t{};
+       t.texture = sc;
+       t.load_op = SDL_GPU_LOADOP_LOAD;
+@@ -2640,7 +2678,7 @@ void r_color0(inout vec4 c) {
+       }
+       SDL_EndGPURenderPass(rp);
+     }
+-    DrawCursor(cmd, sc, r, w, h);
++    DrawCursor(cmd, sc, zr, int(sw), int(sh));
+     NotePresentation({bb_w_, bb_h_, int(sw), int(sh), r});
+   }
+ 
+@@ -2648,30 +2686,36 @@ void r_color0(inout vec4 c) {
+   // before the Flush that precedes a present, like the overlays.
+   void SyncCursor() {
+     std::lock_guard<std::mutex> cl(g_cursor_mu);
+-    if (cursor_gen_ == g_cursor_gen) return;
+-    cursor_gen_ = g_cursor_gen;
+-    if (cursor_tex_) DestroyTexture(cursor_tex_);
+-    cursor_tex_ = 0;
+-    cursor_iw_ = g_cursor_iw;
+-    cursor_ih_ = g_cursor_ih;
+-    if (cursor_iw_ <= 0 || cursor_ih_ <= 0 ||
+-        g_cursor_image.size() < size_t(cursor_iw_) * cursor_ih_)
+-      return;
+-    cursor_tex_ = CreateTexture(cursor_iw_, cursor_ih_, 1, Format::A8R8G8B8, false);
+-    if (cursor_tex_)
+-      UpdateTexture(cursor_tex_, 0, Rect{0, 0, cursor_iw_, cursor_ih_}, g_cursor_image.data(),
+-                    uint32_t(cursor_iw_) * 4);
++    for (int i = 0; i < 2; i++) {
++      const PresentPicture& g = g_pics[i];
++      if (cursor_gen_[i] == g.gen) continue;
++      cursor_gen_[i] = g.gen;
++      if (cursor_tex_[i]) DestroyTexture(cursor_tex_[i]);
++      cursor_tex_[i] = 0;
++      cursor_iw_[i] = g.iw;
++      cursor_ih_[i] = g.ih;
++      if (g.iw <= 0 || g.ih <= 0 || g.image.size() < size_t(g.iw) * g.ih) continue;
++      cursor_tex_[i] = CreateTexture(g.iw, g.ih, 1, Format::A8R8G8B8, false);
++      if (cursor_tex_[i])
++        UpdateTexture(cursor_tex_[i], 0, Rect{0, 0, g.iw, g.ih}, g.image.data(), uint32_t(g.iw) * 4);
++    }
+   }
+ 
+   // The pointer over the frame shown at r (w x h), scaled as the frame is,
+   // its pixels kept sharp.
+-  void DrawCursor(SDL_GPUCommandBuffer* cmd, SDL_GPUTexture* sc, const Rect& r, int w, int h) {
++  // `zr`: the whole frame's rectangle on the output (gfx::ZoomedRect);
++  // the pointer is left out where it would reach past the output (sw x sh).
++  void DrawCursor(SDL_GPUCommandBuffer* cmd, SDL_GPUTexture* sc, const RectF& zr, int sw, int sh) {
++    DrawPicture(1, cmd, sc, zr, sw, sh);  // the badge, under
++    DrawPicture(0, cmd, sc, zr, sw, sh);
++  }
++  void DrawPicture(int i, SDL_GPUCommandBuffer* cmd, SDL_GPUTexture* sc, const RectF& zr, int sw, int sh) {
+     int x, y;
+     {
+       std::lock_guard<std::mutex> cl(g_cursor_mu);
+-      if (!g_cursor_shown || !cursor_tex_) return;
+-      x = g_cursor_x;
+-      y = g_cursor_y;
++      if (!g_pics[i].shown || !cursor_tex_[i]) return;
++      x = g_pics[i].x;
++      y = g_pics[i].y;
+     }
+     SDL_GPUColorTargetInfo t{};
+     t.texture = sc;
+@@ -2679,11 +2723,15 @@ void r_color0(inout vec4 c) {
+     t.store_op = SDL_GPU_STOREOP_STORE;
+     SDL_GPURenderPass* rp = SDL_BeginGPURenderPass(cmd, &t, 1, nullptr);
+     SDL_BindGPUGraphicsPipeline(rp, CursorPipeline());
+-    const float kx = float(w) / float(bb_w_), ky = float(h) / float(bb_h_);
+-    SDL_GPUViewport vp{float(r.left) + float(x) * kx, float(r.top) + float(y) * ky,
+-                       float(cursor_iw_) * kx, float(cursor_ih_) * ky, 0.0f, 1.0f};
++    const float kx = (zr.r - zr.l) / float(bb_w_), ky = (zr.b - zr.t) / float(bb_h_);
++    SDL_GPUViewport vp{zr.l + float(x) * kx, zr.t + float(y) * ky, float(cursor_iw_[i]) * kx,
++                       float(cursor_ih_[i]) * ky, 0.0f, 1.0f};
++    if (vp.x < 0 || vp.y < 0 || vp.x + vp.w > float(sw) || vp.y + vp.h > float(sh)) {
++      SDL_EndGPURenderPass(rp);
++      return;
++    }
+     SDL_SetGPUViewport(rp, &vp);
+-    SDL_GPUTextureSamplerBinding b{textures_[cursor_tex_].tex, cursor_sampler_};
++    SDL_GPUTextureSamplerBinding b{textures_[cursor_tex_[i]].tex, cursor_sampler_};
+     SDL_BindGPUFragmentSamplers(rp, 0, &b, 1);
+     const float unused[4] = {};
+     SDL_PushGPUFragmentUniformData(cmd, 0, unused, sizeof unused);
+@@ -2819,6 +2867,9 @@ void r_color0(inout vec4 c) {
+       } else if (f == Format::X8R8G8B8) {
+         const auto* p = reinterpret_cast<const uint32_t*>(s);
+         for (int x = 0; x < w; x++) d[x] = p[x] | 0xFF000000u;
++      } else if (const uint32_t* t = Decode16Table(f)) {
++        const auto* p = reinterpret_cast<const uint16_t*>(s);
++        for (int x = 0; x < w; x++) d[x] = t[p[x]];
+       } else {
+         for (int x = 0; x < w; x++) d[x] = DecodePixel(s + size_t(x) * bpp, f);
+       }
+@@ -2840,6 +2891,15 @@ void r_color0(inout vec4 c) {
+       ConvertToArgb(base, pitch, fmt, w, h, px.data());
+       if (!blend)
+         for (uint32_t& p : px) p |= 0xFF000000u;
++    } else if (const uint32_t* t = Decode16Table(fmt)) {
++      const uint16_t k16 = uint16_t(key);
++      const bool keyable = key <= 0xFFFF;
++      for (int y = 0; y < h; y++) {
++        const auto* s = reinterpret_cast<const uint16_t*>(base + size_t(y) * pitch);
++        uint32_t* d = px.data() + size_t(y) * w;
++        for (int x = 0; x < w; x++)
++          d[x] = keyable && s[x] == k16 ? 0 : (t[s[x]] | 0xFF000000u);
++      }
+     } else {
+       for (int y = 0; y < h; y++) {
+         const uint8_t* s = base + size_t(y) * pitch;
+@@ -3413,9 +3473,9 @@ void r_color0(inout vec4 c) {
+   SDL_GPUGraphicsPipeline* overlay_pipe_ = nullptr;
+   SDL_GPUTextureFormat overlay_fmt_ = SDL_GPU_TEXTUREFORMAT_INVALID;
+   // The pointer (SyncCursor, DrawCursor).
+-  TextureId cursor_tex_ = 0;
+-  uint64_t cursor_gen_ = 0;
+-  int cursor_iw_ = 0, cursor_ih_ = 0;
++  TextureId cursor_tex_[2] = {0, 0};  // the pointer, the badge
++  uint64_t cursor_gen_[2] = {0, 0};
++  int cursor_iw_[2] = {0, 0}, cursor_ih_[2] = {0, 0};
+   SDL_GPUShader* cursor_fs_ = nullptr;
+   SDL_GPUSampler* cursor_sampler_ = nullptr;
+   SDL_GPUGraphicsPipeline* cursor_pipe_ = nullptr;
+@@ -3514,27 +3574,6 @@ void r_color0(inout vec4 c) {
+ 
+ }  // namespace
+ 
+-void SetPresentOverlays(std::vector<PresentOverlay> overlays) {
+-  std::lock_guard<std::mutex> l(g_overlay_mu);
+-  g_overlays = std::move(overlays);
+-  g_overlay_gen++;
+-}
+-
+-void SetPresentCursor(const uint32_t* argb, int w, int h) {
+-  std::lock_guard<std::mutex> l(g_cursor_mu);
+-  g_cursor_image.assign(argb, argb + size_t(std::max(w, 0)) * size_t(std::max(h, 0)));
+-  g_cursor_iw = w;
+-  g_cursor_ih = h;
+-  g_cursor_gen++;
+-}
+-
+-void SetPresentCursorPos(int x, int y, bool shown) {
+-  std::lock_guard<std::mutex> l(g_cursor_mu);
+-  g_cursor_x = x;
+-  g_cursor_y = y;
+-  g_cursor_shown = shown;
+-}
+-
+ std::unique_ptr<Device> CreateGpuDevice(SDL_Window* window) {
+   auto d = std::make_unique<GpuDevice>(window);
+   if (!d->Init()) return nullptr;
+diff --git a/src/runtime/gfx/shaders/ff.vert b/src/runtime/gfx/shaders/ff.vert
+index 2bce1c0..2dda107 100644
+--- a/src/runtime/gfx/shaders/ff.vert
++++ b/src/runtime/gfx/shaders/ff.vert
+@@ -63,7 +63,9 @@ layout(std430, VERTICES_BINDING) readonly buffer Vertices { uint vb[]; };
+ out gl_PerVertex {
+   vec4 gl_Position;
+   float gl_PointSize;
++#ifndef NO_CLIP_DISTANCE
+   float gl_ClipDistance[8];
++#endif
+ };
+ 
+ layout(location = 0) out vec4 o_diff;
+@@ -245,8 +247,10 @@ void main() {
+     o_t[s] = t;
+   }
+ 
++#ifndef NO_CLIP_DISTANCE
+   for (int i = 0; i < 8; i++)
+     gl_ClipDistance[i] = (u.mode.x != 1 && (u.mode4.z & (1 << i)) != 0)
+                              ? dot(u.clip[i], view_pos) : 1.0;
++#endif
+   gl_PointSize = u.layout2.y >= 0 ? Rf(base + u.layout2.y) : u.point.x;
+ }
+diff --git a/src/runtime/guest_alloc.cpp b/src/runtime/guest_alloc.cpp
+index e06baaf..0f9be39 100644
+--- a/src/runtime/guest_alloc.cpp
++++ b/src/runtime/guest_alloc.cpp
+@@ -105,13 +105,20 @@ bool GuestAllocator::Commit(uint64_t va, uint64_t size, Prot prot) {
+     return false;
+   // Commit only pages not already committed, so existing data survives
+   // (MEM_COMMIT on committed pages is a no-op apart from protection).
++  // Runs of uncommitted pages are committed with one call each (one
++  // mprotect, not one per page: heaps commit megabytes at a time).
+   uint64_t s = va & ~(kPage - 1), e = RoundUp(va + size, kPage);
++  uint64_t run = e;
+   for (uint64_t p = s; p < e; p += kPage) {
+-    if (mem_->IsCommitted(p))
++    if (mem_->IsCommitted(p)) {
++      if (run < p) mem_->Commit(run, p - run, prot);
++      run = e;
+       mem_->Protect(p, kPage, prot);
+-    else
+-      mem_->Commit(p, kPage, prot);
++    } else if (run == e) {
++      run = p;
++    }
+   }
++  if (run < e) mem_->Commit(run, e - run, prot);
+   return true;
+ }
+ 
+diff --git a/src/runtime/guest_memory.cpp b/src/runtime/guest_memory.cpp
+index cb19500..5d9af51 100644
+--- a/src/runtime/guest_memory.cpp
++++ b/src/runtime/guest_memory.cpp
+@@ -1,12 +1,76 @@
+ #include "runtime/guest_memory.h"
+ 
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <vector>
++
++#if defined(__SWITCH__)
++// The Switch (homebrew): no mmap/mprotect, and no way for an applet to map
++// memory page by page into a reserved range. The arena is one block of the
++// heap, committed whole: 2 GiB (a 32-bit guest that is not large-address-
++// aware lives below that), so the app needs the memory of title takeover
++// (a game's, about 3.2 GiB; the album applet's 440 MiB is too little).
++// Guest protection is bookkeeping either way; host pages stay accessible.
++namespace recomp {
++
++bool GuestMemory::Reserve(unsigned bits) {
++  host_page_ = kPageSize;
++  if (bits > 32) {
++    std::fprintf(stderr, "GuestMemory: no 64-bit guests on this host\n");
++    return false;
++  }
++  const uint64_t size = 1ull << 31;
++  void* p = std::aligned_alloc(0x10000, size_t(size));
++  if (!p) {
++    std::fprintf(stderr,
++                 "GuestMemory: cannot allocate the 2 GiB arena (start the game through title "
++                 "takeover: hold R while launching a game)\n");
++    return false;
++  }
++  std::memset(p, 0, size_t(size));
++  base_ = static_cast<uint8_t*>(p);
++  size_ = size;
++  pages_.assign(size / kPageSize, 0);
++  return true;
++}
++
++#if !defined(__SWITCH__)
++void GuestMemory::HostRange(gaddr va, uint64_t size, uint64_t* start, uint64_t* end) const {
++  *start = uint64_t(va) & ~uint64_t(kPageSize - 1);
++  *end = (uint64_t(va) + size + kPageSize - 1) & ~uint64_t(kPageSize - 1);
++}
++#endif
++
++bool GuestMemory::HostPageInUse(uint64_t host_off) const { return pages_[host_off / kPageSize] & kCommitted; }
++
++bool GuestMemory::Commit(gaddr va, uint64_t size, Prot prot) {
++  if (!size) return true;
++  if (!InRange(va, size)) return false;
++  uint64_t first = va / kPageSize, last = (uint64_t(va) + size - 1) / kPageSize;
++  for (uint64_t g = first; g <= last; g++) pages_[g] = kCommitted | static_cast<uint8_t>(prot);
++  return true;
++}
++
++void GuestMemory::Decommit(gaddr va, uint64_t size, bool zero) {
++  if (!size || !InRange(va, size)) return;
++  uint64_t first = va / kPageSize, last = (uint64_t(va) + size - 1) / kPageSize;
++  for (uint64_t g = first; g <= last; g++) {
++    if (zero && (pages_[g] & kCommitted)) std::memset(base_ + g * kPageSize, 0, kPageSize);
++    pages_[g] = 0;
++  }
++}
++
++}  // namespace recomp
++
++#else
+ #include <sys/mman.h>
+ #include <unistd.h>
+-
+-#include <cstdio>
++#endif
+ 
+ namespace recomp {
+ 
++#if !defined(__SWITCH__)
+ namespace {
+ 
+ // Preferred host placement keeps base() stable across runs, which makes
+@@ -20,7 +84,9 @@ constexpr uintptr_t kPreferredBaseLarge = 0x20000000000ull;
+ constexpr int kReserveFlags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
+ 
+ }  // namespace
++#endif
+ 
++#if !defined(__SWITCH__)
+ bool GuestMemory::Reserve(unsigned bits) {
+   host_page_ = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+   if (host_page_ < kPageSize || host_page_ % kPageSize) {
+@@ -29,7 +95,7 @@ bool GuestMemory::Reserve(unsigned bits) {
+     return false;
+   }
+ 
+-  const uint64_t size = 1ull << bits;
++  uint64_t size = 1ull << bits;
+   const uint64_t span = bits > 32 ? 2 * size : size;  // with the guard
+   void* hint = reinterpret_cast<void*>(bits > 32 ? kPreferredBaseLarge : kPreferredBase);
+ #ifdef MAP_FIXED_NOREPLACE
+@@ -40,6 +106,17 @@ bool GuestMemory::Reserve(unsigned bits) {
+   // Without MAP_FIXED_NOREPLACE the hint is advisory; take what we get.
+   void* p = mmap(hint, span, PROT_NONE, kReserveFlags, -1, 0);
+ #endif
++  if (p == MAP_FAILED && bits == 32) {
++    // iOS without the extended-virtual-addressing entitlement (a free
++    // developer account) may refuse 4 GiB. A 32-bit guest that is not
++    // large-address-aware lives below 2 GiB (the runtime's own regions,
++    // thunks and PEB included): the lower half is enough for it. The
++    // process checks the EXE's flag (process.cpp).
++    size = 1ull << 31;
++    p = mmap(hint, size, PROT_NONE, kReserveFlags, -1, 0);
++    if (p != MAP_FAILED)
++      std::fprintf(stderr, "GuestMemory: 4 GiB refused, using a 2 GiB arena\n");
++  }
+   if (p == MAP_FAILED) {
+     std::perror("GuestMemory::Reserve mmap");
+     return false;
+@@ -49,6 +126,7 @@ bool GuestMemory::Reserve(unsigned bits) {
+   pages_.assign(size / kPageSize, 0);
+   return true;
+ }
++#endif
+ 
+ void GuestMemory::HostRange(gaddr va, uint64_t size, uint64_t* start,
+                             uint64_t* end) const {
+@@ -57,12 +135,15 @@ void GuestMemory::HostRange(gaddr va, uint64_t size, uint64_t* start,
+   *end = (uint64_t(va) + size + mask) & ~mask;
+ }
+ 
++#if !defined(__SWITCH__)
+ bool GuestMemory::HostPageInUse(uint64_t host_off) const {
+   for (uint64_t g = host_off / kPageSize, n = host_page_ / kPageSize; n--; g++)
+     if (pages_[g] & kCommitted) return true;
+   return false;
+ }
++#endif
+ 
++#if !defined(__SWITCH__)
+ bool GuestMemory::Commit(gaddr va, uint64_t size, Prot prot) {
+   if (!size) return true;
+   if (!InRange(va, size)) return false;
+@@ -79,6 +160,7 @@ bool GuestMemory::Commit(gaddr va, uint64_t size, Prot prot) {
+     pages_[g] = kCommitted | static_cast<uint8_t>(prot);
+   return true;
+ }
++#endif
+ 
+ bool GuestMemory::Protect(gaddr va, uint64_t size, Prot prot) {
+   if (!size) return true;
+@@ -91,23 +173,40 @@ bool GuestMemory::Protect(gaddr va, uint64_t size, Prot prot) {
+   return true;
+ }
+ 
++#if !defined(__SWITCH__)
+ void GuestMemory::Decommit(gaddr va, uint64_t size, bool zero) {
+   if (!size || !InRange(va, size)) return;
+   uint64_t first = va / kPageSize, last = (uint64_t(va) + size - 1) / kPageSize;
++  // Pages that were committed, for zeroing those a host page keeps mapped.
++  std::vector<uint64_t> was;
+   for (uint64_t g = first; g <= last; g++) {
+-    if (zero && (pages_[g] & kCommitted))
+-      std::memset(base_ + g * kPageSize, 0, kPageSize);  // reads back as zero
++    if (zero && (pages_[g] & kCommitted)) was.push_back(g);
+     pages_[g] = 0;
+   }
+-  // Return host pages no committed guest page still uses. Remapping (not
+-  // madvise) is used because MADV_DONTNEED does not zero on macOS.
++  // Return host pages no committed guest page still uses, one mmap per run
++  // (a heap decommits megabytes at a time). Remapping (not madvise) is used
++  // because MADV_DONTNEED does not zero on macOS; remapped pages come back
++  // zero, so only the guest pages on host pages still in use are cleared.
+   uint64_t s, e;
+   HostRange(va, size, &s, &e);
++  uint64_t run = e;  // start of the current run of free host pages
++  auto flush = [&](uint64_t end) {
++    if (run < end) mmap(base_ + run, end - run, PROT_NONE, kReserveFlags | MAP_FIXED, -1, 0);
++    run = e;
++  };
+   for (uint64_t h = s; h < e; h += host_page_) {
+-    if (HostPageInUse(h)) continue;
+-    mmap(base_ + h, host_page_, PROT_NONE, kReserveFlags | MAP_FIXED, -1, 0);
++    if (HostPageInUse(h)) {
++      flush(h);
++    } else if (run == e) {
++      run = h;
++    }
+   }
++  flush(e);
++  for (uint64_t g : was)
++    if (HostPageInUse(g * kPageSize / host_page_ * host_page_))
++      std::memset(base_ + g * kPageSize, 0, kPageSize);  // reads back as zero
+ }
++#endif
+ 
+ bool GuestMemory::IsCommitted(gaddr va) const {
+   return va < size_ && (pages_[va / kPageSize] & kCommitted);
+diff --git a/src/runtime/hle/ddraw.cpp b/src/runtime/hle/ddraw.cpp
+index 9a812c4..d9624b2 100644
+--- a/src/runtime/hle/ddraw.cpp
++++ b/src/runtime/hle/ddraw.cpp
+@@ -433,6 +433,33 @@ void BlitMem(Surface& dst, const guest::RECT& dr, Surface& src,
+   int sw = sr.right - sr.left, sh = sr.bottom - sr.top;
+   if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
+   bool same = dst.fmt == src.fmt;
++  // Unscaled, same format (nearly every blit a 2D game makes): whole rows,
++  // or for a colour key a typed loop, not a call per pixel.
++  if (same && dw == sw && dh == sh) {
++    for (int y = 0; y < dh; y++) {
++      const uint8_t* sp = GPtr(src.mem + uint32_t(sr.top + y) * src.pitch + uint32_t(sr.left) * sbpp);
++      uint8_t* dp = GPtr(dst.mem + uint32_t(dr.top + y) * dst.pitch + uint32_t(dr.left) * dbpp);
++      if (!key) {
++        std::memmove(dp, sp, size_t(dw) * sbpp);
++      } else if (sbpp == 2) {
++        const auto* s = reinterpret_cast<const uint16_t*>(sp);
++        auto* o = reinterpret_cast<uint16_t*>(dp);
++        const uint16_t k = uint16_t(keyval);
++        if (keyval > 0xFFFF) { std::memmove(dp, sp, size_t(dw) * 2); continue; }
++        for (int x = 0; x < dw; x++)
++          if (s[x] != k) o[x] = s[x];
++      } else if (sbpp == 4) {
++        const auto* s = reinterpret_cast<const uint32_t*>(sp);
++        auto* o = reinterpret_cast<uint32_t*>(dp);
++        for (int x = 0; x < dw; x++)
++          if (s[x] != keyval) o[x] = s[x];
++      } else {
++        for (int x = 0; x < dw; x++, sp += sbpp, dp += dbpp)
++          if (gfx::RawPixel(sp, src.fmt) != keyval) std::memcpy(dp, sp, sbpp);
++      }
++    }
++    return;
++  }
+   for (int y = 0; y < dh; y++) {
+     int sy = sr.top + y * sh / dh;
+     for (int x = 0; x < dw; x++) {
+diff --git a/src/runtime/hle/hle.cpp b/src/runtime/hle/hle.cpp
+index 7b656be..cc39ae7 100644
+--- a/src/runtime/hle/hle.cpp
++++ b/src/runtime/hle/hle.cpp
+@@ -112,8 +112,10 @@ gaddr DataAddress(const std::string& dll, const std::string& name) {
+ 
+ }  // namespace
+ 
+-Registrar::Registrar(const char* dll, const char* name, int nargs, Fn fn, bool x64) {
+-  Registry()[{dll, name}] = Def{nargs, fn, x64};
++Registrar::Registrar(const char* dll, const char* name, int nargs, Fn fn, bool x64,
++                     int priority) {
++  auto [it, fresh] = Registry().try_emplace({dll, name}, Def{nargs, fn, x64, priority});
++  if (!fresh && priority >= it->second.priority) it->second = Def{nargs, fn, x64, priority};
+ }
+ 
+ DataExport::DataExport(const char* dll, const char* name, uint32_t size, void (*init)(gaddr)) {
+diff --git a/src/runtime/hle/hle.h b/src/runtime/hle/hle.h
+index eff07d9..e7332b2 100644
+--- a/src/runtime/hle/hle.h
++++ b/src/runtime/hle/hle.h
+@@ -45,10 +45,20 @@ struct Def {
+   int nargs;
+   Fn fn;
+   bool x64;  // audited for x64 guests (HLE64)
++  int priority = 0;
+ };
+ 
++// A game project's own handlers (compiled with RECOMP_HLE_PRIORITY=1)
++// replace the runtime's for the same export whatever order the static
++// initialisers run in: with shared libraries the game's run last, linked
++// statically (iOS, Android) the order is the linker's.
++#ifndef RECOMP_HLE_PRIORITY
++#define RECOMP_HLE_PRIORITY 0
++#endif
++
+ struct Registrar {
+-  Registrar(const char* dll, const char* name, int nargs, Fn fn, bool x64 = false);
++  Registrar(const char* dll, const char* name, int nargs, Fn fn, bool x64 = false,
++            int priority = 0);
+ };
+ 
+ // A data export of a DLL we provide (a C++ static member, a global the
+@@ -173,5 +183,6 @@ bool EnsureReadable(Ctx& c, gaddr va, uint64_t len);
+ #define HLE_NAMED_X(dll, export_name, ident, nargs, x64)                   \
+   static uint64_t RECOMP_HLE_CAT(hle_, ident)(::recomp::Ctx & c);              \
+   static ::recomp::hle::Registrar RECOMP_HLE_CAT(reg_, ident){                 \
+-      dll, export_name, nargs, &RECOMP_HLE_CAT(hle_, ident), x64};          \
++      dll, export_name, nargs, &RECOMP_HLE_CAT(hle_, ident), x64,           \
++      RECOMP_HLE_PRIORITY};                                                   \
+   static uint64_t RECOMP_HLE_CAT(hle_, ident)([[maybe_unused]] ::recomp::Ctx & c)
+diff --git a/src/runtime/hle/kernel32.cpp b/src/runtime/hle/kernel32.cpp
+index df65f5f..3459d05 100644
+--- a/src/runtime/hle/kernel32.cpp
++++ b/src/runtime/hle/kernel32.cpp
+@@ -15,6 +15,7 @@
+ #include <thread>
+ #include <vector>
+ 
++#include "runtime/platform.h"
+ #include "runtime/hle/hle.h"
+ #include "runtime/hle/kernel32_state.h"
+ #include "runtime/hle/win32.h"
+@@ -1058,8 +1059,9 @@ HLE("kernel32.dll", GetTimeZoneInformation, 1) {
+   std::tm t{};
+   localtime_r(&now, &t);
+   std::memset(GPtr(tzi), 0, 172);
+-  Wr32(tzi + 0, uint32_t(int32_t(-t.tm_gmtoff / 60)));  // Bias, minutes
+-  std::u16string name = Widen(t.tm_zone ? t.tm_zone : "UTC").substr(0, 31);
++  Wr32(tzi + 0, uint32_t(int32_t(-platform::TmGmtOff(t) / 60)));  // Bias, minutes
++  const char* zone = platform::TmZone(t);
++  std::u16string name = Widen(zone ? zone : "UTC").substr(0, 31);
+   std::memcpy(GPtr(tzi + 4), name.data(), name.size() * 2);    // StandardName
+   std::memcpy(GPtr(tzi + 88), name.data(), name.size() * 2);   // DaylightName
+   return 0;
+diff --git a/src/runtime/hle/kernel32_misc.cpp b/src/runtime/hle/kernel32_misc.cpp
+index b6514bb..44a2680 100644
+--- a/src/runtime/hle/kernel32_misc.cpp
++++ b/src/runtime/hle/kernel32_misc.cpp
+@@ -6,6 +6,7 @@
+ #include <ctime>
+ #include <string>
+ 
++#include "runtime/platform.h"
+ #include "runtime/hle/hle.h"
+ #include "runtime/hle/kernel32_state.h"
+ #include "runtime/hle/win32.h"
+@@ -178,7 +179,7 @@ HLE64("kernel32.dll", FileTimeToLocalFileTime, 2) {
+   time_t now = time(nullptr);
+   std::tm lt{};
+   localtime_r(&now, &lt);
+-  int64_t off = int64_t(lt.tm_gmtoff) * 10000000;
++  int64_t off = int64_t(platform::TmGmtOff(lt)) * 10000000;
+   Wr64(Arg(c, 1), uint64_t(int64_t(Rd64(Arg(c, 0))) + off));
+   return 1;
+ }
+@@ -211,7 +212,7 @@ HLE("kernel32.dll", FileTimeToSystemTime, 2) {
+ HLE("kernel32.dll", SystemTimeToFileTime, 2) {
+   uint32_t st = Arg(c, 0);
+   std::tm t = ReadSystemTime(st);
+-  time_t secs = timegm(&t);
++  time_t secs = platform::TimeGm(&t);
+   Wr64(Arg(c, 1),
+        uint64_t(secs) * 10000000 + uint64_t(Rd16(st + 14)) * 10000 + kFileTimeUnixEpoch);
+   return 1;
+diff --git a/src/runtime/hle/kernel32_seh.cpp b/src/runtime/hle/kernel32_seh.cpp
+index 6c63ae4..e521f1e 100644
+--- a/src/runtime/hle/kernel32_seh.cpp
++++ b/src/runtime/hle/kernel32_seh.cpp
+@@ -8,11 +8,11 @@
+ // __except block it unwinds with RtlUnwind and then reaches a manifest
+ // `resume` site, which throws GuestResume to the owning lifted function.
+ 
+-#include <execinfo.h>
+ 
+ #include <algorithm>
+ #include <cstring>
+ 
++#include "runtime/platform.h"
+ #include "runtime/hle/hle.h"
+ #include "runtime/hle/kernel32_state.h"
+ #include "runtime/hle/seh64.h"
+@@ -238,8 +238,8 @@ bool RaiseAccessViolation(Ctx& c, bool write, uint32_t addr) {
+   if (fault_trace) {
+     WarnF("fault: %s at %08X (esp %08X ebp %08X)\n", write ? "write" : "read", addr, c.esp, c.ebp);
+     void* frames[32];
+-    int n = backtrace(frames, 32);
+-    backtrace_symbols_fd(frames, n, 2);
++    int n = platform::Backtrace(frames, 32);
++    platform::BacktraceSymbolsFd(frames, n, 2);
+   }
+   uint32_t saved_esp = c.esp;
+   // The live area below the last spilled ESP is small: stack allocations
+diff --git a/src/runtime/hle/kernel32_sync.cpp b/src/runtime/hle/kernel32_sync.cpp
+index f9ac62d..b3533fd 100644
+--- a/src/runtime/hle/kernel32_sync.cpp
++++ b/src/runtime/hle/kernel32_sync.cpp
+@@ -12,7 +12,9 @@
+ // synchronises opens a GuestSyncPoint, which makes the call a full
+ // barrier as on Windows (see kernel32_state.h).
+ 
++#if !defined(__SWITCH__)
+ #include <sys/mman.h>
++#endif
+ #include <sys/stat.h>
+ #include <unistd.h>
+ 
+@@ -707,6 +709,25 @@ uint32_t MapView(uint32_t h, uint32_t access, uint32_t off_hi, uint32_t off_lo,
+     return 0;
+   }
+   bool write = (access & 0x2) && m->writable;  // FILE_MAP_WRITE
++#if defined(__SWITCH__)
++  // No mmap: the view is a copy of the file read in (writes to it do not
++  // reach the file).
++  g_proc->mem.Commit(base, size, write ? Prot::RW : Prot::R);
++  {
++    uint8_t* dst = static_cast<uint8_t*>(GPtr(base));
++    uint32_t got = 0;
++    if (lseek(m->fd, off_t(off), SEEK_SET) != off_t(-1))
++      while (got < size) {
++        const ssize_t n = read(m->fd, dst + got, size - got);
++        if (n <= 0) break;
++        got += uint32_t(n);
++      }
++    std::memset(dst + got, 0, size - got);
++  }
++  std::lock_guard<std::mutex> l(g_views_mu);
++  g_views.insert(base);
++  return base;
++#else
+   // Copy-on-write (FILE_MAP_COPY) and read views are private; write views
+   // are shared with the file.
+   int flags = MAP_FIXED | (write ? MAP_SHARED : MAP_PRIVATE);
+@@ -722,6 +743,7 @@ uint32_t MapView(uint32_t h, uint32_t access, uint32_t off_hi, uint32_t off_lo,
+   std::lock_guard<std::mutex> l(g_views_mu);
+   g_views.insert(base);
+   return base;
++#endif
+ }
+ 
+ HLE("kernel32.dll", MapViewOfFile, 5) {
+diff --git a/src/runtime/hle/present.cpp b/src/runtime/hle/present.cpp
+index bd9cc86..2bdddb6 100644
+--- a/src/runtime/hle/present.cpp
++++ b/src/runtime/hle/present.cpp
+@@ -116,7 +116,10 @@ void PresentFrame(gfx::Device& dev, int w, int h) {
+ gfx::Backend GfxBackend() {
+   static const gfx::Backend b = [] {
+     const char* e = Env("GFX");
++    if (e && !std::strcmp(e, "soft")) return gfx::Backend::Soft;
++#ifdef RECOMP_HAVE_GPU
+     if (e && !std::strcmp(e, "gpu")) return gfx::Backend::Gpu;
++#endif
+     if (e && !std::strcmp(e, "d3d9")) {
+ #ifdef RECOMP_HAVE_D3D9
+       return gfx::Backend::D3D9;
+@@ -124,8 +127,12 @@ gfx::Backend GfxBackend() {
+       FatalF("graphics backend d3d9 is not in this build (no dxvk-native)");
+ #endif
+     }
+-    if (e && *e) FatalF("unknown graphics backend '%s' (d3d9 or gpu)", e);
++    if (e && *e) FatalF("unknown graphics backend '%s' (d3d9, gpu or soft)", e);
++#ifdef RECOMP_HAVE_GPU
+     return gfx::Backend::Gpu;
++#else
++    return gfx::Backend::Soft;
++#endif
+   }();
+   return b;
+ }
+@@ -140,6 +147,8 @@ uint64_t GfxWindowFlags() {
+ #else
+       return SDL_WINDOW_VULKAN;
+ #endif
++    case gfx::Backend::Soft:
++      return 0;  // SDL_Renderer picks
+   }
+   return 0;
+ }
+diff --git a/src/runtime/hle/user32_window.cpp b/src/runtime/hle/user32_window.cpp
+index cd02281..fce1daf 100644
+--- a/src/runtime/hle/user32_window.cpp
++++ b/src/runtime/hle/user32_window.cpp
+@@ -7,6 +7,10 @@
+ // activation, size) are delivered by calling the WndProc directly.
+ 
+ #include <SDL3/SDL.h>
++#if defined(__APPLE__)
++#include <TargetConditionals.h>
++#endif
++#include <unistd.h>
+ 
+ #include <atomic>
+ #include <bit>
+@@ -411,14 +415,16 @@ ClientMap MapToClient(uint32_t hwnd) {
+     GameClientSize(*w, &m.cw, &m.ch);
+   }
+   int ww = 0, wh = 0;
++  const bool zoomed = gfx::GetView().Zoomed();
+   if (!SDL_GetWindowSize(sdl, &ww, &wh) || ww <= 0 || wh <= 0 || m.cw <= 0 || m.ch <= 0 ||
+-      (ww == m.cw && wh == m.ch))
++      (ww == m.cw && wh == m.ch && !zoomed))
+     return m;
+-  const gfx::Rect r = gfx::FitRect(m.cw, m.ch, ww, wh);
+-  m.kx = float(m.cw) / float(r.right - r.left);
+-  m.ky = float(m.ch) / float(r.bottom - r.top);
+-  m.x0 = float(r.left);
+-  m.y0 = float(r.top);
++  // Through the zoom (gfx::SetView) too: the whole frame's rectangle.
++  const gfx::RectF r = gfx::ZoomedRect(gfx::FitRect(m.cw, m.ch, ww, wh));
++  m.kx = float(m.cw) / (r.r - r.l);
++  m.ky = float(m.ch) / (r.b - r.t);
++  m.x0 = r.l;
++  m.y0 = r.t;
+   m.fitted = true;
+   return m;
+ }
+@@ -874,6 +880,7 @@ void SetPointerBounds(bool on, int l, int t, int r, int b) {
+ }
+ 
+ bool OnMainThread() { return std::this_thread::get_id() == g_main_thread_id; }
++void SetMainThread() { g_main_thread_id = std::this_thread::get_id(); }
+ 
+ void EnsureSdlVideo() {
+   if (g_sdl_up) return;
+@@ -888,14 +895,32 @@ void EnsureSdlVideo() {
+   // Leave SIGINT/SIGTERM alone: SDL would turn them into quit events the
+   // game may ignore, making the process hard to stop.
+   SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
++  // Touch screens: fingers are turned into the mouse here (touch::), not by SDL.
++  SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
++  // Test hook: <ID>_TEST_ZOOM="zoom,x,y" starts zoomed (x, y: the view's
++  // top left corner, fractions of the frame), as a pinch would leave it.
++  if (const char* z = Env("TEST_ZOOM")) {
++    float k = 1, x = 0, y = 0;
++    if (std::sscanf(z, "%f,%f,%f", &k, &x, &y) >= 1 && k >= 1) gfx::SetView({x, y, 1 / k, 1 / k});
++  }
+   if (!SDL_Init(SDL_INIT_VIDEO)) FatalF("SDL_Init: %s", SDL_GetError());
+   g_sdl_up = true;
+   if (const SDL_DisplayMode* m = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay())) {
+     // Games see pixels: a scaled desktop (Wayland, macOS) reports points.
+     const float d = m->pixel_density > 0 ? m->pixel_density : 1.0f;
+     g_desktop_density = d;
+-    g_display_w = g_desktop_w = int(std::lround(float(m->w) * d));
+-    g_display_h = g_desktop_h = int(std::lround(float(m->h) * d));
++    // A phone's safe area (gfx::SetOutputInsets): the game sees the part
++    // between the margins, and it is shown there.
++    float il = 0, ir = 0;
++    gfx::OutputInsets(&il, &ir);
++    // A phone or tablet held upright: the games are landscape (their window
++    // turns the device), so the desktop is the landscape one.
++    float mw = float(m->w), mh = float(m->h);
++#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
++    if (mw < mh) std::swap(mw, mh);
++#endif
++    g_display_w = g_desktop_w = int(std::lround(mw * d * (1.0f - il - ir))) & ~1;
++    g_display_h = g_desktop_h = int(std::lround(mh * d));
+   }
+ }
+ 
+@@ -1137,7 +1162,437 @@ void DestroySdl2Window(uint32_t hwnd) {
+ 
+ namespace {
+ 
++// ---- touch screens (iOS, Android) --------------------------------------------
++// Win32 games know a mouse; fingers are turned into one here (SDL's own
++// touch-to-mouse events are off, SDL_HINT_TOUCH_MOUSE_EVENTS):
++// - one finger: the pointer follows it. A tap is a left click; a second tap
++//   within kDoubleNs and kDoublePt of it is a double click, on the first
++//   tap's spot (fingers never land twice on the same pixel); held still
++//   for kHoldNs it is a right button held until the finger lifts (the
++//   right-click-and-hold help of strategy games); moved past kSlopPt
++//   first it is a left-button drag.
++// - two fingers: pinching zooms the picture (gfx::SetView, up to kMaxZoom;
++//   back to the whole frame when nearly out) around the fingers, and
++//   dragging pans it; dragging past its edge, or unzoomed, holds the arrow
++//   keys (scrolls maps). The primary gesture is cancelled.
++// - three fingers, tapped: shows or hides the on-screen keyboard.
++namespace touch {
++
++constexpr uint64_t kHoldNs = 450000000;
++constexpr float kSlopPt = 12.0f;      // window points
++constexpr float kScrollPt = 24.0f;    // two-finger travel before a key goes down
++constexpr uint64_t kDoubleNs = 500000000;  // a second tap this soon after a tap...
++constexpr float kDoublePt = 40.0f;         // ...and this near it is a double click
++constexpr float kMaxZoom = 3.0f;
++constexpr float kPinch = 0.08f;            // finger distance change that starts a zoom
++
++enum class Mode { Idle, Pending, Drag, Right, Multi };
++
++struct Finger {
++  SDL_FingerID id;
++  float x, y;  // window points
++};
++
++Mode g_mode = Mode::Idle;
++SDL_WindowID g_window = 0;
++std::vector<Finger> g_fingers;
++float g_x0 = 0, g_y0 = 0;     // where the primary finger went down
++uint64_t g_t0 = 0;
++float g_cx0 = 0, g_cy0 = 0;   // two-finger centroid at its start
++int g_max_fingers = 0;
++SDL_Scancode g_held_h = SDL_SCANCODE_UNKNOWN, g_held_v = SDL_SCANCODE_UNKNOWN;
++// The two-finger gesture: zooming/panning the view (g_viewing), else the
++// arrow keys only. g_d0: finger distance at its start, g_view0 the view
++// then, g_ax/g_ay the frame point (fractions) under the fingers then.
++bool g_viewing = false;
++float g_d0 = 0, g_ax = 0, g_ay = 0;
++gfx::View g_view0;
++uint64_t g_tap_t = 0;          // the last single tap (0: none to pair with)
++float g_tap_x = 0, g_tap_y = 0;
++bool g_double = false;         // this press is a double tap's second
++
++void Points(const SDL_TouchFingerEvent& f, float* x, float* y) {
++  int w = 0, h = 0;
++  if (SDL_Window* win = SDL_GetWindowFromID(f.windowID)) SDL_GetWindowSize(win, &w, &h);
++  *x = f.x * float(w);
++  *y = f.y * float(h);
++}
++
++void Motion(float x, float y) {
++  static float px = 0, py = 0;
++  SDL_Event e{};
++  e.type = SDL_EVENT_MOUSE_MOTION;
++  e.motion.windowID = g_window;
++  e.motion.x = x;
++  e.motion.y = y;
++  e.motion.xrel = x - px;
++  e.motion.yrel = y - py;
++  px = x;
++  py = y;
++  HandleSdlEvent(e);
++}
++
++void Button(uint8_t button, bool down, uint8_t clicks = 1) {
++  SDL_Event e{};
++  e.type = down ? SDL_EVENT_MOUSE_BUTTON_DOWN : SDL_EVENT_MOUSE_BUTTON_UP;
++  e.button.windowID = g_window;
++  e.button.button = button;
++  e.button.down = down;
++  e.button.clicks = clicks;
++  HandleSdlEvent(e);
++}
++
++void Key(SDL_Scancode sc, bool down) {
++  SDL_Event e{};
++  e.type = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
++  e.key.windowID = g_window;
++  e.key.scancode = sc;
++  e.key.key = SDL_GetKeyFromScancode(sc, SDL_KMOD_NONE, false);
++  e.key.down = down;
++  HandleSdlEvent(e);
++}
++
++void HoldKey(SDL_Scancode* held, SDL_Scancode want) {
++  if (*held == want) return;
++  if (*held != SDL_SCANCODE_UNKNOWN) Key(*held, false);
++  *held = want;
++  if (want != SDL_SCANCODE_UNKNOWN) Key(want, true);
++}
++
++void Centroid(float* x, float* y) {
++  float sx = 0, sy = 0;
++  for (const Finger& f : g_fingers) {
++    sx += f.x;
++    sy += f.y;
++  }
++  *x = sx / float(g_fingers.size());
++  *y = sy / float(g_fingers.size());
++}
++
++// The frame's rectangle in the window (points), unzoomed: l, t, w, h.
++bool FrameRect(float* l, float* t, float* w, float* h) {
++  int ww = 0, wh = 0;
++  SDL_Window* win = SDL_GetWindowFromID(g_window);
++  const gfx::Presentation p = gfx::LastPresentation();
++  if (!win || !SDL_GetWindowSize(win, &ww, &wh) || ww <= 0 || p.src_w <= 0 || p.src_h <= 0)
++    return false;
++  const gfx::Rect r = gfx::FitRect(p.src_w, p.src_h, ww, wh);
++  *l = float(r.left);
++  *t = float(r.top);
++  *w = float(r.right - r.left);
++  *h = float(r.bottom - r.top);
++  return *w > 0 && *h > 0;
++}
++
++float Distance() {
++  return g_fingers.size() < 2 ? 0.0f
++                              : std::hypot(g_fingers[0].x - g_fingers[1].x, g_fingers[0].y - g_fingers[1].y);
++}
++
++// Two fingers at (cx, cy), g_d0 apart at the start: the view zoomed by their
++// distance and panned to keep the start point under them; what is past the
++// frame's edge scrolls the map instead (arrow keys).
++void UpdateView(float cx, float cy) {
++  float l, t, w, h;
++  if (!FrameRect(&l, &t, &w, &h) || g_d0 <= 0) return;
++  const float z0 = 1.0f / g_view0.w;
++  float z = std::clamp(z0 * Distance() / g_d0, 1.0f, kMaxZoom);
++  if (z < 1.06f) z = 1.0f;  // nearly out: the whole frame
++  gfx::View v;
++  v.w = v.h = 1.0f / z;
++  const float want_x = g_ax - (cx - l) / w * v.w, want_y = g_ay - (cy - t) / h * v.h;
++  v.x = std::clamp(want_x, 0.0f, 1.0f - v.w);
++  v.y = std::clamp(want_y, 0.0f, 1.0f - v.h);
++  // Past the edge, in points: the content follows the fingers, so dragging
++  // right (want_x < 0) shows what is left.
++  const float over_x = (want_x - v.x) * w / v.w, over_y = (want_y - v.y) * h / v.h;
++  HoldKey(&g_held_h, over_x < -kScrollPt ? SDL_SCANCODE_LEFT
++                     : over_x > kScrollPt ? SDL_SCANCODE_RIGHT : SDL_SCANCODE_UNKNOWN);
++  HoldKey(&g_held_v, over_y < -kScrollPt ? SDL_SCANCODE_UP
++                     : over_y > kScrollPt ? SDL_SCANCODE_DOWN : SDL_SCANCODE_UNKNOWN);
++  const gfx::View now = gfx::GetView();
++  if (now.x != v.x || now.y != v.y || now.w != v.w) {
++    gfx::SetView(v);
++    hle::PresentAgain();  // shown now, even if the game draws nothing new
++  }
++}
++
++// The start of a two-finger gesture (or its restart when the fingers change).
++void StartTwoFingers() {
++  float cx, cy, l, t, w, h;
++  Centroid(&cx, &cy);
++  g_cx0 = cx;
++  g_cy0 = cy;
++  g_d0 = Distance();
++  g_view0 = gfx::GetView();
++  g_viewing = g_view0.Zoomed();  // zoomed: two fingers move the view
++  if (FrameRect(&l, &t, &w, &h)) {
++    g_ax = g_view0.x + (cx - l) / w * g_view0.w;
++    g_ay = g_view0.y + (cy - t) / h * g_view0.h;
++  }
++}
++
++void ToggleKeyboard() {
++  SDL_Window* w = SDL_GetWindowFromID(g_window);
++  if (!w) return;
++  if (SDL_TextInputActive(w)) SDL_StopTextInput(w);
++  else SDL_StartTextInput(w);
++}
++
++void Handle(const SDL_TouchFingerEvent& f, Uint32 type) {
++  float x, y;
++  Points(f, &x, &y);
++  g_window = f.windowID;
++  auto it = std::find_if(g_fingers.begin(), g_fingers.end(),
++                         [&](const Finger& g) { return g.id == f.fingerID; });
++  if (type == SDL_EVENT_FINGER_DOWN) {
++    if (it == g_fingers.end()) g_fingers.push_back({f.fingerID, x, y});
++    if (g_fingers.size() == 1) {
++      g_mode = Mode::Pending;
++      g_x0 = x;
++      g_y0 = y;
++      g_t0 = SDL_GetTicksNS();
++      g_max_fingers = 1;
++      g_double = g_tap_t && g_t0 - g_tap_t <= kDoubleNs &&
++                 std::hypot(x - g_tap_x, y - g_tap_y) <= kDoublePt;
++      // hover first: the game sees where the press will be (a double tap's
++      // on the first tap's spot)
++      Motion(g_double ? g_tap_x : x, g_double ? g_tap_y : y);
++    } else {
++      g_max_fingers = std::max(g_max_fingers, int(g_fingers.size()));
++      if (g_mode == Mode::Drag) Button(SDL_BUTTON_LEFT, false);
++      if (g_mode == Mode::Right) Button(SDL_BUTTON_RIGHT, false);
++      g_mode = Mode::Multi;
++      StartTwoFingers();
++    }
++    return;
++  }
++  if (it == g_fingers.end()) return;
++  if (type == SDL_EVENT_FINGER_MOTION) {
++    it->x = x;
++    it->y = y;
++    switch (g_mode) {
++      case Mode::Pending:
++        if (std::hypot(x - g_x0, y - g_y0) > kSlopPt) {
++          Motion(g_x0, g_y0);
++          Button(SDL_BUTTON_LEFT, true);
++          g_mode = Mode::Drag;
++          Motion(x, y);
++        }
++        break;
++      case Mode::Drag:
++      case Mode::Right:
++        Motion(x, y);
++        break;
++      case Mode::Multi: {
++        if (g_fingers.size() != 2) break;
++        float cx, cy;
++        Centroid(&cx, &cy);
++        if (!g_viewing && g_d0 > 0 && std::fabs(Distance() / g_d0 - 1.0f) > kPinch) {
++          // A pinch: the view from here on (the keys a drag held let go).
++          HoldKey(&g_held_h, SDL_SCANCODE_UNKNOWN);
++          HoldKey(&g_held_v, SDL_SCANCODE_UNKNOWN);
++          g_viewing = true;
++        }
++        if (g_viewing) {
++          UpdateView(cx, cy);
++          break;
++        }
++        // Content follows the fingers: dragging left shows what is right.
++        const float dx = cx - g_cx0, dy = cy - g_cy0;
++        HoldKey(&g_held_h, dx < -kScrollPt ? SDL_SCANCODE_RIGHT
++                           : dx > kScrollPt ? SDL_SCANCODE_LEFT : SDL_SCANCODE_UNKNOWN);
++        HoldKey(&g_held_v, dy < -kScrollPt ? SDL_SCANCODE_DOWN
++                           : dy > kScrollPt ? SDL_SCANCODE_UP : SDL_SCANCODE_UNKNOWN);
++        break;
++      }
++      case Mode::Idle:
++        break;
++    }
++    return;
++  }
++  // SDL_EVENT_FINGER_UP / CANCELED
++  g_fingers.erase(it);
++  const bool canceled = type == SDL_EVENT_FINGER_CANCELED;
++  if (g_mode != Mode::Pending) g_tap_t = 0;  // a drag or hold: no double tap with it
++  switch (g_mode) {
++    case Mode::Pending:
++      if (!canceled) {
++        Button(SDL_BUTTON_LEFT, true, g_double ? 2 : 1);
++        Button(SDL_BUTTON_LEFT, false, g_double ? 2 : 1);
++        // A double tap's second does not start another pair (a third tap is a single click).
++        g_tap_t = g_double ? 0 : SDL_GetTicksNS();
++        g_tap_x = g_x0;
++        g_tap_y = g_y0;
++      }
++      break;
++    case Mode::Drag:
++      Motion(x, y);
++      Button(SDL_BUTTON_LEFT, false);
++      break;
++    case Mode::Right:
++      Button(SDL_BUTTON_RIGHT, false);
++      break;
++    case Mode::Multi:
++      if (g_fingers.size() == 2) StartTwoFingers();  // a third finger lifted: on with two
++      if (!g_fingers.empty()) return;  // the gesture ends with its last finger
++      g_viewing = false;
++      HoldKey(&g_held_h, SDL_SCANCODE_UNKNOWN);
++      HoldKey(&g_held_v, SDL_SCANCODE_UNKNOWN);
++      if (g_max_fingers >= 3 && !canceled) ToggleKeyboard();
++      break;
++    case Mode::Idle:
++      break;
++  }
++  g_mode = Mode::Idle;
++}
++
++// Per pump: a finger held still long enough becomes the right button.
++void Tick() {
++  if (g_mode == Mode::Pending && SDL_GetTicksNS() - g_t0 >= kHoldNs) {
++    Button(SDL_BUTTON_RIGHT, true);
++    g_mode = Mode::Right;
++  }
++}
++
++#if defined(__SWITCH__)
++// The Switch's Joy-Cons / Pro Controller as the mouse (docked, or without
++// touching the screen): the left stick moves the pointer, A clicks, B
++// right-clicks, the right stick and the D-pad are the arrow keys (the map
++// scrolls), + is Escape and X Enter. Polled every pump.
++void PadTick() {
++  static SDL_Gamepad* pad = nullptr;
++  static bool init = false;
++  if (!init) {
++    init = true;
++    SDL_InitSubSystem(SDL_INIT_GAMEPAD);
++  }
++  if (pad && !SDL_GamepadConnected(pad)) {
++    SDL_CloseGamepad(pad);
++    pad = nullptr;
++  }
++  if (!pad) {
++    int n = 0;
++    SDL_JoystickID* ids = SDL_GetGamepads(&n);
++    if (ids && n > 0) pad = SDL_OpenGamepad(ids[0]);
++    SDL_free(ids);
++    if (!pad) return;
++  }
++  SDL_Window* win = nullptr;
++  {
++    int n = 0;
++    SDL_Window** ws = SDL_GetWindows(&n);
++    if (ws && n > 0) win = ws[0];
++    SDL_free(ws);
++  }
++  if (!win) return;
++  g_window = SDL_GetWindowID(win);
++  int ww = 0, wh = 0;
++  SDL_GetWindowSize(win, &ww, &wh);
++  if (ww <= 0 || wh <= 0) return;
++  static float x = -1, y = -1;
++  static uint64_t last = 0;
++  const uint64_t now = SDL_GetTicksNS();
++  float dt = last ? float(now - last) / 1e9f : 0.0f;
++  last = now;
++  dt = std::min(dt, 0.1f);
++  if (x < 0) {
++    x = float(ww) / 2;
++    y = float(wh) / 2;
++  }
++  auto axis = [&](SDL_GamepadAxis a) {
++    const float v = float(SDL_GetGamepadAxis(pad, a)) / 32767.0f;
++    float m = std::fabs(v);
++    if (m < 0.15f) return 0.0f;
++    m = (m - 0.15f) / 0.85f;
++    return std::copysign(m * m, v);  // fine near the centre, fast at the edge
++  };
++  const float dx = axis(SDL_GAMEPAD_AXIS_LEFTX), dy = axis(SDL_GAMEPAD_AXIS_LEFTY);
++  if (dx != 0 || dy != 0) {
++    const float speed = 1100.0f * float(ww) / 1280.0f;  // pixels a second at full tilt
++    x = std::clamp(x + dx * speed * dt, 0.0f, float(ww - 1));
++    y = std::clamp(y + dy * speed * dt, 0.0f, float(wh - 1));
++    Motion(x, y);
++  }
++  // Positional names: on Nintendo's layout A is the east button, B the south one.
++  struct Map {
++    SDL_GamepadButton b;
++    int mouse;  // SDL_BUTTON_*, or 0 for a key
++    SDL_Scancode key;
++  };
++  static const Map kMap[] = {
++      {SDL_GAMEPAD_BUTTON_EAST, SDL_BUTTON_LEFT, SDL_SCANCODE_UNKNOWN},
++      {SDL_GAMEPAD_BUTTON_SOUTH, SDL_BUTTON_RIGHT, SDL_SCANCODE_UNKNOWN},
++      {SDL_GAMEPAD_BUTTON_START, 0, SDL_SCANCODE_ESCAPE},
++      {SDL_GAMEPAD_BUTTON_NORTH, 0, SDL_SCANCODE_RETURN},
++  };
++  static bool was[sizeof kMap / sizeof kMap[0]] = {};
++  for (size_t i = 0; i < sizeof kMap / sizeof kMap[0]; i++) {
++    const bool down = SDL_GetGamepadButton(pad, kMap[i].b);
++    if (down == was[i]) continue;
++    was[i] = down;
++    if (kMap[i].mouse) {
++      Motion(x, y);
++      Button(uint8_t(kMap[i].mouse), down);
++    } else {
++      Key(kMap[i].key, down);
++    }
++  }
++  static SDL_Scancode held_h = SDL_SCANCODE_UNKNOWN, held_v = SDL_SCANCODE_UNKNOWN;
++  const float rx = axis(SDL_GAMEPAD_AXIS_RIGHTX), ry = axis(SDL_GAMEPAD_AXIS_RIGHTY);
++  const bool left = rx < -0.3f || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_LEFT);
++  const bool right = rx > 0.3f || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT);
++  const bool up = ry < -0.3f || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_UP);
++  const bool downk = ry > 0.3f || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_DOWN);
++  HoldKey(&held_h, left ? SDL_SCANCODE_LEFT : right ? SDL_SCANCODE_RIGHT : SDL_SCANCODE_UNKNOWN);
++  HoldKey(&held_v, up ? SDL_SCANCODE_UP : downk ? SDL_SCANCODE_DOWN : SDL_SCANCODE_UNKNOWN);
++}
++#endif
++
++}  // namespace touch
++
++// iOS suspends a backgrounded app, and Metal work submitted then fails:
++// the game waits here, unpresented, until it is in front again. (Android:
++// SDL itself blocks in its event pump while paused,
++// SDL_HINT_ANDROID_BLOCK_ON_PAUSE.)
++void WaitInBackground() {
++#if defined(__APPLE__) && TARGET_OS_IOS
++  WatchdogAppActive(false);
++  SDL_Event e;
++  for (;;) {
++    WatchdogHeartbeat();
++    if (!SDL_WaitEventTimeout(&e, 1000)) continue;
++    if (e.type == SDL_EVENT_WILL_ENTER_FOREGROUND || e.type == SDL_EVENT_DID_ENTER_FOREGROUND)
++      break;
++    if (e.type == SDL_EVENT_TERMINATING) _exit(0);
++  }
++  WatchdogAppActive(true);
++#endif
++}
++
+ void DeliverHostEvent(const SDL_Event& e) {
++  switch (e.type) {
++    case SDL_EVENT_FINGER_DOWN:
++    case SDL_EVENT_FINGER_MOTION:
++    case SDL_EVENT_FINGER_UP:
++    case SDL_EVENT_FINGER_CANCELED:
++      // Touch screens only: a Mac trackpad's fingers stay its mouse's.
++      if (SDL_GetTouchDeviceType(e.tfinger.touchID) == SDL_TOUCH_DEVICE_DIRECT) {
++        touch::Handle(e.tfinger, e.type);
++        return;
++      }
++      break;
++    case SDL_EVENT_MOUSE_MOTION:
++    case SDL_EVENT_MOUSE_BUTTON_DOWN:
++    case SDL_EVENT_MOUSE_BUTTON_UP:
++      if (e.motion.which == SDL_TOUCH_MOUSEID) return;  // fingers come as fingers
++      break;
++    case SDL_EVENT_DID_ENTER_BACKGROUND:
++      WaitInBackground();
++      return;
++    default:
++      break;
++  }
+   if (g_host_event_sink)
+     g_host_event_sink(e);
+   else
+@@ -1176,6 +1631,10 @@ void PumpHostEvents() {
+   }
+   InjectTestFocus();
+   InjectTestInput();
++  touch::Tick();
++#if defined(__SWITCH__)
++  touch::PadTick();
++#endif
+   WatchdogHeartbeat();
+ }
+ 
+diff --git a/src/runtime/hle/user32_window.h b/src/runtime/hle/user32_window.h
+index 62a43e0..777313e 100644
+--- a/src/runtime/hle/user32_window.h
++++ b/src/runtime/hle/user32_window.h
+@@ -26,6 +26,11 @@ uint32_t WindowForDc(uint32_t hdc);
+ // Whether the caller is the guest's main thread (the one SDL's video and
+ // events belong to).
+ bool OnMainThread();
++// Makes the calling thread the main (UI) thread. RunProcess calls it: the
++// static default (the thread that loaded the runtime) is another thread
++// on Android, where SDLActivity loads the libraries from Java's UI thread
++// and runs SDL_main on its own.
++void SetMainThread();
+ 
+ // Ensures SDL video is initialised (main thread only).
+ void EnsureSdlVideo();
+diff --git a/src/runtime/lazy_mem.cpp b/src/runtime/lazy_mem.cpp
+index f13fe7a..7ebb3a7 100644
+--- a/src/runtime/lazy_mem.cpp
++++ b/src/runtime/lazy_mem.cpp
+@@ -1,6 +1,8 @@
+ #include "runtime/lazy_mem.h"
+ 
++#if !defined(__SWITCH__)
+ #include <sys/mman.h>
++#endif
+ 
+ #include <algorithm>
+ #include <atomic>
+@@ -42,10 +44,16 @@ Region::~Region() = default;
+ 
+ void Region::SetAccess(gaddr lo, gaddr hi, bool accessible) {
+   if (hi <= lo) return;
++#if defined(__SWITCH__)
++  // No page protection or fault handler there: pages stay accessible, and a
++  // LazyImage fills its rect at Begin instead of on first touch.
++  (void)accessible;
++#else
+   if (mprotect(mem_.ptr(lo), hi - lo, accessible ? PROT_READ | PROT_WRITE : PROT_NONE)) {
+     std::perror("lazy::Region mprotect");
+     std::abort();
+   }
++#endif
+ }
+ 
+ void Register(Region* r) {
+@@ -182,6 +190,9 @@ void LazyImage::Begin(Rect r, bool read_only) {
+   faults_ = 0;
+   for (uint8_t& s : state_) s &= uint8_t(~kPulled);
+   CloseAll();
++#if defined(__SWITCH__)
++  Fill(va_ + rect_p0_ * page_, va_ + rect_p1_ * page_);  // what a touch would pull, all now
++#endif
+ }
+ 
+ void LazyImage::Pull(uint32_t p0, uint32_t p1) {
+diff --git a/src/runtime/pe_image.cpp b/src/runtime/pe_image.cpp
+index 2ca7a55..6a96c54 100644
+--- a/src/runtime/pe_image.cpp
++++ b/src/runtime/pe_image.cpp
+@@ -253,4 +253,14 @@ bool PeImage::IsX64File(const std::string& path) {
+          Rd<uint16_t>(d, pe + 4) == 0x8664;
+ }
+ 
++bool PeImage::IsLargeAddressAwareFile(const std::string& path) {
++  std::ifstream f(path, std::ios::binary);
++  std::vector<uint8_t> d(0x1000);
++  f.read(reinterpret_cast<char*>(d.data()), std::streamsize(d.size()));
++  d.resize(size_t(f.gcount()));
++  uint32_t pe = Rd<uint32_t>(d, 0x3C);
++  // IMAGE_FILE_LARGE_ADDRESS_AWARE in the COFF header's Characteristics.
++  return (Rd<uint16_t>(d, pe + 22) & 0x0020) != 0;
++}
++
+ }  // namespace recomp
+diff --git a/src/runtime/pe_image.h b/src/runtime/pe_image.h
+index b2dd2cd..a33c5ca 100644
+--- a/src/runtime/pe_image.h
++++ b/src/runtime/pe_image.h
+@@ -83,6 +83,8 @@ struct PeImage {
+   // True if the file is a PE32+ AMD64 image (to size the arena before
+   // loading it).
+   static bool IsX64File(const std::string& path);
++  // Whether a 32-bit EXE may use addresses at or above 2 GiB.
++  static bool IsLargeAddressAwareFile(const std::string& path);
+ 
+   // Reads the file and maps headers and sections into mem at `base` (0:
+   // the preferred base; another base needs base relocations). Fails if any
+diff --git a/src/runtime/platform.cpp b/src/runtime/platform.cpp
+index 6facc89..2ce5cb2 100644
+--- a/src/runtime/platform.cpp
++++ b/src/runtime/platform.cpp
+@@ -13,19 +13,81 @@
+ #include <errno.h>
+ #include <signal.h>
+ #include <time.h>
++#if !defined(__SWITCH__)
+ #include <ucontext.h>
++#endif
+ 
+ #if defined(__APPLE__)
++#include <TargetConditionals.h>
+ #include <mach/mach.h>
+ #include <mach/mach_time.h>
+ #include <mach/thread_policy.h>
+ #include <pthread.h>
+-#else
++#elif !defined(__SWITCH__)
+ #include <sys/prctl.h>
+ #endif
++#if defined(__ANDROID__) && defined(__aarch64__)
++#include <asm/sigcontext.h>  // ESR_MAGIC, struct esr_context
++#endif
++#if defined(__ANDROID__) || defined(__SWITCH__)
++#if !defined(__SWITCH__)
++#include <dlfcn.h>
++#endif
++#include <unistd.h>
++#include <unwind.h>
++
++#include <cstdio>
++#else
++#include <execinfo.h>
++#endif
++
++// Bionic has no getcontext/makecontext, and iOS has them only as
++// deprecated stubs: there the stack switch is a few instructions of arm64.
++#if defined(__aarch64__) && (defined(__ANDROID__) || defined(__SWITCH__) || \
++                             (defined(__APPLE__) && !TARGET_OS_OSX))
++#define RECOMP_ASM_STACK_SWITCH 1
++#endif
+ 
+ namespace recomp::platform {
+ 
++#if defined(RECOMP_ASM_STACK_SWITCH)
++namespace {
++// Calls fn() with sp = top (16-byte aligned) and returns on the caller's
++// stack. The frame record (x29, x30) stays on the caller's stack and x29
++// points at it, so frame-pointer backtraces from fn() reach the caller.
++extern "C" __attribute__((naked, noinline)) void RecompCallOnStack(void* top, void (*fn)()) {
++  // The outermost frame of the guest's stack for unwinders (no CFI could
++  // describe the switch): backtraces stop here instead of walking off.
++  asm volatile(
++      ".cfi_undefined x30\n"
++      "stp x29, x30, [sp, #-16]!\n"
++      "mov x29, sp\n"
++      "and x0, x0, #~15\n"
++      "sub x0, x0, #16\n"
++      "str x29, [x0]\n"  // the caller's sp (= x29) at the new stack's top
++      "mov sp, x0\n"
++      "blr x1\n"
++      "ldr x9, [sp]\n"
++      "mov sp, x9\n"
++      "ldp x29, x30, [sp], #16\n"
++      "ret\n");
++}
++}  // namespace
++
++void RunOnStack(void* stack, size_t size, void (*fn)()) {
++#if defined(__ANDROID__)
++  // Not switched: SDL reaches Java (JNI) from this thread, and ART refuses
++  // calls from a stack it does not know (the window's surface comes back
++  // null). The thread is made big enough instead: platforms/android/package.sh
++  // gives SDLThread a kHostStack-sized stack.
++  (void)stack;
++  (void)size;
++  fn();
++#else
++  RecompCallOnStack(static_cast<uint8_t*>(stack) + size, fn);
++#endif
++}
++#else
+ namespace {
+ ucontext_t g_caller_ctx, g_stack_ctx;
+ }
+@@ -41,9 +103,14 @@ void RunOnStack(void* stack, size_t size, void (*fn)()) {
+   swapcontext(&g_caller_ctx, &g_stack_ctx);
+ }
+ #pragma clang diagnostic pop
++#endif
+ 
+ FaultContext ReadFaultContext(const void* uc) {
+   FaultContext f;
++#if defined(__SWITCH__)
++  (void)uc;  // no signals there
++  return f;
++#else
+   const auto* u = static_cast<const ucontext_t*>(uc);
+ #if defined(__linux__) && defined(__x86_64__)
+   const greg_t* g = u->uc_mcontext.gregs;
+@@ -66,10 +133,30 @@ FaultContext ReadFaultContext(const void* uc) {
+   f.write = (es.__err & 2) != 0;
+   f.pc = uintptr_t(ss.__rip);
+   f.caller = *reinterpret_cast<const uintptr_t*>(ss.__rsp);
++#elif defined(__linux__) && defined(__aarch64__)
++  const auto& mc = u->uc_mcontext;
++  f.pc = uintptr_t(mc.pc);
++  f.caller = uintptr_t(mc.regs[30]);  // link register
++  // The kernel appends an esr_context record (the data abort's ESR) to
++  // the signal frame's extension area; ISS bit 6 is WnR.
++  const uint8_t* p = reinterpret_cast<const uint8_t*>(mc.__reserved);
++  const uint8_t* end = p + sizeof mc.__reserved;
++  while (p + sizeof(_aarch64_ctx) <= end) {
++    const auto* h = reinterpret_cast<const _aarch64_ctx*>(p);
++    if (h->magic == 0 || h->size == 0) break;
++    if (h->magic == ESR_MAGIC) {
++      const uint64_t esr = reinterpret_cast<const esr_context*>(h)->esr;
++      f.write_known = true;
++      f.write = (esr >> 6) & 1;
++      break;
++    }
++    p += h->size;
++  }
+ #else
+   (void)u;
+ #endif
+   return f;
++#endif
+ }
+ 
+ #if defined(__APPLE__)
+@@ -113,6 +200,13 @@ uint64_t MonotonicNs() {
+ }
+ 
+ void SleepUntilNs(uint64_t t) {
++#if defined(__SWITCH__)
++  for (uint64_t now; (now = MonotonicNs()) < t;) {
++    timespec d{time_t((t - now) / 1000000000u), long((t - now) % 1000000000u)};
++    nanosleep(&d, nullptr);
++  }
++  return;
++#else
+   // The default slack (50 us) would delay every wake-up by about that.
+   static thread_local bool slack_set = false;
+   if (!slack_set) {
+@@ -124,17 +218,27 @@ void SleepUntilNs(uint64_t t) {
+   ts.tv_nsec = long(t % 1000000000u);
+   while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, nullptr) == EINTR) {
+   }
++#endif
+ }
+ #endif
+ 
+ bool RedirectToCall(void* uc, void (*fn)()) {
+-#if defined(__APPLE__) && defined(__aarch64__)
++#if defined(__SWITCH__)
++  (void)uc;
++  (void)fn;
++  return false;
++#elif defined(__APPLE__) && defined(__aarch64__)
+   auto& ss = static_cast<ucontext_t*>(uc)->uc_mcontext->__ss;
+   // The unwinder looks up a return address minus one, which lands inside
+   // the faulting instruction (arm64 instructions are 4 bytes).
+   ss.__lr = ss.__pc + 4;
+   ss.__pc = reinterpret_cast<uint64_t>(fn);
+   return true;
++#elif defined(__ANDROID__) && defined(__aarch64__)
++  auto& mc = static_cast<ucontext_t*>(uc)->uc_mcontext;
++  mc.regs[30] = mc.pc + 4;  // as on Darwin: lr inside the faulting instruction
++  mc.pc = reinterpret_cast<uint64_t>(fn);
++  return true;
+ #else
+   (void)uc;
+   (void)fn;
+@@ -142,4 +246,55 @@ bool RedirectToCall(void* uc, void (*fn)()) {
+ #endif
+ }
+ 
++#if defined(__ANDROID__) || defined(__SWITCH__)
++namespace {
++struct UnwindState {
++  void** frames;
++  int n, max;
++};
++_Unwind_Reason_Code UnwindStep(_Unwind_Context* c, void* arg) {
++  auto* s = static_cast<UnwindState*>(arg);
++  if (s->n >= s->max) return _URC_END_OF_STACK;
++  if (uintptr_t pc = _Unwind_GetIP(c)) s->frames[s->n++] = reinterpret_cast<void*>(pc);
++  return _URC_NO_REASON;
++}
++}  // namespace
++
++int Backtrace(void** frames, int max) {
++  UnwindState s{frames, 0, max};
++  _Unwind_Backtrace(UnwindStep, &s);
++  return s.n;
++}
++
++void BacktraceSymbolsFd(void* const* frames, int n, int fd) {
++#if defined(__SWITCH__)
++  // No dladdr: addresses only (relative to the .nro's load address in the crash report).
++  for (int i = 0; i < n; i++) {
++    char line[64];
++    const int len = std::snprintf(line, sizeof line, "%-3d %p\n", i, frames[i]);
++    if (len > 0) (void)!write(fd, line, size_t(len));
++  }
++#else
++  for (int i = 0; i < n; i++) {
++    Dl_info info{};
++    char line[512];
++    int len;
++    if (dladdr(frames[i], &info) && info.dli_fname) {
++      const char* sym = info.dli_sname ? info.dli_sname : "?";
++      const uintptr_t off = uintptr_t(frames[i]) -
++                            uintptr_t(info.dli_sname ? info.dli_saddr : info.dli_fbase);
++      len = std::snprintf(line, sizeof line, "%-3d %s %p %s + %zu\n", i, info.dli_fname,
++                          frames[i], sym, size_t(off));
++    } else {
++      len = std::snprintf(line, sizeof line, "%-3d ? %p\n", i, frames[i]);
++    }
++    if (len > 0) (void)!write(fd, line, size_t(len < int(sizeof line) ? len : sizeof line - 1));
++  }
++#endif
++}
++#else
++int Backtrace(void** frames, int max) { return backtrace(frames, max); }
++void BacktraceSymbolsFd(void* const* frames, int n, int fd) { backtrace_symbols_fd(frames, n, fd); }
++#endif
++
+ }  // namespace recomp::platform
+diff --git a/src/runtime/platform.h b/src/runtime/platform.h
+index 79d6461..dd34c17 100644
+--- a/src/runtime/platform.h
++++ b/src/runtime/platform.h
+@@ -14,6 +14,29 @@
+ 
+ namespace recomp::platform {
+ 
++// struct tm's BSD fields and timegm, which the Switch's newlib lacks (its
++// local time is UTC there).
++#if defined(__SWITCH__)
++inline long TmGmtOff(const std::tm&) { return 0; }
++inline const char* TmZone(const std::tm&) { return "UTC"; }
++inline std::time_t TimeGm(std::tm* t) {
++  // Days from 1970-01-01 to y-m-d (Howard Hinnant's days_from_civil).
++  long y = t->tm_year + 1900L, m = t->tm_mon + 1L, d = t->tm_mday;
++  y -= m <= 2;
++  const long era = (y >= 0 ? y : y - 399) / 400;
++  const long yoe = y - era * 400;
++  const long doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
++  const long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
++  const long days = era * 146097 + doe - 719468;
++  return std::time_t(days * 86400L + t->tm_hour * 3600L + t->tm_min * 60L + t->tm_sec);
++}
++#else
++inline long TmGmtOff(const std::tm& t) { return t.tm_gmtoff; }
++inline const char* TmZone(const std::tm& t) { return t.tm_zone; }
++inline std::time_t TimeGm(std::tm* t) { return timegm(t); }
++#endif
++
++
+ // ---- files
+ inline timespec StatAccessTime(const struct stat& st) {
+ #if defined(__APPLE__)
+@@ -52,7 +75,14 @@ inline const char* HostFpProblem() {
+ #elif defined(__aarch64__)
+   // FZ (24), RMode (22-23), the trap enables IDE (15) and IXE..IOE
+   // (8-12), and FEAT_AFP's NEP, AH and FIZ (0-2).
+-  if (env.__fpcr & 0x01C09F07u) return "FPCR is not the default";
++#if defined(__SWITCH__)
++  const uint64_t fpcr = env;  // newlib's fenv_t is FPCR itself
++#elif defined(__ANDROID__)
++  const uint64_t fpcr = env.__control;  // bionic's name for FPCR
++#else
++  const uint64_t fpcr = env.__fpcr;
++#endif
++  if (fpcr & 0x01C09F07u) return "FPCR is not the default";
+ #endif
+   volatile double one = 1.0, tiny = 0x1p-1022, denormal = 0x1p-1060;
+   if (one + 0x1p-53 != 1.0 || one + 0x1.8p-53 == 1.0 || -one - 0x1.8p-53 == -1.0)
+@@ -91,8 +121,9 @@ FaultContext ReadFaultContext(const void* uc);
+ 
+ // Whether a C++ exception thrown inside a signal handler unwinds through
+ // the signal frame into the interrupted code. glibc's unwinder steps
+-// through the kernel's signal trampoline; Darwin's does not.
+-#if defined(__APPLE__)
++// through the kernel's signal trampoline; Darwin's does not. Android's
++// LLVM libunwind is not relied on to: it takes the Darwin path.
++#if defined(__APPLE__) || defined(__ANDROID__)
+ inline constexpr bool kThrowThroughSignalFrames = false;
+ #else
+ inline constexpr bool kThrowThroughSignalFrames = true;
+@@ -107,4 +138,9 @@ inline constexpr bool kThrowThroughSignalFrames = true;
+ // overwritten). False if this host has no implementation.
+ bool RedirectToCall(void* uc, void (*fn)());
+ 
++// ---- backtraces (execinfo's backtrace/backtrace_symbols_fd; bionic has
++// them only from API 33, so there they are the unwinder and dladdr)
++int Backtrace(void** frames, int max);
++void BacktraceSymbolsFd(void* const* frames, int n, int fd);
++
+ }  // namespace recomp::platform
+diff --git a/src/runtime/process.cpp b/src/runtime/process.cpp
+index 0682266..30d1621 100644
+--- a/src/runtime/process.cpp
++++ b/src/runtime/process.cpp
+@@ -2,7 +2,9 @@
+ // host threads that run guest code.
+ 
+ #include <pthread.h>
++#if !defined(__SWITCH__)
+ #include <sys/mman.h>
++#endif
+ #include <sys/stat.h>
+ #include <unistd.h>
+ 
+@@ -20,6 +22,7 @@
+ 
+ #include "runtime/hle/hle.h"
+ #include "runtime/hle/kernel32_state.h"
++#include "runtime/hle/user32_window.h"
+ #include "runtime/lifted.h"
+ #include "runtime/log.h"
+ #include "runtime/platform.h"
+@@ -342,13 +345,22 @@ void GuestMainTrampoline() {
+ }  // namespace
+ 
+ static uint32_t RunOnMainThread(Thread* t, gaddr entry) {
++#if defined(__SWITCH__)
++  void* stack = std::aligned_alloc(0x1000, kHostStack);
++  if (!stack) FatalF("cannot allocate the main guest stack");
++#else
+   void* stack = mmap(nullptr, kHostStack, PROT_READ | PROT_WRITE,
+                      MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+   if (stack == MAP_FAILED) FatalF("cannot allocate the main guest stack");
++#endif
+   g_main_thread = t;
+   g_main_entry = entry;
+   platform::RunOnStack(stack, kHostStack, GuestMainTrampoline);
++#if defined(__SWITCH__)
++  std::free(stack);
++#else
+   munmap(stack, kHostStack);
++#endif
+   return g_main_exit;
+ }
+ 
+@@ -395,9 +407,12 @@ int RunProcess(const GameConfig& game, const std::string& exe_path,
+   const char* doubles = Env("X87_DOUBLE");
+   x87::run::g_doubles = !(doubles && doubles[0] == '0');
+   p.game_args = game_args;
++  recomp::SetMainThread();
+   StartWatchdog();
+   p.x64 = PeImage::IsX64File(exe_path);
+   if (!p.mem.Reserve(p.x64 ? kArenaBits64 : 32)) FatalF("cannot reserve the guest arena");
++  if (!p.x64 && p.mem.size() < (1ull << 32) && PeImage::IsLargeAddressAwareFile(exe_path))
++    FatalF("the host gave a 2 GiB guest arena, and %s is large-address-aware", exe_path.c_str());
+   g_guest_base = p.mem.base();
+   // Calls to import thunks go to HLE handlers (Dispatch); nothing runs
+   // there, but the IAT values point at committed memory as on Windows.
+diff --git a/src/runtime/watchdog.cpp b/src/runtime/watchdog.cpp
+index 0f9e379..ac68677 100644
+--- a/src/runtime/watchdog.cpp
++++ b/src/runtime/watchdog.cpp
+@@ -1,7 +1,20 @@
++#if defined(__SWITCH__)
++// The Switch: no signals to sample or dump other threads with; no watchdog.
++#include "runtime/watchdog.h"
++namespace recomp {
++thread_local const char* t_wd_hle_name = nullptr;
++thread_local uint64_t t_wd_hle_ret = 0;
++void StartWatchdog() {}
++void RegisterGuestHostThread(const char*, unsigned) {}
++void WatchdogHeartbeat() {}
++void WatchdogFrame() {}
++void WatchdogAppActive(bool) {}
++}  // namespace recomp
++#else
++#include "runtime/platform.h"
+ #include "runtime/watchdog.h"
+ 
+ #include <dlfcn.h>
+-#include <execinfo.h>
+ #include <fcntl.h>
+ #include <pthread.h>
+ #include <signal.h>
+@@ -72,7 +85,7 @@ void WriteAll(int fd, const char* s) {
+ // Runs on the interrupted thread.
+ void OnDumpSignal(int) {
+   if (g_sample_n.load() == -2) {  // a hitch sample, not a dump
+-    g_sample_n.store(backtrace(g_sample, 64));
++    g_sample_n.store(platform::Backtrace(g_sample, 64));
+     return;
+   }
+   int fd = g_dump_fd.load();
+@@ -84,8 +97,8 @@ void OnDumpSignal(int) {
+       WriteAll(fd, buf);
+     }
+     void* frames[512];
+-    int n = backtrace(frames, 512);
+-    backtrace_symbols_fd(frames, n, fd);
++    int n = platform::Backtrace(frames, 512);
++    platform::BacktraceSymbolsFd(frames, n, fd);
+   }
+   g_dump_done.store(true);
+ }
+@@ -202,7 +215,7 @@ void StartWatchdog() {
+   // backtrace() loads libgcc on first use, which must not happen inside
+   // the signal handler.
+   void* f[2];
+-  backtrace(f, 2);
++  platform::Backtrace(f, 2);
+   struct sigaction sa{};
+   sa.sa_handler = OnDumpSignal;
+   sa.sa_flags = SA_RESTART;
+@@ -225,3 +238,4 @@ void WatchdogAppActive(bool active) {
+ }
+ 
+ }  // namespace recomp
++#endif

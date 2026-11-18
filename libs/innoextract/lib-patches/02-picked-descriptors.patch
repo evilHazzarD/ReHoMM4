@@ -1,0 +1,141 @@
+--- a/src/util/fstream.hpp
++++ b/src/util/fstream.hpp
+@@ -31,9 +31,137 @@
+ 
+ #include <boost/filesystem/fstream.hpp>
+ 
++#include <istream>
++#include <cerrno>
++#include <streambuf>
++#include <string>
++
++#include <sys/types.h>
++#include <unistd.h>
++
+ namespace util {
+ 
+-typedef boost::filesystem::ifstream ifstream;
++/*
++ * Files handed over already open (recomp_inno_map_file): the descriptor for a
++ * path, -1 if none. Android's file picker gives the app a descriptor of a file
++ * it may not open by path itself (opening /proc/self/fd/N again is refused).
++ */
++int mapped_fd(const std::string & path);
++
++//! Reads such a descriptor with pread (its own position: the descriptor is shared).
++class fd_streambuf : public std::streambuf {
++	
++	int fd_;
++	off_t pos_; //!< file position of buf_[0]
++	char buf_[1 << 16];
++	
++public:
++	
++	fd_streambuf() : fd_(-1), pos_(0) { }
++	
++	void attach(int fd) { fd_ = fd; pos_ = 0; setg(buf_, buf_, buf_); }
++	void detach() { fd_ = -1; pos_ = 0; setg(buf_, buf_, buf_); }
++	
++protected:
++	
++	int_type underflow() {
++		if(gptr() < egptr()) {
++			return traits_type::to_int_type(*gptr());
++		}
++		pos_ += off_t(egptr() - eback());
++		ssize_t n;
++		do {
++			n = pread(fd_, buf_, sizeof(buf_), pos_);
++		} while(n < 0 && errno == EINTR);
++		if(n <= 0) {
++			setg(buf_, buf_, buf_);
++			return traits_type::eof();
++		}
++		setg(buf_, buf_, buf_ + n);
++		return traits_type::to_int_type(*gptr());
++	}
++	
++	pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode) {
++		off_t at;
++		if(dir == std::ios_base::beg) {
++			at = off_t(off);
++		} else if(dir == std::ios_base::cur) {
++			at = pos_ + off_t(gptr() - eback()) + off_t(off);
++		} else {
++			off_t end = lseek(fd_, 0, SEEK_END);
++			if(end < 0) {
++				return pos_type(off_type(-1));
++			}
++			at = end + off_t(off);
++		}
++		return seekpos(pos_type(off_type(at)), std::ios_base::in);
++	}
++	
++	pos_type seekpos(pos_type p, std::ios_base::openmode) {
++		const off_t at = off_t(off_type(p));
++		if(at < 0) {
++			return pos_type(off_type(-1));
++		}
++		if(at >= pos_ && at <= pos_ + off_t(egptr() - eback())) {
++			setg(eback(), eback() + (at - pos_), egptr()); // inside the buffer
++		} else {
++			pos_ = at;
++			setg(buf_, buf_, buf_);
++		}
++		return p;
++	}
++	
++};
++
++/*
++ * boost::filesystem::ifstream, except that a mapped path (above) is read
++ * through its descriptor.
++ */
++class ifstream : public boost::filesystem::ifstream {
++	
++	fd_streambuf fdbuf_;
++	bool mapped_;
++	
++public:
++	
++	ifstream() : mapped_(false) { }
++	
++	explicit ifstream(const boost::filesystem::path & p,
++	                  std::ios_base::openmode mode = std::ios_base::in) : mapped_(false) {
++		open(p, mode);
++	}
++	
++	void open(const boost::filesystem::path & p, std::ios_base::openmode mode = std::ios_base::in) {
++		const int fd = mapped_fd(p.string());
++		if(fd < 0) {
++			boost::filesystem::ifstream::open(p, mode);
++			return;
++		}
++		mapped_ = true;
++		fdbuf_.attach(fd);
++		std::basic_ios<char>::rdbuf(&fdbuf_); // (basic_ifstream hides it)
++		clear();
++		if(mode & std::ios_base::ate) {
++			seekg(0, std::ios_base::end);
++		}
++	}
++	
++	bool is_open() const {
++		return mapped_ || boost::filesystem::ifstream::is_open();
++	}
++	
++	void close() {
++		if(mapped_) {
++			mapped_ = false;
++			fdbuf_.detach();
++			std::basic_ios<char>::rdbuf(std::basic_ifstream<char>::rdbuf());
++			return;
++		}
++		boost::filesystem::ifstream::close();
++	}
++	
++};
++
+ typedef boost::filesystem::ofstream ofstream;
+ typedef boost::filesystem::fstream  fstream;
+ 

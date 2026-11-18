@@ -1,0 +1,23 @@
+# Contains code from HoMM4Deadware (https://github.com/LeoDeadware/HoMM4Deadware): Copyright (c) 2026 LeoDeadware, MIT License.
+# The game, anything taken from it and anything built: local only.
+game/
+symbols/*.log
+h4/generated/
+h4/out/
+third_party/
+art/
+__pycache__/
+.DS_Store
+*.log
+.cache/
+# Android (platforms/android): Gradle state and outputs.
+platforms/android/.gradle/
+platforms/android/app/build/
+platforms/android/build/
+platforms/android/local.properties
+
+# The translation download address (platforms/build.sh), set per machine
+platforms/*_url
+
+# A local checkout of the translations (a separate repository, ReHoMM4-translations), if kept here.
+/loc/

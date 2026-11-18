@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Empty: a free (personal team) Apple ID can sign this. With a paid account, adding
+	     com.apple.developer.kernel.extended-virtual-addressing (true) gives the game the full
+	     4 GiB arena; without it the runtime falls back to 2 GiB, enough for heroes4.exe
+	     (not large-address-aware). -->
+</dict>
+</plist>
