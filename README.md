@@ -203,10 +203,12 @@ stopped. What happens to the installer files afterwards: see below.
 
 ### Language and settings
 
-The ⚙ button in the top right corner of the main menu opens the settings: the game's language
-(restart the game to apply it; a translation is downloaded when it is first chosen), fullscreen
-(Mac, Linux), skipping the intro movies, the update check, save sync, and the game's and saves'
-folders. On iPhone and iPad ⚙ opens a menu with the same choices.
+The ⚙ button in the top right corner of the main menu opens the settings: the version and the
+update check at the top, the game's language (a dropdown; a translation is downloaded when it is
+first chosen, and the game restarts with it on Android, the Mac and Linux, at the next start
+elsewhere), fullscreen (Mac, Linux), skipping the intro movies, save sync (? tells how to set it up
+on Android and Linux), the gamepad, and the game's and saves' folders. On iPhone and iPad ⚙ opens a
+menu with the same choices.
 
 ### The installer files after installing
 
@@ -286,7 +288,7 @@ languages yet.
 The translations are not in this repository: they live in their own,
 [ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations), and reach the apps
 only through its releases. The apps check its latest release at every start and download a
-language when it is first chosen (⚙ → Game language, then restart the game). A new or corrected
+language when it is first chosen (⚙ → Game language). A new or corrected
 language needs no new app.
 
 **Making your own language.** The full guide is
@@ -588,10 +590,12 @@ Vulkan: багато ТВ-приставок і стіків працюють н
 
 #### Мова й налаштування
 
-Кнопка ⚙ у правому верхньому куті головного меню відкриває налаштування: мову гри (щоб застосувати,
-перезапустіть гру; переклад завантажується, коли його обрано вперше), повноекранний режим (Мак,
-Linux), пропуск вступних відео, перевірку оновлень, синхронізацію збережень, теки гри й збережень.
-На iPhone і iPad ⚙ відкриває меню з тими самими пунктами.
+Кнопка ⚙ у правому верхньому куті головного меню відкриває налаштування: угорі версію й перевірку
+оновлень, мову гри (випадний список; переклад завантажується, коли його обрано вперше, і гра
+перезапускається з ним на Android, Маку й Linux, деінде — з наступного запуску), повноекранний режим
+(Мак, Linux), пропуск вступних відео, синхронізацію збережень («?» пояснює, як її налаштувати, на
+Android і Linux), геймпад, теки гри й збережень. На iPhone і iPad ⚙ відкриває меню з тими самими
+пунктами.
 
 #### Файли інсталятора після встановлення
 
@@ -670,7 +674,7 @@ Switch не перевірена: автор не має Switch з кастом�
 Переклади не в цьому репозиторії: вони в окремому,
 [ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations), і потрапляють у
 програми тільки через його релізи. Програми перевіряють найновіший реліз при кожному запуску й
-завантажують мову, коли її обрано вперше (⚙ → Мова гри, потім перезапустіть гру). Нова чи
+завантажують мову, коли її обрано вперше (⚙ → Мова гри). Нова чи
 виправлена мова не потребує нової програми.
 
 **Як зробити свою мову.** Повна інструкція —

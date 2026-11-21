@@ -71,7 +71,8 @@ LICENSES = ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING")
 # README must name both versions (in either language) and must not say one of them is missing.
 LANG_UK = re.compile(r"(?i)(ukrainian|українськ\w*)")
 LANG_EN = re.compile(r"(?i)(\benglish\b|англійськ\w*)")
-LANG_SWITCH = re.compile(r"(?i)(?=.*(launcher|лаунчер|🌐))(?=.*(language|мов[аиуі]\b|мову|мовою))")
+# How the language is chosen: the settings (⚙ → Game language; 🌐 or a launcher before 0.2).
+LANG_SWITCH = re.compile(r"(?i)(?=.*(launcher|лаунчер|🌐|⚙))(?=.*(language|мов[аиуі]\b|мову|мовою))")
 ONE_VERSION = re.compile(r"(?i)(no english (option|version)|only in ukrainian|ukrainian[- ]only|"
                          r"(англійськ\w*|української) (верс\w* )?нема|лише українськ\w*|тільки українськ\w*)")
 GATEKEEPER = re.compile(r"(?i)(gatekeeper|right-click\W+(it\W+)?.{0,20}open|control-click|open anyway|com\.apple\.quarantine"
@@ -366,7 +367,7 @@ def check_release(rep, repo, assets=()):
         if not rx.search(text):
             rep.add("FAIL", "release", "README", f"does not name {name} as a language of the game")
     if not LANG_SWITCH.search(text):
-        rep.add("FAIL", "release", "README", "does not say how the language is chosen (the 🌐 button)")
+        rep.add("FAIL", "release", "README", "does not say how the language is chosen (⚙ → Game language)")
     for i, line in enumerate(text.splitlines(), 1):
         m = ONE_VERSION.search(line)
         if m:
