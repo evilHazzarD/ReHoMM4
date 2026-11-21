@@ -12,7 +12,7 @@ The game itself is not included. The app installs it from your GOG account, or f
 |---|---|
 | Mac, Apple chip (M1 or newer), macOS 13+ | `HeroesIV-macos-arm64.dmg` |
 | Mac, Intel, macOS 13+ | `HeroesIV-macos-x86_64.dmg` |
-| iPhone, iPad | `HeroesIV-ios.ipa` (install with AltStore or Sideloadly) |
+| iPhone, iPad, iOS / iPadOS 17+ | `HeroesIV-ios.ipa` (install with AltStore or Sideloadly) |
 | Android 10+, 64-bit | `HeroesIV-android_arm64.apk` |
 | Linux, Steam Deck | `HeroesIV-linux-x86_64.tar.gz` |
 | Switch (homebrew) | `HeroesIV.nro` |

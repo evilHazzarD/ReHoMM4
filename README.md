@@ -22,7 +22,7 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   here: the app takes it from your GOG account.
 - One of:
   - a Mac with macOS 13 or later (an Apple chip or Intel);
-  - an iPhone or iPad;
+  - an iPhone or iPad with iOS / iPadOS 17 or later;
   - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
   - a Linux PC (x86-64) or a Steam Deck;
   - a Nintendo Switch that runs homebrew.
@@ -411,7 +411,7 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
   програма бере її з вашого облікового запису GOG.
 - Один з пристроїв:
   - Мак з macOS 13 або новішою (процесор Apple або Intel);
-  - iPhone або iPad;
+  - iPhone або iPad з iOS / iPadOS 17 або новішою;
   - телефон, планшет чи телевізор на Android (64-бітний, Android 10 або новіший; на телевізорі — з геймпадом);
   - ПК з Linux (x86-64) або Steam Deck;
   - Nintendo Switch, на якому запускається homebrew.
