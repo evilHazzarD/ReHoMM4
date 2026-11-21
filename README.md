@@ -39,8 +39,7 @@ below is the release's number (for example `0.2`).
 
 | Device | File |
 |---|---|
-| Mac with an Apple chip (M1 or newer) | `HeroesIV-<version>-macos-arm64.dmg` |
-| Mac with an Intel processor | `HeroesIV-<version>-macos-x86_64.dmg` |
+| Mac | `HeroesIV-<version>-macos-arm64.dmg` (Apple chip, M1 or newer) or `HeroesIV-<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `HeroesIV-<version>-ios.ipa` |
 | Android | `HeroesIV-<version>-android_arm64.apk` |
 | Linux PC, Steam Deck | `HeroesIV-<version>-linux-x86_64.tar.gz` |
@@ -428,8 +427,7 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 
 | Пристрій | Файл |
 |---|---|
-| Мак із процесором Apple (M1 або новіший) | `HeroesIV-<version>-macos-arm64.dmg` |
-| Мак із процесором Intel | `HeroesIV-<version>-macos-x86_64.dmg` |
+| Мак | `HeroesIV-<version>-macos-arm64.dmg` (процесор Apple, M1 або новіший) або `HeroesIV-<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `HeroesIV-<version>-ios.ipa` |
 | Android | `HeroesIV-<version>-android_arm64.apk` |
 | ПК з Linux, Steam Deck | `HeroesIV-<version>-linux-x86_64.tar.gz` |
