@@ -40,6 +40,17 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- The app's files (the game, the saves) as a place of the Files app: FilesProvider.java. -->
+        <provider
+            android:name=".FilesProvider"
+            android:authorities="games.hazzard.heroes4.files"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
         <!-- Relaunches the game in a fresh process (a new language): RestartActivity.java. -->
         <activity
             android:name=".RestartActivity"

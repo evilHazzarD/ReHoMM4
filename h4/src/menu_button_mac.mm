@@ -1,7 +1,7 @@
 // menu_button.h in the Mac app (H4_DESKTOP_APP): NSButtons over SDL's view.
 // The ⚙︎ one (top right) opens the settings panel: a button per language (language.h; not an
 // NSMenu: its modal tracking loop would stop the game's frames, and the hang watchdog with
-// them), the one picked saved, and a panel says it applies once the game is restarted; and the
+// them), the one picked saved and the app started again with it; and the
 // checkbox that shows the ☁️ button (left of ⚙︎, ShowSyncButton), which opens the iCloud saves
 // panel (save_sync_apple.mm). The panels (ShowMacChoice) are views
 // over the game, not sheets: a sheet takes the window's focus, and after it the system cursor stays
@@ -62,12 +62,11 @@ void Choose(const std::string& lang) {
     std::fputs(lang.c_str(), f);
     std::fclose(f);
   }
+  // The app starts again with it at once (the game reads its text and fonts at start). Should
+  // that fail: it applies at the next start, as the language's note says.
+  h4::RestartApp();
   const h4::LanguageInfo l = h4::FindLanguage(lang);
-  // OK: the app starts again with it; Cancel (Esc): it applies at the next start.
-  h4::ShowMacChoice((__bridge void*)g_button, l.name, l.note, {"OK", Uk() ? "Скасувати" : "Cancel"}, [](int i) {
-    if (i == 0) h4::RestartApp();
-    BackToSettings();
-  });
+  h4::ShowMacChoice((__bridge void*)g_button, l.name, l.note, {"OK"}, [](int) { BackToSettings(); });
 }
 
 NSColor* Gold() { return [NSColor colorWithRed:0.84 green:0.67 blue:0.34 alpha:1]; }
@@ -253,9 +252,10 @@ void Download(NSURL* url, NSString* version) {
 void CheckForUpdates();
 void ShowGamepad();
 
-// The settings panel (the game's frames go on while it is up), top to bottom: the language
-// (a dropdown), fullscreen, the intro movies, save sync (and the folder synced, while on), the
-// saves' folder, the game's folder, "ReHoMM4 v<version>" with the update check; ✕ closes it.
+// The settings panel (the game's frames go on while it is up), top to bottom:
+// "ReHoMM4 v<version>" with the update check, the language (a dropdown), fullscreen, the intro
+// movies, save sync (and the folder synced, while on), the saves' folder, the game's folder; ✕
+// closes it.
 void ShowSettings() {
   NSView* view = g_button.window.contentView;
   if (!view || g_overlay) return;
@@ -334,6 +334,20 @@ void ShowSettings() {
 
   rows.push_back(text(uk ? "Налаштування" : "Settings", [NSFont boldSystemFontOfSize:15], Gold(),
                       NSTextAlignmentCenter));
+  {  // at the top: "ReHoMM4 <version>" and the update check right of it
+    const CGFloat bh = 30, bw = 210;
+    NSView* row = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, inner, bh)];
+    NSTextField* v = text("ReHoMM4 v" + std::string(AppVersion().UTF8String), [NSFont boldSystemFontOfSize:12],
+                          Gold(), NSTextAlignmentLeft);
+    v.frame = NSMakeRect(0, (bh - v.frame.size.height) / 2, inner - bw - 8, v.frame.size.height);
+    [row addSubview:v];
+    NSButton* b = h4::MakeButton(Str(uk ? "Перевірити оновлення" : "Check for updates"), @selector(pick:));
+    b.target = target;
+    b.tag = kUpdate;
+    b.frame = NSMakeRect(inner - bw, 0, bw, bh);
+    [row addSubview:b];
+    rows.push_back(row);
+  }
   const std::vector<h4::LanguageInfo> all = g_saved.empty() ? std::vector<h4::LanguageInfo>{} : h4::Languages();
   if (!all.empty()) {
     NSPopUpButton* pop = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(0, 0, 180, 26) pullsDown:NO];
@@ -385,20 +399,6 @@ void ShowSettings() {
     b.tag = kPad;
     b.frame = NSMakeRect(0, 0, 110, 24);
     titled(uk ? "Геймпад" : "Gamepad", b, 28);
-  }
-  {  // at the bottom: "ReHoMM4 <version>" and the update check right of it
-    const CGFloat bh = 30, bw = 210;
-    NSView* row = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, inner, bh)];
-    NSTextField* v = text("ReHoMM4 v" + std::string(AppVersion().UTF8String), [NSFont boldSystemFontOfSize:12],
-                          Gold(), NSTextAlignmentLeft);
-    v.frame = NSMakeRect(0, (bh - v.frame.size.height) / 2, inner - bw - 8, v.frame.size.height);
-    [row addSubview:v];
-    NSButton* b = h4::MakeButton(Str(uk ? "Перевірити оновлення" : "Check for updates"), @selector(pick:));
-    b.target = target;
-    b.tag = kUpdate;
-    b.frame = NSMakeRect(inner - bw, 0, bw, bh);
-    [row addSubview:b];
-    rows.push_back(row);
   }
   target.checked = checked;
   target.paths = paths;

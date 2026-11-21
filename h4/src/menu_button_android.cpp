@@ -152,6 +152,11 @@ extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h
   return env->NewStringUTF(s.c_str());
 }
 
+// The game's folder (GameFolder, main.cpp), shown in the settings; "" before it is found.
+extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4GameFolder(JNIEnv* env, jclass) {
+  return env->NewStringUTF(h4::GameFolder().c_str());
+}
+
 // key: "enabled" (value 0 or 1), "pointer", "scroll", "preset" (its index), "reset", or "button<i>"
 // (value: the action's index).
 extern "C" JNIEXPORT void JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4PadSet(JNIEnv* env, jclass, jstring key,

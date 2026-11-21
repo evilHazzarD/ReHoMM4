@@ -161,6 +161,48 @@ public class HeroesActivity extends SDLActivity {
 
     // A checkbox's or radio button's box drawn `side` x `side` (its states passed on): smaller than
     // Android's and square (a LayerDrawable's size adds the box's own padding: stretched).
+    // The settings' dropdowns (Spinner): their rows are made after compact(), so sized here. The
+    // chosen one of the text's height (13sp, as the rest); the list's rows 32dp, the whole width of
+    // the list, the name in full and its mark (20dp) at the right edge.
+    static final class Dropdown extends android.widget.ArrayAdapter<String> {
+        private final float dp;
+
+        Dropdown(android.content.Context c, java.util.List<String> items, float dp) {
+            super(c, android.R.layout.simple_spinner_item, items);
+            this.dp = dp;
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        }
+
+        @Override
+        public android.view.View getView(int pos, android.view.View cv, android.view.ViewGroup parent) {
+            android.widget.TextView t = (android.widget.TextView) super.getView(pos, cv, parent);
+            t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
+            t.setMinHeight(0);
+            t.setMinimumHeight(0);
+            t.setPadding(t.getPaddingLeft(), Math.round(2 * dp), t.getPaddingRight(), Math.round(2 * dp));
+            return t;
+        }
+
+        @Override
+        public android.view.View getDropDownView(int pos, android.view.View cv, android.view.ViewGroup parent) {
+            android.widget.TextView t = (android.widget.TextView) super.getDropDownView(pos, cv, parent);
+            t.setLayoutParams(new android.widget.AbsListView.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+            t.setSingleLine(true);
+            t.setEllipsize(null);
+            if (t instanceof android.widget.CheckedTextView) {
+                android.widget.CheckedTextView c = (android.widget.CheckedTextView) t;
+                android.graphics.drawable.Drawable m = c.getCheckMarkDrawable();
+                if (m != null && !(m instanceof Square)) c.setCheckMarkDrawable(new Square(m, Math.round(20 * dp)));
+            }
+            t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+            t.setMinHeight(Math.round(32 * dp));
+            t.setMinimumHeight(Math.round(32 * dp));
+            t.setPadding(Math.round(14 * dp), Math.round(4 * dp), Math.round(14 * dp), Math.round(4 * dp));
+            return t;
+        }
+    }
+
     static final class Square extends android.graphics.drawable.DrawableWrapper {
         private final int side;
         Square(android.graphics.drawable.Drawable d, int side) {
@@ -220,6 +262,15 @@ public class HeroesActivity extends SDLActivity {
         }
     }
 
+    // The scroll bar shown all the time while there is more to scroll to (it fades out by default:
+    // nothing told the player the settings go on below).
+    private static void alwaysBar(final android.widget.ScrollView sv) {
+        sv.setScrollbarFadingEnabled(false);
+        sv.setScrollBarStyle(android.view.View.SCROLLBARS_INSIDE_INSET);
+        sv.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
+                sv.setVerticalScrollBarEnabled(sv.canScrollVertically(1) || sv.canScrollVertically(-1)));
+    }
+
     private static android.app.AlertDialog.Builder compactDialog(HeroesActivity a, String title, android.view.View content) {
         final float dp = a.getResources().getDisplayMetrics().density;
         compact(content, dp);
@@ -229,6 +280,7 @@ public class HeroesActivity extends SDLActivity {
             sv.addView(content);
             body = sv;
         }
+        alwaysBar((android.widget.ScrollView) body);
         android.widget.TextView t = new android.widget.TextView(a);
         t.setText(title);
         t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
@@ -249,6 +301,113 @@ public class HeroesActivity extends SDLActivity {
         return d;
     }
 
+    private static native String h4GameFolder();  // menu_button_android.cpp
+
+    // A folder in the settings: its title (bold) with Open at the right (open: null, no button),
+    // the path under them (small, selectable).
+    private static void folderRow(HeroesActivity a, android.widget.LinearLayout box, String title, String path,
+                                  float dp, Runnable open) {
+        android.widget.LinearLayout row = new android.widget.LinearLayout(a);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(0, Math.round(6 * dp), 0, 0);
+        android.widget.TextView t = new android.widget.TextView(a);
+        t.setText(title);
+        t.setTypeface(null, android.graphics.Typeface.BOLD);
+        row.addView(t, new android.widget.LinearLayout.LayoutParams(0,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        if (open != null) {
+            android.widget.Button b = new android.widget.Button(a);
+            b.setAllCaps(false);
+            b.setText("uk".equals(langNext) ? "Відкрити" : "Open");
+            b.setOnClickListener(v -> open.run());
+            row.addView(b);
+        }
+        box.addView(row);
+        android.widget.TextView p = new android.widget.TextView(a);
+        p.setText(path);
+        p.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
+        p.setTextIsSelectable(true);
+        p.setPadding(0, 0, 0, Math.round(4 * dp));
+        box.addView(p);
+    }
+
+    private static java.io.File filesRoot(HeroesActivity a) {
+        java.io.File ext = a.getExternalFilesDir(null);
+        return ext != null ? ext : a.getFilesDir();
+    }
+
+    // The app's own folder `dir` in the Files app, through FilesProvider (Android 11+ lets no
+    // file manager into Android/data); null when it is not below the app's files.
+    private static android.net.Uri ownFolder(HeroesActivity a, java.io.File dir) {
+        String id = FilesProvider.idOf(filesRoot(a), dir);
+        return id == null ? null : android.provider.DocumentsContract.buildDocumentUri(FilesProvider.AUTHORITY, id);
+    }
+
+    // The Files app (DocumentsUI) at a folder document, else any app that opens folders; a note
+    // when none does. True: opened.
+    private static boolean openUri(HeroesActivity a, android.net.Uri uri) {
+        String[] apps = {"com.google.android.documentsui", "com.android.documentsui", null};
+        for (String app : uri == null ? new String[0] : apps) {
+            android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            i.setDataAndType(uri, android.provider.DocumentsContract.Document.MIME_TYPE_DIR);
+            i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            if (app != null) i.setPackage(app);
+            try {
+                a.startActivity(i);
+                return true;
+            } catch (Exception e) {
+            }
+        }
+        String name = a.getString(R.string.app_name);
+        android.widget.Toast.makeText(a, (CharSequence) ("uk".equals(langNext)
+                ? "Не вдалося відкрити теку. У застосунку «Файли» вона є як «" + name + "»."
+                : "Could not open the folder. The Files app has it as \"" + name + "\"."),
+                android.widget.Toast.LENGTH_LONG).show();
+        return false;
+    }
+
+    // How to set the save sync up on Android; OK: back to the settings.
+    private static void syncHelp(final HeroesActivity a) {
+        final boolean uk = "uk".equals(langNext);
+        String text = uk
+                ? "Збереження синхронізуються з текою, яку ви виберете один раз (у ній гра створить теку ReHOMM4): "
+                + "файл за файлом, новіша копія перемагає, нічого не видаляється.\n\n"
+                + "Щоб збереження були й на інших пристроях, синхронізуйте цю теку будь-яким застосунком:\n\n"
+                + "• Syncthing (Syncthing-Fork з Google Play або F-Droid): додайте спільну теку, наприклад "
+                + "Documents/ReHOMM4, і поділіться нею з іншими пристроями. ReHoMM4 на Linux і Steam Deck "
+                + "синхронізується з ~/ReHOMM4, на Mac — з iCloud Drive/ReHOMM4: там і вкажіть цю спільну теку.\n\n"
+                + "• Хмара (Google Drive, Dropbox, OneDrive…): FolderSync, Round Sync (rclone) або Autosync "
+                + "двосторонньо синхронізують теку з хмарою. ReHoMM4 на Linux і Mac бере ту саму хмару через "
+                + "rclone (рядок rclone=<remote>:ReHOMM4 у його sync.conf).\n\n"
+                + "• Nextcloud: увімкніть синхронізацію теки в його застосунку.\n\n"
+                + "Далі поставте галочку «Синхронізація збережень» і виберіть цю теку. Кнопка \u2601\uFE0F у меню "
+                + "показує стан і синхронізує одразу."
+                : "The saves are kept in step with a folder you pick once (the game makes ReHOMM4 in it): file by "
+                + "file, the newer copy wins, nothing is deleted.\n\n"
+                + "To have them on your other devices too, sync that folder with any app:\n\n"
+                + "• Syncthing (Syncthing-Fork from Google Play or F-Droid): add a shared folder, say "
+                + "Documents/ReHOMM4, and share it with your other devices. ReHoMM4 on Linux and the Steam Deck "
+                + "syncs ~/ReHOMM4, on the Mac iCloud Drive/ReHOMM4: share it into that folder there.\n\n"
+                + "• A cloud (Google Drive, Dropbox, OneDrive…): FolderSync, Round Sync (rclone) or Autosync "
+                + "keep the folder in two-way sync with it. ReHoMM4 on Linux and the Mac takes the same cloud "
+                + "through rclone (the line rclone=<remote>:ReHOMM4 in its sync.conf).\n\n"
+                + "• Nextcloud: turn the folder's sync on in its app.\n\n"
+                + "Then tick \"Sync saved games\" and pick that folder. The \u2601\uFE0F button in the menu "
+                + "shows the state and syncs at once.";
+        android.widget.TextView t = new android.widget.TextView(a);
+        t.setText(text);
+        t.setTextIsSelectable(true);
+        final float dp = a.getResources().getDisplayMetrics().density;
+        t.setPadding(Math.round(20 * dp), Math.round(8 * dp), Math.round(20 * dp), 0);
+        android.app.AlertDialog.Builder b = compactDialog(a,
+                uk ? "Як налаштувати синхронізацію" : "Setting the sync up", t)
+                .setPositiveButton("OK", null);
+        backToSettings(a, b);
+        shown(a, b.show());
+    }
+
     // The settings dialog: the languages (savedPath "": none), the ☁️ checkbox, Close.
     private static void showSettings(final HeroesActivity a, final String savedPath) {
         final boolean uk = "uk".equals(langNext);
@@ -259,37 +418,77 @@ public class HeroesActivity extends SDLActivity {
         box.setPadding(pad, Math.round(8 * dp), pad, 0);
         final android.app.AlertDialog[] dialog = new android.app.AlertDialog[1];
         final java.util.List<String[]> items = langList;
+        // At the top: "ReHoMM4 v<version>" and the update check right of it.
+        android.widget.Button upd = new android.widget.Button(a);
+        upd.setAllCaps(false);
+        upd.setText(uk ? "Перевірити оновлення" : "Check for updates");
+        upd.setOnClickListener(v -> {
+            if (dialog[0] != null) dialog[0].dismiss();
+            checkForUpdates(a);
+        });
+        android.widget.LinearLayout last = new android.widget.LinearLayout(a);
+        last.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        last.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        android.widget.TextView ver = new android.widget.TextView(a);
+        String version = "";
+        try {
+            version = a.getPackageManager().getPackageInfo(a.getPackageName(), 0).versionName;
+        } catch (Exception e) {
+        }
+        ver.setText("ReHoMM4 v" + version);
+        ver.setTypeface(null, android.graphics.Typeface.BOLD);
+        last.addView(ver, new android.widget.LinearLayout.LayoutParams(0,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        last.setPadding(0, 0, 0, Math.round(8 * dp));
+        last.addView(upd);
+        box.addView(last);
         if (savedPath != null && !savedPath.isEmpty() && !items.isEmpty()) {
+            // The language: its title at the left, a dropdown of the languages at the right.
+            android.widget.LinearLayout row = new android.widget.LinearLayout(a);
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
             android.widget.TextView t = new android.widget.TextView(a);
             t.setText(uk ? "Мова гри" : "Game language");
-            t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
             t.setTypeface(null, android.graphics.Typeface.BOLD);
-            box.addView(t);
-            android.widget.RadioGroup g = new android.widget.RadioGroup(a);
+            row.addView(t, new android.widget.LinearLayout.LayoutParams(0,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            java.util.List<String> names = new java.util.ArrayList<>();
+            int chosen = 0;
             for (int i = 0; i < items.size(); i++) {
-                android.widget.RadioButton r = new android.widget.RadioButton(a);
-                r.setId(1000 + i);
-                r.setText(items.get(i)[1]);
-                g.addView(r);
-                if (items.get(i)[0].equals(langNext)) g.check(r.getId());
+                names.add(items.get(i)[1]);
+                if (items.get(i)[0].equals(langNext)) chosen = i;
             }
-            g.setOnCheckedChangeListener((group, id) -> {
-                final String[] next = items.get(id - 1000);
-                if (next[0].equals(langNext)) return;
-                try (java.io.FileOutputStream f = new java.io.FileOutputStream(savedPath)) {
-                    f.write(next[0].getBytes());
-                } catch (Exception e) {
-                    return;
+            android.widget.Spinner sp = new android.widget.Spinner(a, android.widget.Spinner.MODE_DROPDOWN);
+            android.widget.ArrayAdapter<String> ad = new Dropdown(a, names, dp);
+            sp.setDropDownWidth(Math.round(220 * dp));
+            sp.setAdapter(ad);
+            sp.setSelection(chosen, false);
+            sp.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int pos, long id) {
+                    final String[] next = items.get(pos);
+                    if (next[0].equals(langNext)) return;
+                    try (java.io.FileOutputStream f = new java.io.FileOutputStream(savedPath)) {
+                        f.write(next[0].getBytes());
+                    } catch (Exception e) {
+                        return;
+                    }
+                    langNext = next[0];
+                    if (dialog[0] != null) dialog[0].dismiss();
+                    // The game again, with it (it reads its text and fonts at start): RestartActivity.
+                    android.content.Intent i = new android.content.Intent(a, RestartActivity.class);
+                    i.putExtra("pid", android.os.Process.myPid());
+                    i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    a.startActivity(i);
                 }
-                langNext = next[0];
-                if (dialog[0] != null) dialog[0].dismiss();
-                new android.app.AlertDialog.Builder(a)
-                        .setTitle(next[1])
-                        .setMessage(next.length > 2 ? next[2] : "")
-                        .setPositiveButton("OK", null)
-                        .show();
+
+                @Override
+                public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                }
             });
-            box.addView(g);
+            row.addView(sp);
+            row.setPadding(0, Math.round(4 * dp), 0, Math.round(4 * dp));
+            box.addView(row);
         }
         android.widget.CheckBox c = new android.widget.CheckBox(a);
         c.setText(uk ? "Синхронізація збережень (кнопка \u2601\uFE0F у меню)"
@@ -306,7 +505,22 @@ public class HeroesActivity extends SDLActivity {
             if (!on) SaveSync.stop();
             placeCloud(a);
         });
-        box.addView(c);
+        {  // the checkbox with a small "?" at its right: how to set the sync up (syncHelp)
+            android.widget.LinearLayout row = new android.widget.LinearLayout(a);
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.addView(c, new android.widget.LinearLayout.LayoutParams(0,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            android.widget.Button q = new android.widget.Button(a);
+            q.setAllCaps(false);
+            q.setText("?");
+            q.setOnClickListener(v -> {
+                if (dialog[0] != null) dialog[0].dismiss();
+                syncHelp(a);
+            });
+            row.addView(q);
+            box.addView(row);
+        }
         if (introPath != null && !introPath.isEmpty()) {
             android.widget.CheckBox ci = new android.widget.CheckBox(a);
             ci.setText(uk ? "Пропускати вступні відео (з наступного запуску)" : "Skip the intro movies (from the next start)");
@@ -320,13 +534,41 @@ public class HeroesActivity extends SDLActivity {
             });
             box.addView(ci);
         }
-        android.widget.Button upd = new android.widget.Button(a);
-        upd.setAllCaps(false);
-        upd.setText(uk ? "Перевірити оновлення" : "Check for updates");
-        upd.setOnClickListener(v -> {
-            if (dialog[0] != null) dialog[0].dismiss();
-            checkForUpdates(a);
-        });
+        {  // the folders, as on the Mac: the title, the path under it (selectable, to copy)
+            java.io.File saves = SaveSync.savesFolder();
+            String game = "";
+            try {
+                game = h4GameFolder();
+            } catch (UnsatisfiedLinkError e) {
+            }
+            Runnable close = () -> {
+                if (dialog[0] != null) dialog[0].dismiss();
+            };
+            // The saves: the synced folder while sync is on (the one the player keeps), else here.
+            final String synced = SaveSync.syncedFolderLabel();
+            if (synced != null) {
+                folderRow(a, box, uk ? "Збереження (синхронізуються)" : "Saves (synced)", synced, dp, () -> {
+                    close.run();
+                    new Thread(() -> {
+                        final android.net.Uri u = SaveSync.syncedFolderUri();  // asks the provider
+                        a.runOnUiThread(() -> openUri(a, u));
+                    }).start();
+                });
+            } else if (saves != null) {
+                final android.net.Uri u = ownFolder(a, saves);
+                folderRow(a, box, uk ? "Збереження" : "Saves", saves.getPath(), dp, u == null ? null : () -> {
+                    saves.mkdirs();
+                    if (openUri(a, u)) close.run();
+                });
+            }
+            if (game != null && !game.isEmpty()) {
+                final java.io.File g = new java.io.File(game);
+                final android.net.Uri u = ownFolder(a, g);
+                folderRow(a, box, uk ? "Тека гри" : "Game folder", game, dp, u == null ? null : () -> {
+                    if (openUri(a, u)) close.run();
+                });
+            }
+        }
         {  // the gamepad's dialog (showGamepad)
             android.widget.LinearLayout row = new android.widget.LinearLayout(a);
             row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
@@ -347,23 +589,6 @@ public class HeroesActivity extends SDLActivity {
             row.addView(set);
             box.addView(row);
         }
-        // At the bottom: "ReHoMM4 v<version>" and the update check right of it.
-        android.widget.LinearLayout last = new android.widget.LinearLayout(a);
-        last.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        last.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        android.widget.TextView ver = new android.widget.TextView(a);
-        String v = "";
-        try {
-            v = a.getPackageManager().getPackageInfo(a.getPackageName(), 0).versionName;
-        } catch (Exception e) {
-        }
-        ver.setText("ReHoMM4 v" + v);
-        ver.setTypeface(null, android.graphics.Typeface.BOLD);
-        last.addView(ver, new android.widget.LinearLayout.LayoutParams(0,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        last.setPadding(0, Math.round(6 * dp), 0, Math.round(10 * dp));
-        last.addView(upd);
-        box.addView(last);
         dialog[0] = shown(a, compactDialog(a, uk ? "Налаштування" : "Settings", box)
                 .setPositiveButton(uk ? "Закрити" : "Close", null)
                 .show());
@@ -459,16 +684,7 @@ public class HeroesActivity extends SDLActivity {
         // A dropdown that calls `picked` only for a choice made (not for the one set at first).
         final java.util.function.BiFunction<String[], Integer, android.widget.Spinner> dropdown = (items, at) -> {
             android.widget.Spinner sp = new android.widget.Spinner(a, android.widget.Spinner.MODE_DROPDOWN);
-            android.widget.ArrayAdapter<String> ad = new android.widget.ArrayAdapter<String>(a,
-                    android.R.layout.simple_spinner_item, items) {
-                @Override public android.view.View getView(int pos, android.view.View cv, android.view.ViewGroup parent) {
-                    android.view.View v = super.getView(pos, cv, parent);
-                    if (v instanceof android.widget.TextView)
-                        ((android.widget.TextView) v).setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
-                    return v;
-                }
-            };
-            ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            android.widget.ArrayAdapter<String> ad = new Dropdown(a, java.util.Arrays.asList(items), dp);
             sp.setAdapter(ad);
             sp.setSelection(at, false);
             return sp;

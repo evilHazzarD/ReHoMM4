@@ -175,25 +175,31 @@ void SetMenu(UIButton* b) {
                                       Alert(Str(h4::GamepadHelpTitle(Uk())), Str(h4::GamepadHelp(Uk())), @[]);
                                     }];
   NSMutableArray<UIMenuElement*>* items = [NSMutableArray array];
-  if (langs.count)
-    [items addObject:[UIMenu menuWithTitle:Uk() ? @"Мова гри" : @"Game language"
-                                     image:nil
-                                identifier:nil
-                                   options:UIMenuOptionsDisplayInline
-                                  children:langs]];
-  [items addObject:[UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline
-                                children:@[ sync, intro, pad ]]];
   UIAction* upd = [UIAction actionWithTitle:Uk() ? @"Перевірити оновлення" : @"Check for updates"
                                       image:[UIImage systemImageNamed:@"arrow.down.circle"]
                                  identifier:nil
                                     handler:^(UIAction*) { CheckForUpdates(); }];
   // The version: the update check's section's title (not in the main menu).
   NSString* v = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
-  [items addObject:[UIMenu menuWithTitle:[@"ReHoMM4 v" stringByAppendingString:v ?: @""]
+  [items insertObject:[UIMenu menuWithTitle:[@"ReHoMM4 v" stringByAppendingString:v ?: @""]
                                    image:nil
                               identifier:nil
                                  options:UIMenuOptionsDisplayInline
-                                children:@[ upd ]]];
+                                children:@[ upd ]]
+                    atIndex:0];  // at the top
+  if (langs.count) {  // a dropdown: a submenu, the chosen language under its title
+    UIMenu* m = [UIMenu menuWithTitle:Uk() ? @"Мова гри" : @"Game language"
+                                image:[UIImage systemImageNamed:@"globe"]
+                           identifier:nil
+                              options:0
+                             children:langs];
+    if (@available(iOS 15.0, *))
+      for (const h4::LanguageInfo& l : h4::Languages())
+        if (l.code == g_next) m.subtitle = Str(l.name);
+    [items addObject:m];
+  }
+  [items addObject:[UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline
+                                children:@[ sync, intro, pad ]]];
   b.menu = [UIMenu menuWithTitle:Uk() ? @"Налаштування" : @"Settings" children:items];
   b.showsMenuAsPrimaryAction = YES;
 }

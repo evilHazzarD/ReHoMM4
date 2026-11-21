@@ -129,6 +129,9 @@ const char* PadButtonName(int button, bool uk) {
 }
 
 int PadStyle() {
+#if defined(__SWITCH__)
+  return kPadSwitch;  // its own pads only: no preset to pick (the panel has none)
+#endif
   if (g_style >= 0) return g_style;
   // The pad connected now (the first one, as PadTick takes it).
   int style = kPadXbox, n = 0;
@@ -145,9 +148,6 @@ int PadStyle() {
       }
     SDL_free(ids);
   }
-#if defined(__SWITCH__)
-  style = kPadSwitch;
-#endif
   return style;
 }
 

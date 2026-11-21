@@ -6,6 +6,7 @@
 //   gear.argb      the settings button: ⚙ on its plate
 //   kofi_gear.argb  the Linux app's: ☕ (Ko-fi) and ⚙, 8 pixels apart
 //   upd_*.argb     the update check's button and messages (Linux)
+//   sync_button.argb, sync_help.argb  the save sync's row and its help (Linux)
 //   pad_button.argb  the settings' "Gamepad" row; gp_*.argb its panel's labels (menu_button_linux.cpp)
 // .argb: width, height (little-endian 32-bit), then ARGB pixels (premultiplied).
 //   swift render_ui.swift <out dir>   (platforms/linux/package.sh, switch/package.sh)
@@ -185,6 +186,25 @@ render("upd_newer", "A new version is out.\nClick here to download it into Downl
 render("upd_downloading", "Downloading the new version…", size: 15, maxWidth: 320)
 render("upd_done", "Downloaded into Downloads (HeroesIV-<version>-linux-x86_64.tar.gz).\nQuit the game and unpack it over the old one.", size: 15, maxWidth: 360)
 render("upd_failed", "Could not reach GitHub. Try again later.", size: 15, maxWidth: 320)
+// The save sync's row and its help (Linux: save_sync.h; menu_button_linux.cpp).
+render("sync_button", "Saved games sync   ( ? )", size: 12, maxWidth: 300)
+render("sync_help", """
+Saved games sync
+
+Your saves are kept in step with the folder ~/ReHOMM4 (made at the first start): file by file, \
+the newer copy wins, nothing is deleted. Carry that folder to your other devices with a sync tool:
+
+• Syncthing: share ~/ReHOMM4 with your other devices. On Android or an iPhone, turn the sync \
+on in ReHoMM4's settings and pick the shared folder; the Mac app syncs iCloud Drive/ReHOMM4.
+
+• A cloud (Google Drive, Dropbox, OneDrive…) through rclone: set the remote up once with \
+`rclone config`, then put the line  rclone=<remote>:ReHOMM4  into \
+~/.local/share/ReHoMM4/sync.conf. The game brings newer saves down and sends its own up.
+
+In sync.conf, folder=<path> syncs another folder instead; a line  off  stops the sync.
+
+Click to close.
+""", size: 12, maxWidth: 520, left: true)
 // The settings button: a 44-pixel square plate, ⚙ centred on its ink; and the Linux app's
 // "☕ ⚙" (the Ko-fi button left of it, 8 pixels apart: kofi_gear.argb).
 // Draws `glyph` on a plate at x in `rep` (side x side), the glyph's ink centred.

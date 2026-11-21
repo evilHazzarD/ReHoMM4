@@ -359,6 +359,7 @@ std::string MobileSetup() {
   if (!installed.empty()) {
     std::printf("h4: game %s, player files %s\n", installed.c_str(), data.c_str());
     ChooseLanguage(installed, data);
+    h4::SetGameFolder(installed);
     std::fflush(stdout);
     return installed;
   }

@@ -95,6 +95,46 @@ final class SaveSync {
 
     static boolean on() { return tree != null; }
 
+    // The saved games' folder here (games/ as the game spelled it), shown in the settings; null
+    // before start().
+    static File savesFolder() {
+        if (install == null) return null;
+        File games = new File(install, "games");
+        File[] top = install.listFiles();
+        if (top != null)
+            for (File f : top)
+                if (f.isDirectory() && f.getName().equalsIgnoreCase("games")) games = f;
+        return games;
+    }
+
+    // The synced folder (ReHOMM4 in the picked one) as the settings show it: a path for the phone's
+    // own storage ("primary:Sync" -> /storage/emulated/0/Sync/ReHOMM4), else the picked folder's
+    // name; null when sync is off.
+    static String syncedFolderLabel() {
+        Uri t = tree;
+        if (t == null) return null;
+        String root = DocumentsContract.getTreeDocumentId(t), shown = null;
+        if ("com.android.externalstorage.documents".equals(t.getAuthority()) && root.contains(":")) {
+            String vol = root.substring(0, root.indexOf(':')), rest = root.substring(root.indexOf(':') + 1);
+            shown = ("primary".equals(vol) ? "/storage/emulated/0" : "/storage/" + vol) + (rest.isEmpty() ? "" : "/" + rest);
+        }
+        String n = shown != null ? shown.substring(shown.lastIndexOf('/') + 1) : name(t, root);
+        if (shown == null) shown = n != null ? n : root;
+        return FOLDER.equalsIgnoreCase(n) ? shown : shown + "/" + FOLDER;
+    }
+
+    // The synced folder's document (made when missing): for the Files app (HeroesActivity.openUri).
+    // Queries the provider: not on the main thread. Null when sync is off or the provider fails.
+    static Uri syncedFolderUri() {
+        Uri t = tree;
+        if (t == null) return null;
+        try {
+            return DocumentsContract.buildDocumentUriUsingTree(t, folderId(t));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // The system's folder picker; its result: picked() (HeroesActivity.onActivityResult).
     static void pick(Activity a) {
         Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);

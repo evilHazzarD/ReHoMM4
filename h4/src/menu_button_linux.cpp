@@ -6,8 +6,8 @@
 // build time by platforms/linux/render_ui.swift): letters.argb, the characters the buttons are
 // put together from ("🌐 UK", a language's: any language's code), gear.argb, the settings one
 // (⚙), and note.argb, the "restart to apply" note shown after a pick. A click on ⚙ opens the settings:
-// the languages' buttons one under the other (no save sync button here: Linux syncs by its
-// sync.conf, save_sync.h; the Switch does not), the intro setting (a checkbox row: intro.h), the
+// the languages' buttons one under the other (save sync: a row whose help says how; Linux syncs
+// by its sync.conf, save_sync.h; the Switch does not), the intro setting (a checkbox row: intro.h), the
 // gamepad's panel (pad_button.argb opens it: MakeGamepad, pad_config.h) and, on Linux, the update check.
 #include <SDL3/SDL.h>
 #include <unistd.h>
@@ -93,8 +93,12 @@ Picture g_gear;                       // the settings button: ⚙
 Picture g_kofi_gear;                  // Linux: ☕ (the author's Ko-fi page) and ⚙ (none: ⚙ alone)
 Picture g_list;                       // the open list: every button, one under the other
 std::vector<int> g_rows;              // where each one starts in it (pixels)
+// What each row is: a language (its index in g_choices, 0...) or one of these.
+enum { kRowVersion = -1, kRowUpd = -2, kRowFull = -3, kRowSkip = -4, kRowPad = -5, kRowLangs = -6, kRowSync = -7 };
+std::vector<int> g_row_what;
+bool g_langs_open = false;  // the language dropdown: all of them shown (else the chosen one, ▾)
 bool g_list_new = false;              // made again since it was last given to the frame
-enum { kButton, kList, kNote, kUpdate, kGamepad } g_state = kButton;
+enum { kButton, kList, kNote, kUpdate, kGamepad, kSyncHelp } g_state = kButton;
 
 // The update check (Linux): the list's last button; its state's message (ui/upd_*.argb) is shown
 // until a click (a click on "a new version" downloads it). Its threads change it under g_mu.
@@ -108,6 +112,8 @@ Picture g_version;       // "ReHoMM4 v<version>", the list's last row (none: not
 Picture g_full_pic[2];   // the fullscreen setting's row (Linux: window_mode.h)
 bool g_has_full = false;
 bool g_has_upd = false;  // its pictures are there (and this is Linux)
+Picture g_sync_button, g_sync_help;  // the save sync's row ("?") and its help (Linux)
+bool g_has_sync = false;
 Upd g_upd = kChecking;
 std::string g_upd_url, g_upd_tag;  // the newer release's .tar.gz, its version
 bool g_hooked = false;
@@ -474,13 +480,15 @@ void MakeGamepad() {
   y += 4;
   Blit(p, g.hint, pad, y);
   y += g.hint.h + 8;
-  {  // the preset (a box) and Reset
+  {  // the preset (a box; not on the Switch: its own pads only) and Reset
+#if !defined(__SWITCH__)
     Blit(p, g.preset, pad, y + 7);
     const int bx = pad + 70, bw = 170;
     Plate(p, bx, y + 2, bw, 24, kBox, kGold, 5);
     Blit(p, g.style[style], bx + 8, y + 6);
     for (int k = 0; k < 4; k++) Fill(p, bx + bw - 14 + k, y + 12 + k, 8 - 2 * k, 1, kGold);
     g_gp_hits.push_back({kHitPreset, bx, y, bx + bw, y + 28});
+#endif
     const int rw = g.reset.w + 28, rx = W - pad - rw;
     Plate(p, rx, y, rw, 28, kBox, kGold, 7);
     Blit(p, g.reset, rx + 14, y + (28 - g.reset.h) / 2);
@@ -528,6 +536,7 @@ bool LoadChoices() {
     g_has_upd = Load(UiDir(), "upd_button", &g_upd_button);
     for (int i = 0; i < kUpdCount && g_has_upd; i++) g_has_upd = Load(UiDir(), kMsg[i], &g_upd_msg[i]);
   }
+  if (!g_has_sync) g_has_sync = Load(UiDir(), "sync_button", &g_sync_button) && Load(UiDir(), "sync_help", &g_sync_help);
 #endif
   std::vector<Choice> out;
   if (!g_saved.empty())
@@ -536,16 +545,32 @@ bool LoadChoices() {
   return true;
 }
 
-// The list: the buttons one under the other, 4 pixels apart, right-aligned (under ⚙), the chosen
-// language with a gold bar; then "Check for updates" (Linux).
+// The list: the buttons one under the other, 4 pixels apart, right-aligned (under ⚙): first
+// "ReHoMM4 v<version>" and "Check for updates" (Linux), then the languages (the chosen one with a
+// gold bar) and the settings.
 void MakeList() {
   std::vector<const Picture*> rows;
-  for (const Choice& c : g_choices) rows.push_back(&c.button);
-  if (g_has_full) rows.push_back(&g_full_pic[h4::Fullscreen() ? 1 : 0]);
-  if (g_has_skip) rows.push_back(&g_skip_pic[h4::SkipIntro() ? 1 : 0]);
-  if (g_has_pad) rows.push_back(&g_pad_button);
-  if (g_has_upd) rows.push_back(&g_upd_button);
-  if (!g_version.argb.empty()) rows.push_back(&g_version);
+  g_row_what.clear();
+  auto add = [&](const Picture* p, int what) {
+    rows.push_back(p);
+    g_row_what.push_back(what);
+  };
+  if (!g_version.argb.empty()) add(&g_version, kRowVersion);
+  if (g_has_upd) add(&g_upd_button, kRowUpd);
+  // The language, a dropdown: the chosen one (▾), a click shows them all; a click on one of them
+  // picks it (or, the chosen one, closes the list).
+  if (g_langs_open || g_choices.size() < 2) {
+    for (size_t i = 0; i < g_choices.size(); i++) add(&g_choices[i].button, int(i));
+  } else if (!g_choices.empty()) {
+    size_t c = 0;
+    for (size_t i = 0; i < g_choices.size(); i++)
+      if (g_choices[i].code == g_next) c = i;
+    add(&g_choices[c].button, kRowLangs);
+  }
+  if (g_has_full) add(&g_full_pic[h4::Fullscreen() ? 1 : 0], kRowFull);
+  if (g_has_skip) add(&g_skip_pic[h4::SkipIntro() ? 1 : 0], kRowSkip);
+  if (g_has_sync) add(&g_sync_button, kRowSync);
+  if (g_has_pad) add(&g_pad_button, kRowPad);
   int w = 0, h = 0;
   g_rows.clear();
   for (const Picture* b : rows) {
@@ -562,8 +587,13 @@ void MakeList() {
     const int x0 = g_list.w - b.w;
     for (int y = 0; y < b.h && g_rows[i] + y < g_list.h; y++) {
       for (int x = 0; x < b.w; x++) g_list.argb[size_t(g_rows[i] + y) * g_list.w + x0 + x] = b.argb[size_t(y) * b.w + x];
-      if (i < g_choices.size() && g_choices[i].code == g_next && y > 3 && y < b.h - 3)
+      const int what = g_row_what[i];
+      if (what >= 0 && g_choices[size_t(what)].code == g_next && y > 3 && y < b.h - 3)
         for (int x = x0 - 8; x < x0 - 4; x++) g_list.argb[size_t(g_rows[i] + y) * g_list.w + x] = 0xFFD6AB57u;
+      // ▾ left of the closed dropdown
+      const int ty = y - (b.h / 2 - 2);
+      if (what == kRowLangs && ty >= 0 && ty < 4)
+        for (int x = x0 - 9 + ty; x < x0 - 2 - ty; x++) g_list.argb[size_t(g_rows[i] + y) * g_list.w + x] = 0xFFD6AB57u;
     }
   }
 }
@@ -708,6 +738,7 @@ void ShowLanguageButton(bool shown, int x, int y, int /*left: iOS only*/) {
       OpenKofi();
     } else if (g_state == kButton) {
       LoadChoices();  // a release may have added languages since
+      g_langs_open = false;
       MakeList();
       g_state = kList;
     } else if (g_state == kList && g_click_in && g_hit[3] > g_hit[1]) {
@@ -715,22 +746,35 @@ void ShowLanguageButton(bool shown, int x, int y, int /*left: iOS only*/) {
       const int py = int((g_click_y - g_hit[1]) * float(g_list.h) / (g_hit[3] - g_hit[1]));
       size_t i = 0;
       while (i + 1 < g_rows.size() && py >= g_rows[i + 1]) i++;
-      if (i < g_choices.size() && g_choices[i].code != g_next) {
-        g_next = g_choices[i].code;
-        Choose(g_next);  // saved; the note says it applies once the game is restarted
+      const int what = i < g_row_what.size() ? g_row_what[i] : kRowVersion;
+      if (what == kRowLangs || (what >= 0 && g_choices[size_t(what)].code == g_next && g_choices.size() > 1)) {
+        g_langs_open = what == kRowLangs;  // opened, or closed by the chosen one again
+        MakeList();
+      } else if (what >= 0 && g_choices[size_t(what)].code != g_next) {
+        g_langs_open = false;
+        g_next = g_choices[size_t(what)].code;
+        Choose(g_next);  // saved
+#if defined(H4_LINUX_APP)
+        l.unlock();
+        h4::RestartApp();  // the app again, with it (back here only when that failed)
+        l.lock();
+#endif
+        // (the Switch, or the restart failed) the note: it applies once the game is restarted
         g_state = kNote;
         g_note_until = now + 6000;
-      } else if (g_has_full && i == g_choices.size()) {
+      } else if (what == kRowFull) {
         h4::SetFullscreen(!h4::Fullscreen());  // at once; the list stays
         MakeList();
-      } else if (g_has_skip && i == g_choices.size() + (g_has_full ? 1 : 0)) {
+      } else if (what == kRowSkip) {
         h4::SetSkipIntro(!h4::SkipIntro());  // the box flips; the list stays
         MakeList();
-      } else if (g_has_pad && i == g_choices.size() + (g_has_full ? 1 : 0) + (g_has_skip ? 1 : 0)) {
+      } else if (what == kRowSync) {
+        g_state = kSyncHelp;  // its help; a click closes it
+      } else if (what == kRowPad) {
         MakeGamepad();  // its panel
         g_state = kGamepad;
 #if defined(H4_LINUX_APP)
-      } else if (g_has_upd && i == g_choices.size() + (g_has_full ? 1 : 0) + (g_has_skip ? 1 : 0) + (g_has_pad ? 1 : 0)) {
+      } else if (what == kRowUpd) {
         g_state = kUpdate;
         g_upd = kChecking;
         l.unlock();
@@ -770,6 +814,9 @@ void ShowLanguageButton(bool shown, int x, int y, int /*left: iOS only*/) {
         g_state = kButton;
       }
 #endif
+    } else if (g_state == kSyncHelp) {
+      MakeList();  // read: back to the settings
+      g_state = kList;
     } else if (g_state == kGamepad) {
       float px = -1, py = -1;
       ToPicture(g_click_x, g_click_y, g_gp.w, g_gp.h, &px, &py);
@@ -786,6 +833,7 @@ void ShowLanguageButton(bool shown, int x, int y, int /*left: iOS only*/) {
                        : g_state == kNote ? (g_restart.argb.empty() ? &g_note : &g_restart)
                        : g_state == kUpdate ? &g_upd_msg[g_upd]
                        : g_state == kGamepad ? &g_gp
+                       : g_state == kSyncHelp ? &g_sync_help
                        : !g_kofi_gear.argb.empty() ? &g_kofi_gear
                                           : &g_gear;
   int px = 0, py = y;
