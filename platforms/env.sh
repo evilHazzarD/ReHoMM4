@@ -11,6 +11,12 @@ ROOT="${ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
 export PATH="/opt/homebrew/bin:$PATH"
 MOBILE_CACHE="$ROOT/.cache/outputs/$TARGET"
+# The release version (VERSION: MAJOR.MINOR[.PATCH]) and the build number from it, which only grows
+# (MAJOR*10000 + MINOR*100 + PATCH: 0.1 -> 100): Android's versionCode, the Apple bundle version.
+H4_VERSION="$(tr -d ' \n' < "$ROOT/VERSION")"
+[[ "$H4_VERSION" =~ ^([0-9]+)\.([0-9]+)(\.([0-9]+))?$ ]] || { echo "VERSION: not MAJOR.MINOR[.PATCH]: $H4_VERSION" >&2; exit 2; }
+H4_BUILD=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + ${BASH_REMATCH[4]:-0} ))
+export H4_VERSION H4_BUILD
 PREFIX="$MOBILE_CACHE/prefix"
 JOBS="${H4_BUILD_JOBS:-$(sysctl -n hw.perflevel0.physicalcpu 2>/dev/null || echo 4)}"
 

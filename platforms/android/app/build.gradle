@@ -19,8 +19,12 @@ android {
         applicationId = 'games.hazzard.heroes4'
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = '0.1'
+        // The release version (VERSION at the top of the repository; as platforms/env.sh: 0.1 -> 100).
+        def v = new File(rootDir, '../../VERSION').text.trim()
+        def m = v =~ /^(\d+)\.(\d+)(?:\.(\d+))?$/
+        if (!m.matches()) throw new GradleException("VERSION is not MAJOR.MINOR[.PATCH]: " + v)
+        versionCode = m.group(1).toInteger() * 10000 + m.group(2).toInteger() * 100 + (m.group(3) ?: '0').toInteger()
+        versionName = v
         ndk { abiFilters 'arm64-v8a' }
     }
     sourceSets.main {
@@ -30,13 +34,28 @@ android {
         if (resDir) res.srcDirs += [resDir]
     }
     packagingOptions {
-        // The game's library is big; keep it uncompressed so it is mapped straight from the APK.
-        jniLibs { useLegacyPackaging = false }
+        // Compressed in the APK (68 MB -> ~25 MB to download); Android unpacks it once when the app
+        // is installed (it then takes ~100 MB instead of ~72 MB on the device).
+        jniLibs { useLegacyPackaging = true }
+    }
+    // The release key lives outside the repository: ~/.gradle/gradle.properties names it
+    // (h4ReleaseStoreFile, h4ReleaseStorePassword, h4ReleaseKeyAlias). Every release must be signed
+    // with it (its certificate: ../release-cert.sha256, checked by tools/release/make_release.sh),
+    // or Android will not install the update over the old app. Without it the debug key signs:
+    // fine for your own device, never for a release.
+    def ks = findProperty('h4ReleaseStoreFile')
+    signingConfigs {
+        if (ks) release {
+            storeFile file(ks)
+            storePassword findProperty('h4ReleaseStorePassword')
+            keyAlias findProperty('h4ReleaseKeyAlias') ?: 'rehomm4'
+            keyPassword findProperty('h4ReleaseStorePassword')
+        }
     }
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug  // sideloading only: the debug key is enough
+            signingConfig ks ? signingConfigs.release : signingConfigs.debug
         }
     }
     lint { abortOnError = false }

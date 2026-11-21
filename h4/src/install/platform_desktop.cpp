@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <mutex>
+#include <filesystem>
 #include <string>
 #include <thread>
 #include <vector>
@@ -259,18 +260,27 @@ std::string GogLoginCode(const std::string& url) {
 }
 #endif
 
-bool BeginPickFiles() {
+bool BeginPickFiles(bool folder) {
   std::string cmd;
   const char* home = std::getenv("HOME");
-  const std::string start = std::string(home ? home : "/") + "/Downloads";
-  const std::string title = "Pick both GOG installer files (.exe and -1.bin)";
+  const std::string start = std::string(home ? home : "/") + (folder ? "" : "/Downloads");
+  const std::string title = folder ? "Pick the folder of an installed Heroes IV (with heroes4.exe)"
+                                   : "Pick both GOG installer files (.exe and -1.bin)";
 #if defined(__APPLE__)
+  if (folder)
+    cmd = "osascript -e 'POSIX path of (choose folder with prompt \"" + title + "\" default location (POSIX file \"" +
+          start + "\"))'";
+  else
   cmd = "osascript -e 'set fs to choose file with prompt \"" + title +
         "\" default location (POSIX file \"" + start +
         "\") with multiple selections allowed' -e 'set out to \"\"' -e 'repeat with f in fs' "
         "-e 'set out to out & POSIX path of f & linefeed' -e 'end repeat' -e 'return out'";
 #else
-  if (Have("kdialog"))
+  if (folder && Have("kdialog"))
+    cmd = "kdialog --title " + Quote(title) + " --getexistingdirectory " + Quote(start);
+  else if (folder && Have("zenity"))
+    cmd = "zenity --file-selection --directory --title=" + Quote(title) + " --filename=" + Quote(start + "/");
+  else if (Have("kdialog"))
     cmd = "kdialog --title " + Quote(title) + " --multiple --separate-output --getopenfilename " +
           Quote(start) + " 'GOG installer (*.exe *.bin)'";
   else if (Have("zenity"))
@@ -284,7 +294,7 @@ bool BeginPickFiles() {
     g_picked.clear();
   }
   g_pick_done = false;
-  std::thread([cmd] {
+  std::thread([cmd, folder] {
     std::vector<PickedFile> out;
     if (FILE* p = popen((cmd + " 2>/dev/null").c_str(), "r")) {
       char line[4096];
@@ -296,6 +306,16 @@ bool BeginPickFiles() {
         out.push_back({s, slash == std::string::npos ? s : s.substr(slash + 1)});
       }
       pclose(p);
+    }
+    if (folder && !out.empty()) {  // the files in it, by their paths inside it
+      std::string root = out[0].path;
+      while (root.size() > 1 && root.back() == '/') root.pop_back();
+      out.clear();
+      std::error_code ec;
+      for (std::filesystem::recursive_directory_iterator it(root, ec), end; !ec && it != end; it.increment(ec))
+        if (it->is_regular_file())
+          out.push_back({it->path().string(), it->path().lexically_relative(root).generic_string()});
+      if (out.empty()) out.push_back({root, ""});  // picked, but nothing in it
     }
     std::lock_guard<std::mutex> l(g_pick_mu);
     g_picked = std::move(out);

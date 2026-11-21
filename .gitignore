@@ -21,3 +21,5 @@ platforms/*_url
 
 # A local checkout of the translations (a separate repository, ReHoMM4-translations), if kept here.
 /loc/
+.codegpt-game.json
+.vscode/

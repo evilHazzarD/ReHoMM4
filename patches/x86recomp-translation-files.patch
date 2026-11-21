@@ -1,0 +1,59 @@
+--- a/src/runtime/hle/kernel32_file.cpp
++++ b/src/runtime/hle/kernel32_file.cpp
+@@ -140,6 +140,7 @@
+ namespace {
+ 
+ std::string OverlayRoot() { return DataDir() + "/install"; }
++std::string g_translation;  // SetTranslationFiles
+ 
+ // Components below the guest install directory, or false if g (absolute)
+ // is not inside it.
+@@ -183,7 +184,12 @@
+   if (InstallComponents(g, &comps)) {
+     std::string over = Resolve(OverlayRoot(), comps);
+     if (access == PathAccess::kRead) {
+-      return Exists(over) ? over : Resolve(g_proc->game_dir, comps);
++      if (Exists(over)) return over;
++      if (!g_translation.empty()) {
++        std::string tr = Resolve(g_translation, comps);
++        if (Exists(tr)) return tr;
++      }
++      return Resolve(g_proc->game_dir, comps);
+     }
+     // Mirror the parent directory into the overlay if the guest sees it.
+     std::string parent = over.substr(0, over.find_last_of('/'));
+@@ -193,6 +199,8 @@
+         S_ISDIR(st.st_mode))
+       MakeDirs(parent);
+     std::string inst = Resolve(g_proc->game_dir, comps);
++    if (!g_translation.empty() && Exists(Resolve(g_translation, comps)))
++      inst = Resolve(g_translation, comps);
+     if (access == PathAccess::kUpdate && !Exists(over) && Exists(inst, &st) &&
+         S_ISREG(st.st_mode))
+       CopyHostFile(inst, over);
+@@ -208,8 +216,11 @@
+   std::string g = AbsGuest(guest_dir);
+   std::vector<std::string> comps;
+   if (!InstallComponents(g, &comps)) return {HostPath(g)};
+-  return {Resolve(OverlayRoot(), comps), Resolve(g_proc->game_dir, comps)};
++  if (g_translation.empty()) return {Resolve(OverlayRoot(), comps), Resolve(g_proc->game_dir, comps)};
++  return {Resolve(OverlayRoot(), comps), Resolve(g_translation, comps), Resolve(g_proc->game_dir, comps)};
+ }
++
++void SetTranslationFiles(const std::string& host_dir) { g_translation = host_dir; }
+ 
+ std::string NarrowPath(const std::u16string& path) {
+   for (char16_t ch : path) {
+--- a/src/runtime/hle/kernel32_state.h
++++ b/src/runtime/hle/kernel32_state.h
+@@ -93,6 +93,10 @@
+ // The install and overlay directories behind a guest directory, for
+ // merged listings (overlay first). One entry outside the install.
+ std::vector<std::string> HostDirs(const std::string& guest_dir);
++// A translation's own files (a host directory laid out like the install, e.g.
++// <dir>/maps/X.h4c): read in place of the install's, below the overlay, and
++// listed with them. Empty: none. Set before the game starts.
++void SetTranslationFiles(const std::string& host_dir);
+ std::string GuestCurrentDir();
+ 
+ // Thrown by ExitThread to unwind a guest thread's host stack back to its

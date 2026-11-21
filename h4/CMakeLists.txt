@@ -1,6 +1,18 @@
 # Contains code from HoMM4Deadware (https://github.com/LeoDeadware/HoMM4Deadware): Copyright (c) 2026 LeoDeadware, MIT License.
 cmake_minimum_required(VERSION 3.25)
 project(h4_recomp LANGUAGES C CXX)
+# The release version (../VERSION) and its build number (as platforms/env.sh: 0.1 -> 100).
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../VERSION" H4_VERSION LIMIT_COUNT 1)
+string(STRIP "${H4_VERSION}" H4_VERSION)
+string(REGEX MATCH "^([0-9]+)\\.([0-9]+)(\\.([0-9]+))?$" _h4_v "${H4_VERSION}")
+if(NOT _h4_v)
+  message(FATAL_ERROR "../VERSION is not MAJOR.MINOR[.PATCH]: ${H4_VERSION}")
+endif()
+set(_h4_patch "${CMAKE_MATCH_4}")
+if(_h4_patch STREQUAL "")
+  set(_h4_patch 0)
+endif()
+math(EXPR H4_BUILD "${CMAKE_MATCH_1} * 10000 + ${CMAKE_MATCH_2} * 100 + ${_h4_patch}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,7 +48,7 @@ if(TARGET h4_lifted)
     # unpacked by innoextract (platforms/deps.sh builds it into the prefix).
     list(APPEND _h4_sources src/install/installer.cpp src/install/gog.cpp src/install/inno.cpp
          src/install/manifest.cpp src/install/json.cpp src/install/hash.cpp
-         src/language.cpp)
+         src/language.cpp src/intro.cpp src/window_mode.cpp src/pad_config.cpp)
     find_library(H4_INNOEXTRACT recomp_innoextract REQUIRED)
     find_library(H4_LZMA lzma REQUIRED)
     find_path(H4_INNOEXTRACT_INCLUDE recomp_innoextract.h REQUIRED)
@@ -122,8 +134,8 @@ if(TARGET h4_lifted)
       MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/../platforms/ios/Info.plist.in"
       MACOSX_BUNDLE_GUI_IDENTIFIER "${H4_BUNDLE_ID}"
       MACOSX_BUNDLE_BUNDLE_NAME "Heroes IV"
-      MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
-      MACOSX_BUNDLE_BUNDLE_VERSION "1"
+      MACOSX_BUNDLE_SHORT_VERSION_STRING "${H4_VERSION}"
+      MACOSX_BUNDLE_BUNDLE_VERSION "${H4_BUILD}"
       RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/../platforms/ios/LaunchScreen.storyboard"
       XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${H4_BUNDLE_ID}"
       XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${H4_TEAM_ID}"
@@ -159,5 +171,7 @@ if(TARGET h4_lifted)
   endif()
   # Our HLE handlers (hle_extra.cpp, ...) override the runtime's in any link order.
   target_compile_definitions(h4 PRIVATE RECOMP_HLE_PRIORITY=1)
+  # The app's version (../VERSION), for the update check where no bundle says it (Linux).
+  target_compile_definitions(h4 PRIVATE H4_VERSION_STRING="${H4_VERSION}")
   set_target_properties(h4 PROPERTIES ENABLE_EXPORTS ON)  # symbol names in fault backtraces
 endif()

@@ -218,15 +218,17 @@ std::string GogLoginCode(const std::string& url) {
 bool CanSignInToGog() { return true; }
 
 static H4Picker* g_picker;  // the picker being shown (BeginPickFiles)
+static bool g_pick_folder;  // one folder: every file in it, by its path inside it
 
-bool BeginPickFiles() {
+bool BeginPickFiles(bool folder) {
   @autoreleasepool {
     EndPickedFiles();
     H4Picker* del = [H4Picker new];
     UIDocumentPickerViewController* pick = [[UIDocumentPickerViewController alloc]
-        initForOpeningContentTypes:@[ UTTypeItem, UTTypeFolder ]
+        initForOpeningContentTypes:folder ? @[ UTTypeFolder ] : @[ UTTypeItem, UTTypeFolder ]
                             asCopy:NO];
-    pick.allowsMultipleSelection = YES;
+    pick.allowsMultipleSelection = !folder;
+    g_pick_folder = folder;
     pick.delegate = del;
     UIViewController* top = TopController();
     if (!top) return false;
@@ -248,7 +250,22 @@ bool PickedFiles(std::vector<PickedFile>* result) {
       if ([u startAccessingSecurityScopedResource]) [g_accessed addObject:u];
       NSNumber* isDir = nil;
       [u getResourceValue:&isDir forKey:NSURLIsDirectoryKey error:nil];
-      if (isDir.boolValue) {  // a folder: the files in it
+      if (g_pick_folder && isDir.boolValue) {  // an installed game: all of it
+        NSString* root = u.path.stringByStandardizingPath;
+        NSDirectoryEnumerator<NSURL*>* e = [NSFileManager.defaultManager
+                       enumeratorAtURL:u
+            includingPropertiesForKeys:@[ NSURLIsRegularFileKey ]
+                               options:0
+                          errorHandler:nil];
+        for (NSURL* f in e) {
+          NSNumber* reg = nil;
+          [f getResourceValue:&reg forKey:NSURLIsRegularFileKey error:nil];
+          NSString* p = f.path.stringByStandardizingPath;
+          if (reg.boolValue && [p hasPrefix:[root stringByAppendingString:@"/"]])
+            out.push_back({p.UTF8String, [p substringFromIndex:root.length + 1].UTF8String});
+        }
+        if (out.empty()) out.push_back({root.UTF8String, ""});
+      } else if (isDir.boolValue) {  // a folder: the files in it
         for (NSURL* f in [NSFileManager.defaultManager contentsOfDirectoryAtURL:u
                                                      includingPropertiesForKeys:nil
                                                                         options:0

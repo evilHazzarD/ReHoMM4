@@ -1,7 +1,8 @@
 # The in-app installer's core (h4/src/install) on the Mac, for testing it without a device:
 #   platforms/tools/install_test/run.sh inno <setup.exe> <out dir>   unpack + check
-#   platforms/tools/install_test/run.sh gog <out dir>                GOG's file list -> plan (no sign-in:
+#   platforms/tools/install_test/run.sh gog <out dir> [lang]         GOG's file list -> plan (no sign-in:
 #                                                                  stops at the download address)
+#   platforms/tools/install_test/run.sh langs x                      the languages of GOG's build
 cmake_minimum_required(VERSION 3.25)
 project(h4_install_test LANGUAGES C CXX OBJCXX)
 set(CMAKE_CXX_STANDARD 20)

@@ -1,0 +1,277 @@
+--- a/src/runtime/hle/user32_window.cpp
++++ b/src/runtime/hle/user32_window.cpp
+@@ -1155,10 +1155,44 @@
+ }
+ 
+ void (*g_host_event_sink)(const SDL_Event&) = nullptr;
++// The gamepad's pointer: its speed (SetPadPointerSpeed) and the app's hook (SetPadEventHook);
++// g_from_pad while PadTick makes its events.
++std::atomic<float> g_pad_speed{1.0f};
++std::atomic<float> g_pad_scroll{1.0f};
++std::atomic<bool> g_pad_on{true};
++// What each button does (SetPadAction), by PadButton; the defaults: the game's keyboard shortcuts
++// (H4Manual.pdf, "Keyboard Shortcuts").
++PadAction g_pad_map[int(PadButton::Count)] = {
++    {SDL_BUTTON_LEFT},                                  // A: click
++    {SDL_BUTTON_RIGHT},                                 // B: right-click (info)
++    {0, SDL_SCANCODE_C},                                // X: cast a spell
++    {0, SDL_SCANCODE_W},                                // Y: wait / wake the hero
++    {0, SDL_SCANCODE_H},                                // L: next hero
++    {0, SDL_SCANCODE_D},                                // R: defend / dig
++    {0, SDL_SCANCODE_ESCAPE},                           // ZL: cancel, close
++    {0, SDL_SCANCODE_RETURN},                           // ZR: move the army / OK
++    {0, SDL_SCANCODE_T},                                // up: next town
++    {0, SDL_SCANCODE_Z},                                // down: the hero sleeps
++    {0, SDL_SCANCODE_PAGEUP},                           // left: lists, spell tabs
++    {0, SDL_SCANCODE_PAGEDOWN},                         // right
++    {0, SDL_SCANCODE_E},                                // +: end the turn
++    {0, SDL_SCANCODE_S, SDL_SCANCODE_LALT},             // -: save the game
++    {},                                                 // L3: nothing
++    {0, SDL_SCANCODE_HOME},                             // R3: centre on the hero
++};
++bool (*g_pad_hook)(const SDL_Event&) = nullptr;
++bool g_from_pad = false;
+ 
+ }  // namespace
+ 
+ void SetHostEventSink(void (*sink)(const SDL_Event&)) { g_host_event_sink = sink; }
++void SetPadPointerSpeed(float factor) { g_pad_speed = std::clamp(factor, 0.1f, 10.0f); }
++void SetPadEventHook(bool (*hook)(const SDL_Event&)) { g_pad_hook = hook; }
++void SetPadEnabled(bool on) { g_pad_on = on; }
++void SetPadScrollSpeed(float factor) { g_pad_scroll = std::clamp(factor, 0.05f, 1.0f); }
++void SetPadAction(PadButton b, PadAction a) {
++  if (int(b) >= 0 && b < PadButton::Count) g_pad_map[int(b)] = a;
++}
+ 
+ uint32_t CreateSdl2Window(const std::string& title_utf8, int w, int h, SDL_WindowFlags flags,
+                           SDL_Window** sdl) {
+@@ -1251,6 +1285,13 @@
+   *y = f.y * float(h);
+ }
+ 
++// To the game, but the gamepad's events first to the app's hook (SetPadEventHook): its native
++// controls over the game get no real clicks from a pad.
++void Deliver(const SDL_Event& e) {
++  if (g_from_pad && g_pad_hook && g_pad_hook(e)) return;
++  HandleSdlEvent(e);
++}
++
+ void Motion(float x, float y) {
+   static float px = 0, py = 0;
+   SDL_Event e{};
+@@ -1262,7 +1303,7 @@
+   e.motion.yrel = y - py;
+   px = x;
+   py = y;
+-  HandleSdlEvent(e);
++  Deliver(e);
+ }
+ 
+ void Button(uint8_t button, bool down, uint8_t clicks = 1) {
+@@ -1272,7 +1313,7 @@
+   e.button.button = button;
+   e.button.down = down;
+   e.button.clicks = clicks;
+-  HandleSdlEvent(e);
++  Deliver(e);
+ }
+ 
+ void Key(SDL_Scancode sc, bool down) {
+@@ -1282,7 +1323,7 @@
+   e.key.scancode = sc;
+   e.key.key = SDL_GetKeyFromScancode(sc, SDL_KMOD_NONE, false);
+   e.key.down = down;
+-  HandleSdlEvent(e);
++  Deliver(e);
+ }
+ 
+ void HoldKey(SDL_Scancode* held, SDL_Scancode want) {
+@@ -1488,12 +1529,18 @@
+   }
+ }
+ 
+-#if defined(__SWITCH__)
+-// The Switch's Joy-Cons / Pro Controller as the mouse (docked, or without
+-// touching the screen): the left stick moves the pointer, A clicks, B
+-// right-clicks, the right stick and the D-pad are the arrow keys (the map
+-// scrolls), + is Escape and X Enter. Polled every pump.
++// A gamepad (the Switch's Joy-Cons / Pro Controller, the Steam Deck's controls, or
++// any pad SDL knows: Xbox, PlayStation, MFi on the Mac, iPhone/iPad and Android) as the mouse and the game's keyboard shortcuts: the left stick
++// moves the pointer, A clicks, B right-clicks, the right stick scrolls the map, the
++// other buttons are shortcut keys (g_pad_map, SetPadAction). A, B, X and Y go by their labels
++// (Nintendo's A is the east button, Xbox's and the Deck's the south one). Polled
++// every pump.
+ void PadTick() {
++  struct FromPad {
++    FromPad() { g_from_pad = true; }
++    ~FromPad() { g_from_pad = false; }
++  } from_pad;
++  if (!g_pad_on) return;  // (a button held then is released once it is on again)
+   static SDL_Gamepad* pad = nullptr;
+   static bool init = false;
+   if (!init) {
+@@ -1541,46 +1588,100 @@
+     return std::copysign(m * m, v);  // fine near the centre, fast at the edge
+   };
+   const float dx = axis(SDL_GAMEPAD_AXIS_LEFTX), dy = axis(SDL_GAMEPAD_AXIS_LEFTY);
++#if !defined(__SWITCH__)
++  // The pointer may have moved since (a mouse, the Deck's trackpad or touch screen):
++  // the stick starts from where it is.
++  // (SDL_GetMouseState is that pointer, not the one the stick moved: only its moves count.)
++  static float mx = -1, my = -1;
++  float nx = 0, ny = 0;
++  SDL_GetMouseState(&nx, &ny);
++  if (nx != mx || ny != my) {
++    if (mx >= 0) {
++      x = nx;
++      y = ny;
++    }
++    mx = nx;
++    my = ny;
++  }
++#endif
+   if (dx != 0 || dy != 0) {
+-    const float speed = 1100.0f * float(ww) / 1280.0f;  // pixels a second at full tilt
++    const float speed = 1100.0f * float(ww) / 1280.0f * g_pad_speed;  // pixels a second at full tilt
+     x = std::clamp(x + dx * speed * dt, 0.0f, float(ww - 1));
+     y = std::clamp(y + dy * speed * dt, 0.0f, float(wh - 1));
+     Motion(x, y);
+   }
+-  // Positional names: on Nintendo's layout A is the east button, B the south one.
+-  struct Map {
+-    SDL_GamepadButton b;
+-    int mouse;  // SDL_BUTTON_*, or 0 for a key
+-    SDL_Scancode key;
++  // The buttons (g_pad_map, SetPadAction). ZL and ZR (LT and RT, L2 and R2 on the Deck) are
++  // triggers (axes); A, B, X and Y go by their labels.
++  // The face button with that label; a pad that names none: Xbox's places.
++  auto face = [&](SDL_GamepadButtonLabel label, SDL_GamepadButton xbox) {
++    for (SDL_GamepadButton b : {SDL_GAMEPAD_BUTTON_SOUTH, SDL_GAMEPAD_BUTTON_EAST,
++                                SDL_GAMEPAD_BUTTON_WEST, SDL_GAMEPAD_BUTTON_NORTH})
++      if (SDL_GetGamepadButtonLabel(pad, b) == label) return b;
++    return xbox;
+   };
+-  static const Map kMap[] = {
+-      {SDL_GAMEPAD_BUTTON_EAST, SDL_BUTTON_LEFT, SDL_SCANCODE_UNKNOWN},
+-      {SDL_GAMEPAD_BUTTON_SOUTH, SDL_BUTTON_RIGHT, SDL_SCANCODE_UNKNOWN},
+-      {SDL_GAMEPAD_BUTTON_START, 0, SDL_SCANCODE_ESCAPE},
+-      {SDL_GAMEPAD_BUTTON_NORTH, 0, SDL_SCANCODE_RETURN},
++  auto pressed = [&](PadButton b) {
++    switch (b) {
++      case PadButton::A: return SDL_GetGamepadButton(pad, face(SDL_GAMEPAD_BUTTON_LABEL_A, SDL_GAMEPAD_BUTTON_SOUTH));
++      case PadButton::B: return SDL_GetGamepadButton(pad, face(SDL_GAMEPAD_BUTTON_LABEL_B, SDL_GAMEPAD_BUTTON_EAST));
++      case PadButton::X: return SDL_GetGamepadButton(pad, face(SDL_GAMEPAD_BUTTON_LABEL_X, SDL_GAMEPAD_BUTTON_WEST));
++      case PadButton::Y: return SDL_GetGamepadButton(pad, face(SDL_GAMEPAD_BUTTON_LABEL_Y, SDL_GAMEPAD_BUTTON_NORTH));
++      case PadButton::L: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
++      case PadButton::R: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
++      case PadButton::ZL: return SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > 16000;
++      case PadButton::ZR: return SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > 16000;
++      case PadButton::Up: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_UP);
++      case PadButton::Down: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_DOWN);
++      case PadButton::Left: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_LEFT);
++      case PadButton::Right: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT);
++      case PadButton::Plus: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START);
++      case PadButton::Minus: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK);
++      case PadButton::LStick: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_STICK);
++      case PadButton::RStick: return SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_STICK);
++      default: return false;
++    }
+   };
+-  static bool was[sizeof kMap / sizeof kMap[0]] = {};
+-  for (size_t i = 0; i < sizeof kMap / sizeof kMap[0]; i++) {
+-    const bool down = SDL_GetGamepadButton(pad, kMap[i].b);
++  // What each button did when it went down (released as that, even if its action changed since).
++  static bool was[int(PadButton::Count)] = {};
++  static PadAction did[int(PadButton::Count)] = {};
++  for (int i = 0; i < int(PadButton::Count); i++) {
++    const bool down = pressed(PadButton(i));
+     if (down == was[i]) continue;
+     was[i] = down;
+-    if (kMap[i].mouse) {
++    if (down) did[i] = g_pad_map[i];
++    const PadAction& m = did[i];
++    if (m.mouse) {
+       Motion(x, y);
+-      Button(uint8_t(kMap[i].mouse), down);
+-    } else {
+-      Key(kMap[i].key, down);
++      Button(m.mouse, down);
++    } else if (m.key != SDL_SCANCODE_UNKNOWN) {
++      if (down && m.mod != SDL_SCANCODE_UNKNOWN) Key(m.mod, true);
++      Key(m.key, down);
++      if (!down && m.mod != SDL_SCANCODE_UNKNOWN) Key(m.mod, false);
+     }
+   }
++  // The right stick scrolls the adventure map: Ctrl+arrows (the arrows alone move the
++  // selected army).
+   static SDL_Scancode held_h = SDL_SCANCODE_UNKNOWN, held_v = SDL_SCANCODE_UNKNOWN;
++  static bool ctrl = false;
+   const float rx = axis(SDL_GAMEPAD_AXIS_RIGHTX), ry = axis(SDL_GAMEPAD_AXIS_RIGHTY);
+-  const bool left = rx < -0.3f || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_LEFT);
+-  const bool right = rx > 0.3f || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT);
+-  const bool up = ry < -0.3f || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_UP);
+-  const bool downk = ry > 0.3f || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_DOWN);
+-  HoldKey(&held_h, left ? SDL_SCANCODE_LEFT : right ? SDL_SCANCODE_RIGHT : SDL_SCANCODE_UNKNOWN);
+-  HoldKey(&held_v, up ? SDL_SCANCODE_UP : downk ? SDL_SCANCODE_DOWN : SDL_SCANCODE_UNKNOWN);
++  // Slower than the game's own scrolling (SetPadScrollSpeed below 1): the arrows held only that share
++  // of every 120 ms.
++  const float share = g_pad_scroll;
++  const bool on = share >= 1.0f || float(now % 120000000ull) < share * 120000000.0f;
++  const SDL_Scancode want_h = !on ? SDL_SCANCODE_UNKNOWN
++                              : rx < -0.3f ? SDL_SCANCODE_LEFT
++                              : rx > 0.3f ? SDL_SCANCODE_RIGHT
++                                          : SDL_SCANCODE_UNKNOWN;
++  const SDL_Scancode want_v = !on ? SDL_SCANCODE_UNKNOWN
++                              : ry < -0.3f ? SDL_SCANCODE_UP
++                              : ry > 0.3f ? SDL_SCANCODE_DOWN
++                                          : SDL_SCANCODE_UNKNOWN;
++  const bool scroll = std::fabs(rx) > 0.3f || std::fabs(ry) > 0.3f;  // (Ctrl stays held between)
++  if (scroll && !ctrl) Key(SDL_SCANCODE_LCTRL, true);
++  HoldKey(&held_h, want_h);
++  HoldKey(&held_v, want_v);
++  if (!scroll && ctrl) Key(SDL_SCANCODE_LCTRL, false);
++  ctrl = scroll;
+ }
+-#endif
+ 
+ }  // namespace touch
+ 
+@@ -1665,9 +1766,7 @@
+   InjectTestFocus();
+   InjectTestInput();
+   touch::Tick();
+-#if defined(__SWITCH__)
+   touch::PadTick();
+-#endif
+   WatchdogHeartbeat();
+ }
+ 
+--- a/src/runtime/hle/user32_window.h
++++ b/src/runtime/hle/user32_window.h
+@@ -50,6 +50,26 @@
+ // PumpHostEvents hands it every event instead of turning them into
+ // window messages (input filtering for background runs still applies).
+ void SetHostEventSink(void (*sink)(const SDL_Event&));
++// The gamepad as the mouse (left stick, A, B; the shortcut keys): the pointer's speed (1: the
++// default, 1100 points a second at full tilt on a 1280-wide window), and a hook that gets its mouse
++// and key events before the game; true: taken (the game does not get it). Apps put their own
++// controls over the game (native buttons, panels) that a pad's clicks otherwise never reach.
++void SetPadPointerSpeed(float factor);
++void SetPadEventHook(bool (*hook)(const SDL_Event&));
++// The right stick (the arrow keys held, with Ctrl: scrolls maps): below 1, held only that share of
++// the time (slower).
++void SetPadScrollSpeed(float factor);
++// Off: the gamepad is not read at all (on at first).
++void SetPadEnabled(bool on);
++// What a gamepad button does: a mouse button (SDL_BUTTON_*, at the pointer), or a key (with `mod`
++// held around it), held while the button is; none of them: nothing. A, B, X and Y by their labels.
++enum class PadButton { A, B, X, Y, L, R, ZL, ZR, Up, Down, Left, Right, Plus, Minus, LStick, RStick, Count };
++struct PadAction {
++  uint8_t mouse = 0;
++  SDL_Scancode key = SDL_SCANCODE_UNKNOWN;
++  SDL_Scancode mod = SDL_SCANCODE_UNKNOWN;
++};
++void SetPadAction(PadButton b, PadAction a);
+ 
+ // Fullscreen (as GameConfig::fullscreen says, desktop when that is a window) or a window, from
+ // now on: windows covering the screen leave or enter host fullscreen at once (on the thread

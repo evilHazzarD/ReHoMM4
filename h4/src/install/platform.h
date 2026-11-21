@@ -36,7 +36,9 @@ struct PickedFile {
 // polled every frame (the app keeps drawing and handling its events: on
 // Android the activity is paused and its surface replaced meanwhile) until
 // it returns true, with the files (none if cancelled). Main thread.
-bool BeginPickFiles();
+// `folder`: the player picks one folder (an installed game) instead; PickedFiles then gives every
+// file in it, its `name` the path inside the folder ('/'-separated). Not on the Switch.
+bool BeginPickFiles(bool folder = false);
 bool PickedFiles(std::vector<PickedFile>* out);
 void EndPickedFiles();
 

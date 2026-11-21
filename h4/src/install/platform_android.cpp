@@ -104,12 +104,12 @@ std::string GogLoginCode(const std::string& url) {
   return code;
 }
 
-bool BeginPickFiles() {
+bool BeginPickFiles(bool folder) {
   EndPickedFiles();
   JNIEnv* env = Env();
   if (!g_cls) return false;
-  jmethodID m = env->GetStaticMethodID(g_cls, "h4PickFilesBegin", "()Z");
-  const bool ok = env->CallStaticBooleanMethod(g_cls, m);
+  jmethodID m = env->GetStaticMethodID(g_cls, "h4PickFilesBegin", "(Z)Z");
+  const bool ok = env->CallStaticBooleanMethod(g_cls, m, jboolean(folder));
   if (env->ExceptionCheck()) {
     env->ExceptionClear();
     return false;

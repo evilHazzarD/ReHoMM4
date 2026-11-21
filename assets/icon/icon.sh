@@ -38,6 +38,10 @@ X
     <foreground android:drawable="@drawable/ic_launcher_fg" />
 </adaptive-icon>
 X
+    # The Android TV launcher's banner (320x180 dp, at xhdpi): the emblem and the name.
+    mkdir -p "$OUT/drawable-xhdpi"
+    draw "$T/banner_fg.png" fg 360
+    swift "$HERE/banner.swift" "$T/banner_fg.png" "$OUT/drawable-xhdpi/banner.png"
     echo "$OUT" ;;
   macos)
     draw "$T/mac.png" mac 1024

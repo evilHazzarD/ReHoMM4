@@ -69,6 +69,14 @@ sideloading tools that sign it with your own Apple ID (AltStore, Sideloadly).
 adb install -r .cache/outputs/android/dist/HeroesIV-android_arm64.apk
 ```
 
+The APK is signed with the release key when `~/.gradle/gradle.properties` names it
+(`h4ReleaseStoreFile`, `h4ReleaseStorePassword`, `h4ReleaseKeyAlias`), otherwise with the debug key
+(fine for your own device). Releases must always use the release key: an APK signed with another key
+does not install over the old app, and uninstalling it deletes its saves. `make_release.sh` checks
+the APK's certificate against `platforms/android/release-cert.sha256`. Keep copies of the keystore
+and its password somewhere safe (a password manager, an encrypted drive): if they are lost, no
+update can ever be made for the installed app.
+
 **The game files.** Without them the app opens its installer (English Heroes IV Complete, the GOG
 version this port is made for):
 
@@ -89,9 +97,16 @@ files: no game content), then the game starts. Copying a ready `game` folder (th
 `tools/build.sh` unpacks) into the app's folder still works and skips the installer.
 
 **Saves in iCloud (iPhone, iPad, Mac app).** The saved games are kept in step with
-`iCloud Drive/ReHOMM4` on every device signed in to the same Apple ID: copied both ways, file by
-file, the newer copy winning, at start, every 20 s, when the app goes to the background (iOS) or
-loses the focus or quits (Mac), and on "Sync now". Nothing is deleted on the other side. The Mac
+`iCloud Drive/ReHOMM4` on every device signed in to the same Apple ID, at start (the game waits
+up to 3 s for it), every 20 s, when the app goes to the background (iOS) or loses the focus or
+quits (Mac), and on "Sync now". Each side is compared with how it was at the last sync (the
+state in `<player>/sync-state.tsv`; the way HommaRe's `cloud_saves` does it, MIT): a save
+changed on one side is copied to the other, a save deleted on one side is deleted on the other,
+a save changed on both keeps the newer one. Whatever a sync overwrites or deletes is copied first
+to `<player>/sync-backup/<date time>/` (the last 10 syncs kept). If the synced folder (or the
+local one) is emptied, its saves come back from the other side instead of being deleted there;
+the first sync of a new folder only adds. Files iCloud has not downloaded yet are asked for and
+waited on up to 8 s, else taken next time. The Mac
 app does it by itself (the folder is made the first time). On iPhone and iPad, once: the ☁️
 button in the main menu's top-left corner, "Choose a folder…", open iCloud Drive and tap Open:
 the app makes `ReHOMM4` there (or uses the folder picked, when it is called ReHOMM4). The same
@@ -146,7 +161,7 @@ only.
 
 The side panels beside the centred screens (main menu, towns, combat) are the Mac build's wings,
 as JPEGs (quality 90; `H4_WINGS_QUALITY`):
-`platforms/build.sh` takes them from `art/combat_wings` (or `heroes4-mac-assets.zip` from Releases in
+`platforms/build.sh` takes them from `art/combat_wings` (or `HOMM4-extra-assets.zip`, downloaded by `platforms/extra-assets.sh` from release 0.1, or in
 Downloads, as `tools/build.sh`) through `platforms/wings.sh` and puts them in the app (iOS bundle;
 Android assets, copied into private storage at first start). A `wings` folder of your own (JPEGs:
 `paradise.jpg`, `hell.jpg`, `<faction>_light.jpg`, `<faction>_dark.jpg`) next to `game` overrides them. Without the art the sides stay black.
@@ -171,11 +186,38 @@ plus `H4_INSTALL_AUTO` / `--install-auto=files|gog` to press a button at start;
 
 A mouse, trackpad or keyboard connected to the device works as on the Mac.
 
+A gamepad works on every device (the Switch's Joy-Cons and Pro Controller, the Steam Deck's
+controls, Xbox, PlayStation and MFi pads on the Mac, iPhone, iPad, Android and Linux): it is the
+mouse and the game's keyboard shortcuts (`H4Manual.pdf`, "Keyboard Shortcuts"). A, B, X and Y go by
+the letters on the buttons (Xbox's A is Nintendo's B place); L/R are LB/RB or L1/R1, ZL/ZR LT/RT or
+L2/R2.
+
+| Gamepad | Key | In the game |
+|---|---|---|
+| Left stick | mouse | moves the pointer |
+| Right stick | Ctrl+arrows | scrolls the adventure map |
+| A | left click | select, move, attack, OK |
+| B | right click | information (creatures, spells, objects) |
+| X | C | cast a spell (map and combat) |
+| Y | W | combat: wait; map: wake the hero |
+| R | D | combat: defend; map: dig |
+| L | H | next hero |
+| ZR | Enter | move the army along its route; OK |
+| ZL | Esc | cancel, close a window |
+| D-pad up / down | T / Z | next town / the hero sleeps |
+| D-pad left / right | Page Up / Page Down | lists of armies and towns, spell book tabs |
+| + (Start, Menu) | E | end the turn |
+| − (Back, View) | Alt+S | save the game |
+| Right stick click | Home | centre on the hero |
+
+Only the first gamepad connected is used. The same table is in the settings (⚙ → "Gamepad controls").
+
 ## Syncing saves between devices
 
 The game copies its saves to and from a folder called **`ReHOMM4`** (at start, every 20 s, when
-it goes to the background or quits, and on "Sync now"): file by file, the newer copy wins, nothing
-is ever deleted. Another app moves that folder between your devices. Set up one of the options
+it goes to the background or quits, and on "Sync now"): file by file, the newer copy wins. On the
+iPhone, iPad and Mac a save deleted on one device is deleted on the others too (with a backup:
+see below); on Android and Linux nothing is deleted. Another app moves that folder between your devices. Set up one of the options
 below on every device you play on, then check it: save on one device, wait a minute, and the save
 is in the other device's load list.
 
@@ -302,8 +344,10 @@ iCloud. For Android use Round Sync or FolderSync below with the same cloud folde
   into the same cloud folder) work but bring nothing more.
 - Google Drive's and Dropbox's own Android apps do not let other apps pick a folder in them: use
   Round Sync or FolderSync for those clouds.
-- A save deleted in the game stays on the other devices (nothing is deleted). A save changed on two
-  devices between syncs keeps the newer one.
+- iPhone, iPad, Mac: a save deleted in the game is deleted on the other devices too (a copy goes
+  to `sync-backup/`); a save changed on two devices between syncs keeps the newer one, the other
+  goes to `sync-backup/`. Android and Linux: a deleted save stays on the other devices (nothing
+  is deleted there); a save changed on two devices keeps the newer one.
 - Linux and Steam Deck: `off` in `sync.conf` stops syncing; `H4_SYNC_FOLDER` and `H4_SYNC_RCLONE`
   (environment) override the file. Its passes are logged as `h4: save sync ...` in `h4.log`.
 - The Switch has no sync app, so its saves stay on the SD card
@@ -355,7 +399,7 @@ All in `patches/x86recomp-mobile.patch`, `h4/CMakeLists.txt`, `h4/src/main.cpp` 
 - iPhone: the game is kept inside the screen's safe area (clear of the notch and rounded corners on
   both sides, so its edge buttons can be pressed); the black margins are on purpose. iPads use the whole screen.
   `H4_SAFE_AREA=0` (Xcode scheme > Environment) uses the whole width.
-- The combat "wings" art (`heroes4-mac-assets.zip`) is optional: a `wings` folder of JPEGs
+- The combat "wings" art (`HOMM4-extra-assets.zip`) is optional: a `wings` folder of JPEGs
   (`paradise.jpg`, `hell.jpg`, `<faction>_light.jpg`, `<faction>_dark.jpg`; `platforms/wings.sh` makes
   them) next to `game` is used over the app's.
 - Android TLS: the runtime's thread-locals use the default model there (bionic refuses
@@ -407,9 +451,8 @@ How it differs: no SDL_GPU on the Switch, so the frames are shown by x86recomp's
 (2D on the CPU, SDL_Renderer on OpenGL ES; `RECOMP_GPU=OFF`); the guest's 2 GiB arena is one heap
 block (no mmap), so the game must run in title takeover (hold R while starting a game, then pick
 it in the homebrew menu; the album applet has too little memory); no signals (no guest SEH for
-faults, no watchdog); file views are copies. Input: the touch screen as on the phones, the Joy-Cons
-as the mouse (left stick the pointer, A click, B right-click, right stick / D-pad the arrow keys,
-+ Escape, X Enter).
+faults, no watchdog); file views are copies. Input: the touch screen as on the phones, and the Joy-Cons as a gamepad
+([Controls](#controls)).
 
 On the SD card: `sdmc:/switch/ReHoMM4/HeroesIV.nro` and, beside it, the GOG installer files
 (`setup_heroes_of_might_and_magic_4_complete_...exe` and `-1.bin`): the installer finds them there

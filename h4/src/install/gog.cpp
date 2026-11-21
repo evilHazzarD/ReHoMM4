@@ -105,9 +105,29 @@ struct Chunk {
 };
 
 struct PlanFile {
-  const ManifestFile* m;
+  std::string path;  // '/'-separated
+  uint64_t size = 0;
   std::vector<Chunk> chunks;
 };
+
+// A depot item's chunks (offsets in the file); its size, their sum.
+PlanFile Plan(const Json& it) {
+  PlanFile pf;
+  pf.path = it["path"].text();
+  for (char& c : pf.path)
+    if (c == '\\') c = '/';
+  for (const Json& c : it["chunks"].arr) {
+    Chunk ch;
+    ch.md5 = c["md5"].text();
+    ch.cmd5 = c["compressedMd5"].text();
+    ch.size = uint64_t(c["size"].integer());
+    ch.csize = uint64_t(c["compressedSize"].integer());
+    ch.offset = pf.size;
+    pf.size += ch.size;
+    pf.chunks.push_back(ch);
+  }
+  return pf;
+}
 
 }  // namespace
 
@@ -179,8 +199,8 @@ bool Session::OwnsGame(bool* owns, std::string* error) {
   return true;
 }
 
-bool Session::Download(const std::string& dir, Task* task, std::string* error) {
-  task->SetPhase("Getting the file list from GOG");
+// The build's metadata (its depots): the build the manifest was made from, else GOG's latest.
+bool BuildMeta(Json* meta, std::string* error) {
   Json builds;
   if (!GetJson(std::string("https://content-system.gog.com/products/") + kProductId +
                    "/os/windows/builds?generation=2",
@@ -194,64 +214,95 @@ bool Session::Download(const std::string& dir, Task* task, std::string* error) {
     *error = "GOG has no Windows build of the game";
     return false;
   }
-  Json meta;
-  if (!GetJson((*build)["link"].text(), "", true, &meta, error)) return false;
+  return GetJson((*build)["link"].text(), "", true, meta, error);
+}
 
-  // The English files: every depot for en-US (or all languages); a later
-  // depot's file replaces an earlier one's.
+bool Session::Languages(std::vector<std::string>* out, std::string* error) {
+  Json meta;
+  if (!BuildMeta(&meta, error)) return false;
+  out->assign(1, "en-US");
+  for (const Json& d : meta["depots"].arr)
+    for (const Json& l : d["languages"].arr)
+      if (d["productId"].text() == kProductId && l.text() != "*" &&
+          std::find(out->begin(), out->end(), l.text()) == out->end())
+        out->push_back(l.text());
+  return true;
+}
+
+bool Session::Download(const std::string& dir, const std::string& lang, Task* task, std::string* error) {
+  task->SetPhase("Getting the file list from GOG");
+  Json meta;
+  if (!BuildMeta(&meta, error)) return false;
+
+  // The English files: every depot for en-US (or all languages); a later depot's file replaces an
+  // earlier one's. Another language: every file of its depots, but heroes4.exe the English one (the
+  // app's code is made from it; the data of another language works with it).
   std::vector<PlanFile> files;
-  std::map<const ManifestFile*, size_t> index;
+  std::map<std::string, size_t> index;  // by lower-case path
+  auto lower = [](std::string s) {
+    for (char& c : s) c = char(std::tolower(static_cast<unsigned char>(c)));
+    return s;
+  };
+  auto add = [&](PlanFile pf) {
+    auto at = index.find(lower(pf.path));
+    if (at == index.end()) {
+      index[lower(pf.path)] = files.size();
+      files.push_back(std::move(pf));
+    } else {
+      files[at->second] = std::move(pf);
+    }
+  };
+  const bool english = lang == "en-US";
   for (const Json& d : meta["depots"].arr) {
-    bool en = false;
-    for (const Json& l : d["languages"].arr) en |= l.text() == "en-US" || l.text() == "*";
-    if (!en || d["productId"].text() != kProductId) continue;
+    bool en = false, ours = false;
+    for (const Json& l : d["languages"].arr) {
+      en |= l.text() == "en-US" || l.text() == "*";
+      ours |= l.text() == lang || l.text() == "*";
+    }
+    if ((!en && !ours) || d["productId"].text() != kProductId) continue;
     Json dm;
     if (!GetJson(MetaUrl(d["manifest"].text()), "", true, &dm, error)) return false;
     for (const Json& it : dm["depot"]["items"].arr) {
       if (it["type"].text() != "DepotFile") continue;
-      const ManifestFile* m = FindInManifest(it["path"].text());
-      if (!m) continue;
-      PlanFile pf{m, {}};
-      uint64_t off = 0;
-      for (const Json& c : it["chunks"].arr) {
-        Chunk ch;
-        ch.md5 = c["md5"].text();
-        ch.cmd5 = c["compressedMd5"].text();
-        ch.size = uint64_t(c["size"].integer());
-        ch.csize = uint64_t(c["compressedSize"].integer());
-        ch.offset = off;
-        off += ch.size;
-        pf.chunks.push_back(ch);
-      }
-      if (off != m->size) continue;  // another version of the file: not ours
-      auto at = index.find(m);
-      if (at == index.end()) {
-        index[m] = files.size();
-        files.push_back(std::move(pf));
-      } else {
-        files[at->second] = std::move(pf);
+      PlanFile pf = Plan(it);
+      const ManifestFile* m = FindInManifest(pf.path);
+      if (english || lower(pf.path) == "heroes4.exe") {
+        if (!en || !m || pf.size != m->size) continue;  // another version of the file: not ours
+        pf.path = m->path;
+        add(std::move(pf));
+      } else if (ours) {
+        if (m) pf.path = m->path;  // the English spelling
+        add(std::move(pf));
       }
     }
   }
-  for (const ManifestFile& m : Manifest()) {
-    if (!index.count(&m)) {
-      *error = std::string("GOG's build has no ") + m.path +
-               " of the expected size (GOG may have updated the game)";
-      return false;
+  if (english) {
+    for (const ManifestFile& m : Manifest()) {
+      if (!index.count(lower(m.path))) {
+        *error = std::string("GOG's build has no ") + m.path +
+                 " of the expected size (GOG may have updated the game)";
+        return false;
+      }
     }
+  } else if (!index.count("heroes4.exe")) {
+    *error = "GOG's build has no English heroes4.exe of the expected size (GOG may have updated the game)";
+    return false;
   }
+  uint64_t total = 0;
+  for (const PlanFile& pf : files) total += pf.size;
 
   // What is already there (an earlier, interrupted download) and checks out
   // chunk by chunk is kept.
   task->SetPhase("Checking what is already downloaded");
-  task->total = ManifestBytes();
+  task->total = total;
   task->done = 0;
   std::deque<Chunk> todo;
   std::vector<int> fds(files.size(), -1);
   for (size_t fi = 0; fi < files.size(); fi++) {
     if (task->cancel) break;
     PlanFile& pf = files[fi];
-    const std::string path = dir + "/" + pf.m->path;
+    if (pf.path.find("..") != std::string::npos) continue;
+    const std::string path = dir + "/" + pf.path;
     MakeDirs(path.substr(0, path.rfind('/')));
     int fd = open(path.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd < 0) {
@@ -261,9 +312,9 @@ bool Session::Download(const std::string& dir, Task* task, std::string* error) {
     }
     fds[fi] = fd;
     struct stat st;
-    const bool full = fstat(fd, &st) == 0 && uint64_t(st.st_size) == pf.m->size;
-    if (!full && ftruncate(fd, off_t(pf.m->size)) != 0) {
-      *error = "not enough space for " + std::string(pf.m->path);
+    const bool full = fstat(fd, &st) == 0 && uint64_t(st.st_size) == pf.size;
+    if (!full && ftruncate(fd, off_t(pf.size)) != 0) {
+      *error = "not enough space for " + pf.path;
       for (int f : fds) if (f >= 0) close(f);
       return false;
     }

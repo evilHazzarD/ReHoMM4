@@ -8,6 +8,8 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
+#include <filesystem>
 #include <cstring>
 #include <map>
 #include <memory>
@@ -71,6 +73,45 @@ bool ReadIndex(SDL_IOStream* io, std::vector<Archive>* out) {
     a.data_at = SDL_TellIO(io);
     if (a.data_at < 0 || SDL_SeekIO(io, Sint64(a.appended), SDL_IO_SEEK_CUR) < 0) return false;
     out->push_back(std::move(a));
+  }
+  return true;
+}
+
+// A file of the translation outside the archives (H4P1 then "H4PF", u32 count, per file: u16
+// path length, the path below the game folder ('/', e.g. "maps/X.h4c"), u64 size, the bytes).
+// Older apps read only the archives and stop there.
+struct File {
+  std::string path;
+  uint64_t size = 0;
+  Sint64 data_at = 0;
+};
+
+bool SafePath(const std::string& p) {
+  if (p.empty() || p[0] == '/' || p.find('\\') != std::string::npos || p.find(':') != std::string::npos) return false;
+  for (size_t s = 0; s <= p.size();) {
+    const size_t e = std::min(p.find('/', s), p.size());
+    const std::string part = p.substr(s, e - s);
+    if (part.empty() || part == "." || part == "..") return false;
+    s = e + 1;
+  }
+  return true;
+}
+
+// After ReadIndex: the files, if the pack has them (none: true, empty).
+bool ReadFiles(SDL_IOStream* io, std::vector<File>* out) {
+  char magic[4];
+  if (!Read(io, magic, 4)) return true;  // an older pack: archives only
+  uint32_t count = 0;
+  if (std::memcmp(magic, "H4PF", 4) || !ReadLe(io, &count) || count > 100000) return false;
+  for (uint32_t i = 0; i < count; i++) {
+    File f;
+    uint16_t n = 0;
+    if (!ReadLe(io, &n) || n == 0 || n > 1024) return false;
+    f.path.resize(n);
+    if (!Read(io, &f.path[0], n) || !SafePath(f.path) || !ReadLe(io, &f.size)) return false;
+    f.data_at = SDL_TellIO(io);
+    if (f.data_at < 0 || SDL_SeekIO(io, Sint64(f.size), SDL_IO_SEEK_CUR) < 0) return false;
+    out->push_back(std::move(f));
   }
   return true;
 }
@@ -292,6 +333,67 @@ std::string BundledPack(const std::string& code) {
   struct stat st {};
   return stat(p.c_str(), &st) == 0 ? p : "";
 #endif
+}
+
+std::string TranslationFiles(const std::string& pack, const std::string& dir) {
+  namespace fs = std::filesystem;
+  std::error_code ec;
+  std::vector<File> files;
+  Io io;
+  if (!pack.empty()) {
+    io.reset(SDL_IOFromFile(pack.c_str(), "rb"));
+    std::vector<Archive> archives;
+    if (!io || !ReadIndex(io.get(), &archives) || !ReadFiles(io.get(), &files)) files.clear();
+  }
+  if (files.empty()) {
+    fs::remove_all(dir, ec);
+    return "";
+  }
+  // Which pack's files are there: its name, size and file list.
+  uint64_t h = 1469598103934665603ull;
+  auto mix = [&](const std::string& s) {
+    for (unsigned char ch : s) h = (h ^ ch) * 1099511628211ull;
+  };
+  mix(pack.substr(pack.find_last_of('/') + 1) + " " + std::to_string(SDL_GetIOSize(io.get())));
+  for (const File& f : files) mix(f.path + " " + std::to_string(f.size) + "\n");
+  char want[32];
+  std::snprintf(want, sizeof want, "%016llx", (unsigned long long)h);
+  const std::string stamp = dir + "/.pack";
+  if (FILE* s = std::fopen(stamp.c_str(), "r")) {
+    char have[32] = {};
+    const bool same = std::fgets(have, sizeof have, s) && !std::strcmp(have, want);
+    std::fclose(s);
+    if (same) return dir;
+  }
+  const std::string tmp = dir + ".tmp";
+  fs::remove_all(tmp, ec);
+  std::vector<uint8_t> buf(1 << 20);
+  for (const File& f : files) {
+    const fs::path to = fs::path(tmp) / f.path;
+    fs::create_directories(to.parent_path(), ec);
+    FILE* o = std::fopen(to.string().c_str(), "wb");
+    bool ok = o && SDL_SeekIO(io.get(), f.data_at, SDL_IO_SEEK_SET) >= 0;
+    for (uint64_t done = 0; ok && done < f.size;) {
+      const size_t n = size_t(std::min<uint64_t>(buf.size(), f.size - done));
+      ok = Read(io.get(), buf.data(), n) && std::fwrite(buf.data(), 1, n, o) == n;
+      done += n;
+    }
+    if (o) ok = std::fclose(o) == 0 && ok;
+    if (!ok) {
+      std::printf("h4: language: cannot write %s\n", to.string().c_str());
+      fs::remove_all(tmp, ec);
+      return "";
+    }
+  }
+  if (FILE* s = std::fopen((tmp + "/.pack").c_str(), "w")) {
+    std::fputs(want, s);
+    std::fclose(s);
+  }
+  fs::remove_all(dir, ec);
+  fs::rename(tmp, dir, ec);
+  if (ec) return "";
+  std::printf("h4: language: %zu files of %s in %s\n", files.size(), pack.c_str(), dir.c_str());
+  return dir;
 }
 
 bool SetGameLanguage(const std::string& game_dir, const std::string& code, const std::string& patch,

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "install/task.h"
 
@@ -29,10 +30,14 @@ class Session {
   // Whether the account owns Heroes IV Complete.
   bool OwnsGame(bool* owns, std::string* error);
 
-  // Downloads the manifest's files into `dir` (created); what is already
-  // there and matches GOG's chunk checksums is kept, so a cancelled or
-  // interrupted download continues. The caller checks SHA-256 afterwards.
-  bool Download(const std::string& dir, Task* task, std::string* error);
+  // The languages of the game's depots ("en-US" first, then "fr-FR", "pl-PL", ...).
+  bool Languages(std::vector<std::string>* out, std::string* error);
+
+  // Downloads the game into `dir` (created): "en-US", the manifest's files; another of Languages(),
+  // that language's files with the English heroes4.exe. What is already there and matches GOG's
+  // chunk checksums is kept, so a cancelled or interrupted download continues. For English the
+  // caller checks SHA-256 afterwards.
+  bool Download(const std::string& dir, const std::string& lang, Task* task, std::string* error);
 
   // A valid access token (refreshed when near expiry); "" on failure.
   std::string Access(std::string* error);

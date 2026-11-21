@@ -39,6 +39,8 @@
 
 #include <SDL3/SDL.h>
 
+#include "intro.h"
+#include "window_mode.h"
 #include "menu_button.h"
 #include "runtime/ctx.h"
 #include "runtime/gfx/device.h"
@@ -58,6 +60,7 @@ void f_004A3450_lifted(::recomp::Ctx& c);
 void f_004A37C0_lifted(::recomp::Ctx& c);
 void f_0062B6A0_lifted(::recomp::Ctx& c);
 void f_0069FB50_lifted(::recomp::Ctx& c);
+void f_0058D970_lifted(::recomp::Ctx& c);
 void f_008AC0C0_lifted(::recomp::Ctx& c);
 void f_0076D9B0_lifted(::recomp::Ctx& c);
 void f_0076DEB0_lifted(::recomp::Ctx& c);
@@ -922,11 +925,14 @@ bool MainMenuAlone() {
 }
 
 void KeepWide(::recomp::Ctx& c) {
-  // In the top right corner, centred over the menu's buttons (New Game..., at
-  // x 1122 of the 1280 layout); iOS's ☁️ in the top left one.
+  // The settings button (⚙︎) in the menu's top right corner, next to the wings; the ☁️ one (when the
+  // settings show it) and "ReHoMM4 <version>" left of it.
   {
     const Rect lay = Layout();
-    h4::ShowLanguageButton(MainMenuAlone(), Wide() ? lay.l + 1122 : 1122 * int(Rd32(kScreenW)) / kLayoutW,
+    const bool menu = MainMenuAlone();
+    if (menu && h4::SkipIntroMoviesNow()) h4::SkipIntroMovies(false);  // the intro is over
+  h4::TestWindowMode();
+    h4::ShowLanguageButton(menu, Wide() ? lay.l + kLayoutW - 14 : int(Rd32(kScreenW)) - 14,
                            Wide() ? lay.t + 14 : 14, Wide() ? lay.l + 14 : 14);
   }
   // A constructor presenting (a loading screen) while the top window is
@@ -1177,6 +1183,24 @@ void PaintDirty(::recomp::Ctx& c) {
   c.ecx = ecx;
   c.edx = edx;
   c.esp = esp;
+}
+
+// The cinematic window's tick (thiscall, no arguments): draws the movie's frame and, once its
+// last one is shown, sets its "ended" flag (+0x44; +0x54 is "a frame is due"), which closes the
+// window as a click does. Skipping the intro movies (intro.h: the 3DO and NWC logos, the intro
+// the first time; until the main menu first shows), the flag is set at the first tick instead.
+// The menu's "replay intro" and the campaigns' movies come after the menu and play whole.
+void f_0058D970(::recomp::Ctx& c) {
+  if (h4::SkipIntroMoviesNow() && Rd32(c.ecx + 0x04)) {
+    static uint32_t said = 0;
+    if (said != Rd32(c.ecx + 0x04)) WarnF("h4: intro movie skipped\n");
+    said = Rd32(c.ecx + 0x04);
+    GPtr(c.ecx + 0x44)[0] = 1;
+    GPtr(c.ecx + 0x54)[0] = 0;
+    c.esp += 4;  // its `ret`
+    return;
+  }
+  f_0058D970_lifted(c);
 }
 
 // The game's present (dirty region to the screen).

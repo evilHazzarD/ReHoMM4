@@ -32,8 +32,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>games.hazzard.heroes4</string>
   <key>CFBundleExecutable</key><string>heroes4</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.1</string>
-  <key>CFBundleVersion</key><string>1</string>
+  <key>CFBundleShortVersionString</key><string>$H4_VERSION</string>
+  <key>CFBundleVersion</key><string>$H4_BUILD</string>
   <key>CFBundleIconFile</key><string>$ICON</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.strategy-games</string>

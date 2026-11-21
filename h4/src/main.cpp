@@ -41,12 +41,16 @@
 
 #if defined(H4_MOBILE)
 #include "install/installer.h"
+#include "intro.h"
+#include "window_mode.h"
+#include "pad_config.h"
 #include "language.h"
 #include "menu_button.h"
 #include "save_sync.h"
 #endif
 #include "runtime/gfx/device.h"
 #include "runtime/log.h"
+#include "runtime/hle/kernel32_state.h"
 #include "runtime/runtime.h"
 
 #if defined(__APPLE__) && TARGET_OS_IOS
@@ -148,6 +152,23 @@ std::string AppWings() {
 // applied to the game folder in place. A "game-<code>" folder made by hand is used
 // as it is.
 void ChooseLanguage(const std::string& game, const std::string& data) {
+  // A game installed from GOG in another language (install/installer.cpp: its data with the English
+  // heroes4.exe; the folder says which): played as it is. The translations' packs are made from the
+  // English archives, so the settings offer no languages then.
+  if (FILE* f = std::fopen((game + "/rehomm4-language").c_str(), "r")) {
+    char b[16] = {};
+    std::string own;
+    if (std::fgets(b, sizeof b, f)) own.assign(b, std::strcspn(b, " \r\n"));
+    std::fclose(f);
+    if (!own.empty()) {
+      std::printf("h4: language %s (the game's own, from GOG)\n", own.c_str());
+      recomp::SetTranslationFiles(h4::TranslationFiles("", data + "/translation"));
+      setenv("H4_LANG", own.c_str(), 1);
+      h4::SetLanguageChoice(own, "");
+      std::fflush(stdout);
+      return;
+    }
+  }
   h4::LoadLanguages(data);
   h4::RefreshLanguages(data);  // a newer release: for the menu now, its packs at the next start
   const std::string saved_path = data + "/language";
@@ -184,7 +205,8 @@ void ChooseLanguage(const std::string& game, const std::string& data) {
     if (patch.empty() && !info.url.empty()) {
       MakeDirs(packs);
       const std::string why = h4::install::DownloadWithProgress(
-          info.name + " (" + info.english + ")", info.url, info.size, info.sha256, downloaded(info));
+          // The progress screen's debug font is ASCII only: the native name would be "?????".
+          info.english + " translation", info.url, info.size, info.sha256, downloaded(info));
       if (why.empty()) {
         patch = downloaded(info);
         all.push_back(patch);
@@ -225,6 +247,8 @@ void ChooseLanguage(const std::string& game, const std::string& data) {
                                 ". The game starts in English.").c_str(), nullptr);
     lang = "en";
   }
+  // Its files outside the archives (single scenarios), read in place of the game's.
+  recomp::SetTranslationFiles(h4::TranslationFiles(lang != "en" ? patch : "", data + "/translation"));
   setenv("H4_LANG", lang.c_str(), 1);
 #if !defined(H4_TRANSLATIONS_URL)
   if (h4::Languages().size() < 2) return;  // no translations and nowhere to get them: no button
@@ -268,7 +292,7 @@ void MobileDirs(std::string* user_files, std::string* data) {
 
 // The launcher's work (platforms/macos-dmg/launcher/launcher.c): player data dir, log,
 // screen defaults, the game folder. Returns the game dir or "".
-std::string g_install_auto;  // --install-auto=files|gog (testing)
+std::string g_install_auto;  // --install-auto=files|gog|folder:<path> (testing)
 
 std::string MobileSetup() {
   std::string files, data;
@@ -289,6 +313,11 @@ std::string MobileSetup() {
     dup2(fd, 2);
     close(fd);
   }
+  h4::LoadSkipIntro(data + "/skip_intro");
+  h4::LoadPadConfig(data + "/gamepad.conf");
+#if defined(H4_DESKTOP_APP)
+  h4::LoadWindowMode(data + "/windowed");
+#endif
   setenv("H4_RESOLUTION", "wide", 0);
   setenv("H4_FILTER", "fsr", 0);
   setenv("H4_DEBAND", "1", 0);
@@ -319,6 +348,7 @@ std::string MobileSetup() {
     if (!d.empty() && IsDir(files + "/" + d)) {
       std::printf("h4: game %s/%s, player files %s\n", files.c_str(), d.c_str(), data.c_str());
       if (d == "game") ChooseLanguage(files + "/" + d, data);
+      h4::SetGameFolder(files + "/" + d);
       std::fflush(stdout);
       return files + "/" + d;
     }
@@ -338,7 +368,16 @@ std::string MobileSetup() {
 
 }  // namespace
 
+#if defined(H4_DESKTOP_APP)
+namespace h4 {
+void KeepStartArgs(int argc, char** argv);
+}
+#endif
+
 int main(int argc, char** argv) {
+#if defined(H4_DESKTOP_APP)
+  h4::KeepStartArgs(argc, argv);  // for RestartApp (menu_button.h)
+#endif
 #if defined(H4_SWITCH_APP)
   romfsInit();  // the wings, the language button's pictures, the translation (in the .nro)
   mkdir("sdmc:/switch/ReHoMM4", 0777);
@@ -346,7 +385,8 @@ int main(int argc, char** argv) {
   std::string game_dir, game_args;
   if (const char* e = std::getenv("H4_GAME_DIR")) game_dir = e;
 #if defined(H4_MOBILE)
-  // Testing the installer on a device: --install-auto=files|gog presses that button (files-fd:
+  // Testing the installer on a device: --install-auto=files|gog presses that button (folder:<path>:
+  // that folder as the installed game picked; files-fd:
   // files, read through descriptors as picked files are);
   // --files-dir=<subfolder> is H4_FILES_DIR, --lang=<code> H4_LANG (Android has no
   // environment to pass).
@@ -411,3 +451,60 @@ int main(int argc, char** argv) {
   game.own_cursor = true;
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }
+
+// menu_button.h: the game's folder, for the settings.
+namespace h4 {
+namespace {
+std::string g_game_folder;
+}
+const std::string& GameFolder() { return g_game_folder; }
+void SetGameFolder(const std::string& path) { g_game_folder = path; }
+}  // namespace h4
+
+#if defined(H4_DESKTOP_APP)
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
+#include <climits>
+#include <vector>
+
+// menu_button.h: the app started again, as it was started (after a language pick).
+namespace h4 {
+namespace {
+std::vector<std::string> g_start_args;
+}  // namespace
+
+void KeepStartArgs(int argc, char** argv) {
+  for (int i = 0; i < argc; i++)
+    if (std::strncmp(argv[i], "--lang=", 7)) g_start_args.push_back(argv[i]);  // as H4_LANG: not again
+}
+
+void RestartApp() {
+  char exe[PATH_MAX] = {};
+#if defined(__APPLE__)
+  uint32_t size = sizeof exe;
+  if (_NSGetExecutablePath(exe, &size) != 0) return;
+#else
+  const ssize_t n = readlink("/proc/self/exe", exe, sizeof exe - 1);
+  if (n <= 0) return;
+  exe[n] = 0;
+#endif
+  // The language is read again from the saved choice: never H4_LANG (ChooseLanguage sets it, and
+  // one the app was started with, a test's, would win over the language just picked).
+  unsetenv("H4_LANG");
+  std::vector<char*> args;
+  for (std::string& a : g_start_args) args.push_back(a.data());
+  args.push_back(nullptr);
+  std::fflush(nullptr);
+  std::printf("h4: restarting\n");
+  std::fflush(nullptr);
+  // Nothing of this process may stay open in the new one (archives, the log, sockets).
+  for (int fd = 3; fd < 1024; fd++) {
+    const int flags = fcntl(fd, F_GETFD);
+    if (flags >= 0) fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+  }
+  execv(exe, args.data());
+  std::printf("h4: restart failed\n");
+}
+}  // namespace h4
+#endif

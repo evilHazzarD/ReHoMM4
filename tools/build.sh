@@ -7,7 +7,7 @@
 #
 # Steps (each skipped when done): Homebrew tools; the game files in game/ (local only, never committed);
 # x86recomp at the pinned commit + patches/; the LGPL ffmpeg (platforms/macos-dmg/ffmpeg_lgpl.sh: Homebrew's is
-# GPL); lift heroes4.exe and build h4 against it; our art (heroes4-mac-assets.zip from Releases, in Downloads);
+# GPL); lift heroes4.exe and build h4 against it; our art (HOMM4-extra-assets.zip from Releases, in Downloads);
 # then platforms/macos-dmg/make_dmg.sh. The DMG carries no game code and no game data: it builds the game on the
 # player's Mac. Needs Apple's Command Line Tools and Homebrew; macOS 26 or later, Apple Silicon.
 set -euo pipefail
@@ -55,20 +55,14 @@ bash "$H4PORT/platforms/macos-dmg/ffmpeg_lgpl.sh" | tail -1
 export PKG_CONFIG_PATH="$H4PORT/.cache/ffmpeg-lgpl/lib/pkgconfig"
 
 say "Recompiling the game"
+bash "$H4PORT/tools/lift.sh"   # again when heroes4.exe, symbols/, the manifest or the lifter changed
 cd "$H4PORT/h4"
-if [[ ! -d generated ]]; then
-  "$X/out/build/release/tools/lifter/recomp_lift" --exe ../game/heroes4.exe --symbols ../symbols \
-    --out generated --manifest lifter.manifest
-fi
 cmake --preset release >/dev/null
 cmake --build --preset release --target h4
 
-# Safari unpacks a downloaded zip by itself: take the folder or the zip.
-assets="$(ls -td "$HOME"/Downloads/heroes4-mac-assets* 2>/dev/null | head -1 || true)"
-if [[ -d "$assets" ]]; then ditto "$assets" "$H4PORT"
-elif [[ -f "$assets" ]]; then unzip -qo "$assets" -d "$H4PORT"; fi
+bash "$H4PORT/platforms/extra-assets.sh"   # art/combat_wings: Downloads or the 0.1 release
 [[ -d "$H4PORT/art/combat_wings" ]] ||
-  die "no heroes4-mac-assets (art/): download heroes4-mac-assets.zip from Releases into Downloads"
+  die "no art/combat_wings: download HOMM4-extra-assets.zip (platforms/extra-assets.sh) into Downloads"
 
 say "DMG"
 bash "$H4PORT/platforms/macos-dmg/make_dmg.sh"

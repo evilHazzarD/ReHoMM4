@@ -50,4 +50,10 @@ std::string BundledPack(const std::string& code);
 bool SetGameLanguage(const std::string& game_dir, const std::string& code, const std::string& pack,
                      const std::vector<std::string>& others, std::string* error);
 
+// The translation's files outside the archives (single scenarios' maps/...), from `pack` into
+// `dir` (again only when the pack changed): `dir`, or "" when the pack has none (`dir` removed;
+// so too for an empty `pack`). The game reads them in place of the install's
+// (recomp::SetTranslationFiles): the game folder itself is never changed.
+std::string TranslationFiles(const std::string& pack, const std::string& dir);
+
 }  // namespace h4

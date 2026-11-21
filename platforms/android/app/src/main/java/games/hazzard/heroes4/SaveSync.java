@@ -93,6 +93,20 @@ final class SaveSync {
         soon();
     }
 
+    static boolean on() { return tree != null; }
+
+    // The system's folder picker; its result: picked() (HeroesActivity.onActivityResult).
+    static void pick(Activity a) {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+        try {
+            a.startActivityForResult(i, PICK_FOLDER);
+        } catch (Exception e) {
+            // no picker
+        }
+    }
+
     static void stop() {
         Uri t = tree;
         tree = null;
@@ -269,19 +283,13 @@ final class SaveSync {
         } else {
             b.setMessage((uk ? "Папка: " : "Folder: ") + folder + "\n" + status);
             b.setNeutralButton(uk ? "Синхронізувати зараз" : "Sync now", (d, w) -> soon());
-            b.setNegativeButton(uk ? "Припинити" : "Stop syncing", (d, w) -> stop());
+            b.setNegativeButton(uk ? "Припинити" : "Stop syncing", (d, w) -> {
+                stop();
+                if (a instanceof HeroesActivity) HeroesActivity.syncChanged((HeroesActivity) a);  // ☁️ goes
+            });
         }
         b.setPositiveButton(folder.isEmpty() ? (uk ? "Обрати папку…" : "Choose a folder…")
-                                             : (uk ? "Інша папка…" : "Another folder…"), (d, w) -> {
-            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
-            try {
-                a.startActivityForResult(i, PICK_FOLDER);
-            } catch (Exception e) {
-                // no picker
-            }
-        });
+                                             : (uk ? "Інша папка…" : "Another folder…"), (d, w) -> pick(a));
         b.show();
     }
 }

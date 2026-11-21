@@ -1,0 +1,86 @@
+--- a/src/runtime/hle/user32_window.cpp
++++ b/src/runtime/hle/user32_window.cpp
+@@ -750,8 +750,13 @@
+ }
+ 
+ 
++// SetWindowed's choice: -1 none (the policy below), 0 fullscreen, 1 a window.
++std::atomic<int> g_windowed{-1};
++
+ GameConfig::Fullscreen FullscreenPolicy() {
+   using F = GameConfig::Fullscreen;
++  const int windowed = g_windowed;
++  if (windowed == 1) return F::Window;
+   static const F f = [] {
+     const char* e = Env("FULLSCREEN");
+     if (!e || !*e) return Background() ? F::Window : Game().fullscreen;
+@@ -760,7 +765,7 @@
+     if (!std::strcmp(e, "exclusive")) return F::Exclusive;
+     FatalF("FULLSCREEN=%s: expected window, desktop or exclusive", e);
+   }();
+-  return f;
++  return windowed == 0 && f == F::Window ? F::Desktop : f;
+ }
+ 
+ // Game sizes (screens, modes, client areas) are pixels; SDL sizes host
+@@ -855,7 +860,19 @@
+       std::fprintf(stderr, "user32: window %X fullscreen for a %dx%d screen\n", hwnd, sw, sh);
+   } else {
+     SDL_SetWindowFullscreen(sdl, false);
+-    SDL_SetWindowSize(sdl, ToPoints(sdl, cw), ToPoints(sdl, ch));
++    // A client the size of the screen (a fullscreen game put in a window) does not fit with the
++    // title bar: then 85% of the usable area, at the client's aspect, centred.
++    int pw = ToPoints(sdl, cw), ph = ToPoints(sdl, ch);
++    SDL_Rect u;
++    const bool fit = g_windowed == 1 && SDL_GetDisplayUsableBounds(SDL_GetDisplayForWindow(sdl), &u) && u.w > 0 &&
++                     u.h > 0 && (pw > u.w * 9 / 10 || ph > u.h * 9 / 10);
++    if (fit) {
++      const double k = std::min(u.w * 0.85 / pw, u.h * 0.85 / ph);
++      pw = std::max(int(pw * k), 320);
++      ph = std::max(int(ph * k), 240);
++    }
++    SDL_SetWindowSize(sdl, pw, ph);
++    if (fit) SDL_SetWindowPosition(sdl, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+   }
+ }
+ 
+@@ -867,8 +884,24 @@
+       if (w.sdl && !w.destroyed) hwnds.push_back(h);
+   }
+   for (uint32_t h : hwnds) UpdateFullscreen(h);
++}
++
++}  // namespace
++
++void SetWindowed(bool windowed) {
++  g_windowed = windowed ? 1 : 0;
++  UpdateFullscreenAll();  // each window whose host fullscreen differs now changes
++}
++
++bool Windowed() {
++  std::lock_guard<std::recursive_mutex> l(g_mu);
++  for (auto& [h, w] : g_windows)
++    if (w.sdl && !w.destroyed && w.visible) return !w.fullscreen;
++  return FullscreenPolicy() == GameConfig::Fullscreen::Window;
+ }
+ 
++namespace {
++
+ }  // namespace
+ 
+ void SetPointerBounds(bool on, int l, int t, int r, int b) {
+--- a/src/runtime/hle/user32_window.h
++++ b/src/runtime/hle/user32_window.h
+@@ -51,6 +51,12 @@
+ // window messages (input filtering for background runs still applies).
+ void SetHostEventSink(void (*sink)(const SDL_Event&));
+ 
++// Fullscreen (as GameConfig::fullscreen says, desktop when that is a window) or a window, from
++// now on: windows covering the screen leave or enter host fullscreen at once (on the thread
++// that owns the SDL windows). Windowed(): whether the game's window is a window now.
++void SetWindowed(bool windowed);
++bool Windowed();
++
+ // DirectDraw exclusive mode on hwnd: the SDL window's client area is the
+ // display mode (w x h) and the game's own window placement (MoveWindow,
+ // minimize/restore on deactivation) is bookkeeping only, as it would be

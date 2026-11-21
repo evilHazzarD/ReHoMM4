@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder for the Android TV banner: the real one (drawable-xhdpi/banner.png, 320x180 dp) comes
+     from assets/icon/icon.sh, as the launcher icon does. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#1A1209" />
+    <size android:width="320dp" android:height="180dp" />
+</shape>

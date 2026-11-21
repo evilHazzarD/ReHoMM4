@@ -91,7 +91,7 @@ bool HttpGet(const std::string& url, const std::string& bearer, int* status, std
 }
 
 // No picker: the installer files are found in the app's folder on the SD card.
-bool BeginPickFiles() { return false; }
+bool BeginPickFiles(bool) { return false; }
 bool PickedFiles(std::vector<PickedFile>* out) {
   out->clear();
   return true;

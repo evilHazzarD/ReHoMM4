@@ -1,0 +1,382 @@
+diff --git a/src/runtime/gfx/soft_device.cpp b/src/runtime/gfx/soft_device.cpp
+new file mode 100644
+index 0000000..87d04be
+--- /dev/null
++++ b/src/runtime/gfx/soft_device.cpp
+@@ -0,0 +1,376 @@
++// gfx::Device for hosts without SDL_GPU (the Switch): 2D only. Every surface
++// is A8R8G8B8 in memory, DirectDraw's blits and fills are done on the CPU,
++// and a frame is shown with SDL_Renderer (OpenGL ES on the Switch), scaled
++// to fit (FitRect, the zoom included) with the pointer and the badge
++// (SetPresentCursor/Badge) over it. Direct3D's drawing is ignored: for
++// DirectDraw games, whose frames the CPU makes anyway.
++#include <SDL3/SDL.h>
++
++#include <algorithm>
++#include <cstdint>
++#include <cstring>
++#include <map>
++#include <memory>
++#include <vector>
++
++#include "runtime/gfx/device.h"
++
++namespace recomp::gfx {
++
++namespace {
++
++struct Surface {
++  int w = 0, h = 0;
++  Format fmt = Format::X8R8G8B8;
++  std::vector<uint32_t> px;  // A8R8G8B8, w x h
++  void Resize(int nw, int nh) {
++    w = std::max(nw, 0);
++    h = std::max(nh, 0);
++    px.assign(size_t(w) * h, 0xFF000000u);
++  }
++};
++
++// One pixel of `fmt` at p: its raw value (for colour keys) and as A8R8G8B8.
++uint32_t Raw(const uint8_t* p, uint32_t bytes) {
++  switch (bytes) {
++    case 1: return p[0];
++    case 2: return uint32_t(p[0] | p[1] << 8);
++    case 3: return uint32_t(p[0] | p[1] << 8 | p[2] << 16);
++    default: return uint32_t(p[0] | p[1] << 8 | p[2] << 16 | uint32_t(p[3]) << 24);
++  }
++}
++
++// Clips dst (and src with it, 1:1 or scaled) to w x h.
++bool ClipTo(int w, int h, const Rect& dr) {
++  return dr.right > dr.left && dr.bottom > dr.top && dr.right > 0 && dr.bottom > 0 && dr.left < w &&
++         dr.top < h;
++}
++
++class SoftDevice final : public Device {
++ public:
++  explicit SoftDevice(SDL_Window* w) : win_(w) {
++    tex_.resize(1);  // [0] the back buffer
++  }
++  ~SoftDevice() override {
++    for (SDL_Texture* t : pic_tex_)
++      if (t) SDL_DestroyTexture(t);
++    if (frame_) SDL_DestroyTexture(frame_);
++    if (r_) SDL_DestroyRenderer(r_);
++  }
++
++  bool Init() {
++    r_ = SDL_CreateRenderer(win_, nullptr);
++    if (!r_) {
++      SDL_Log("gfx: soft: no renderer: %s", SDL_GetError());
++      return false;
++    }
++    SDL_Log("gfx: soft device on SDL_Renderer '%s'", SDL_GetRendererName(r_));
++    return true;
++  }
++
++  void ResetSwapChain(int w, int h, bool vsync) override {
++    w_ = w;
++    h_ = h;
++    front_.Resize(w, h);
++    tex_[0].Resize(w, h);
++    SDL_SetRenderVSync(r_, vsync ? 1 : 0);
++  }
++
++  // ---- resources
++  TextureId CreateTexture(int w, int h, int, Format fmt, bool) override {
++    Surface s;
++    s.Resize(w, h);
++    s.fmt = fmt;
++    for (size_t i = 1; i < tex_.size(); i++)
++      if (!live_[i]) {
++        tex_[i] = std::move(s);
++        live_[i] = true;
++        return TextureId(i);
++      }
++    tex_.push_back(std::move(s));
++    live_.resize(tex_.size(), false);
++    live_.back() = true;
++    return TextureId(tex_.size() - 1);
++  }
++  void DestroyTexture(TextureId t) override {
++    if (t > 0 && t < tex_.size()) {
++      tex_[t] = Surface{};
++      live_[t] = false;
++      if (target_ == t) target_ = 0;
++    }
++  }
++  void FillTexture(TextureId t, const Rect& r, uint32_t argb) override {
++    if (t < tex_.size()) Fill(tex_[t], r, argb);
++  }
++  void UpdateTexture(TextureId t, int level, const Rect& r, const void* src, uint32_t pitch) override {
++    if (level != 0 || t >= tex_.size()) return;
++    Surface& d = tex_[t];
++    Copy(static_cast<const uint8_t*>(src), pitch, d.fmt, Rect{0, 0, r.right - r.left, r.bottom - r.top}, d, r,
++         false, 0);
++  }
++  TextureId CreateCubeTexture(int size, int levels, Format fmt) override {
++    return CreateTexture(size, size, levels, fmt, false);
++  }
++  void UpdateCubeTexture(TextureId, int, int, const Rect&, const void*, uint32_t) override {}
++  DepthId CreateDepth(int, int, Format) override { return ++next_depth_; }
++  void DestroyDepth(DepthId) override {}
++
++  void SetRenderTarget(TextureId color, DepthId) override {
++    target_ = color < tex_.size() ? color : 0;
++  }
++  void SetRenderTargets(const ColorTarget color[4], DepthId depth) override {
++    SetRenderTarget(color[0].tex, depth);
++  }
++  void StretchRect(ColorTarget src, const Rect& sr, ColorTarget dst, const Rect& dr, bool) override {
++    if (src.tex >= tex_.size() || dst.tex >= tex_.size()) return;
++    const Surface s = tex_[src.tex];  // may be the same surface
++    Copy(reinterpret_cast<const uint8_t*>(s.px.data()), uint32_t(s.w * 4), Format::A8R8G8B8, sr, tex_[dst.tex],
++         dr, false, 0);
++  }
++
++  // ---- 2D
++  void Blit(const void* src, uint32_t pitch, Format fmt, const Rect& sr, const Rect& dr, bool colorkey,
++            uint32_t key) override {
++    Copy(static_cast<const uint8_t*>(src), pitch, fmt, sr, Target(), dr, colorkey, key);
++  }
++  void BlitBlend(const void* src, uint32_t pitch, const Rect& sr, const Rect& dr) override {
++    Surface& d = Target();
++    if (!ClipTo(d.w, d.h, dr)) return;
++    const int dw = dr.right - dr.left, dh = dr.bottom - dr.top;
++    const int sw = sr.right - sr.left, sh = sr.bottom - sr.top;
++    for (int y = std::max(dr.top, 0); y < std::min(dr.bottom, d.h); y++) {
++      const int sy = sr.top + (y - dr.top) * sh / dh;
++      const uint32_t* row = reinterpret_cast<const uint32_t*>(static_cast<const uint8_t*>(src) + size_t(sy) * pitch);
++      for (int x = std::max(dr.left, 0); x < std::min(dr.right, d.w); x++) {
++        const uint32_t s = row[sr.left + (x - dr.left) * sw / dw];
++        const uint32_t a = s >> 24;
++        if (!a) continue;
++        uint32_t& o = d.px[size_t(y) * d.w + x];
++        if (a == 255) {
++          o = s | 0xFF000000u;
++          continue;
++        }
++        uint32_t out = 0xFF000000u;
++        for (int c = 0; c < 24; c += 8) {
++          const uint32_t sc = (s >> c) & 255, oc = (o >> c) & 255;
++          out |= ((sc * a + oc * (255 - a)) / 255) << c;
++        }
++        o = out;
++      }
++    }
++  }
++  void ReadBack(const Rect& r, void* dst, uint32_t pitch, Format fmt) override {
++    Read(Target(), r, dst, pitch, fmt);
++  }
++  uint32_t StartReadBack(const Rect& r) override {
++    Surface& t = Target();
++    Surface copy;
++    copy.Resize(r.right - r.left, r.bottom - r.top);
++    Copy(reinterpret_cast<const uint8_t*>(t.px.data()), uint32_t(t.w * 4), Format::A8R8G8B8, r, copy,
++         Rect{0, 0, copy.w, copy.h}, false, 0);
++    const uint32_t id = ++next_ticket_;
++    readbacks_[id] = std::move(copy);
++    return id;
++  }
++  void FinishReadBack(uint32_t ticket, void* dst, uint32_t pitch, Format fmt) override {
++    auto it = readbacks_.find(ticket);
++    if (it == readbacks_.end()) return;
++    if (dst) Read(it->second, Rect{0, 0, it->second.w, it->second.h}, dst, pitch, fmt);
++    readbacks_.erase(it);
++  }
++
++  // ---- front buffer
++  void BlitFront(const void* src, uint32_t pitch, Format fmt, const Rect& sr, const Rect& dr) override {
++    Copy(static_cast<const uint8_t*>(src), pitch, fmt, sr, front_, dr, false, 0);
++  }
++  void ReadBackFront(const Rect& r, void* dst, uint32_t pitch, Format fmt) override {
++    Read(front_, r, dst, pitch, fmt);
++  }
++  void PresentFront() override { Show(); }
++  uint64_t ShownFrames() const override { return shown_; }
++
++  // ---- Direct3D: not drawn
++  void SetRenderState(uint32_t, uint32_t) override {}
++  void SetTextureStageState(uint32_t, uint32_t, uint32_t) override {}
++  void SetTexture(uint32_t, TextureId) override {}
++  void SetTransform(uint32_t, const float*) override {}
++  void SetViewport(const Viewport&) override {}
++  void SetScissor(const Rect&) override {}
++  void SetMaterial(const Material&) override {}
++  void SetLight(uint32_t, const Light&) override {}
++  void LightEnable(uint32_t, bool) override {}
++  void SetClipPlane(uint32_t, const float*) override {}
++  void Clear(uint32_t count, const Rect* rects, uint32_t flags, uint32_t color, float, uint32_t) override {
++    if (!(flags & 1)) return;  // TARGET
++    Surface& t = Target();
++    if (!count || !rects) {
++      Fill(t, Rect{0, 0, t.w, t.h}, color);
++      return;
++    }
++    for (uint32_t i = 0; i < count; i++) Fill(t, rects[i], color);
++  }
++  void BeginScene() override {}
++  void EndScene() override {}
++  void Draw(uint32_t, uint32_t, const void*, uint32_t, uint32_t, const uint16_t*, uint32_t) override {}
++  Mapped MapDraw(uint32_t vertex_count, uint32_t stride, uint32_t index_count) override {
++    map_v_.resize(size_t(vertex_count) * stride);
++    map_i_.resize(index_count);
++    return {map_v_.data(), map_i_.data()};
++  }
++  void DrawMapped(uint32_t, uint32_t) override {}
++  void Present() override {
++    front_ = tex_[0];
++    Show();
++  }
++  ShaderId CreateShader(const hlsl::Program&) override { return 0; }
++  void DestroyShader(ShaderId) override {}
++  void DrawShader(const ShaderDraw&) override {}
++
++ private:
++  Surface& Target() { return tex_[target_ < tex_.size() ? target_ : 0]; }
++
++  static void Fill(Surface& s, const Rect& r, uint32_t argb) {
++    for (int y = std::max(r.top, 0); y < std::min(r.bottom, s.h); y++)
++      for (int x = std::max(r.left, 0); x < std::min(r.right, s.w); x++) s.px[size_t(y) * s.w + x] = argb;
++  }
++
++  // `sr` of a linear image (pitch, fmt) into `dr` of d, stretched (nearest)
++  // when the sizes differ; pixels equal to `key` skipped if colorkey.
++  static void Copy(const uint8_t* src, uint32_t pitch, Format fmt, const Rect& sr, Surface& d, const Rect& dr,
++                   bool colorkey, uint32_t key) {
++    if (!src || !ClipTo(d.w, d.h, dr)) return;
++    const int dw = dr.right - dr.left, dh = dr.bottom - dr.top;
++    const int sw = sr.right - sr.left, sh = sr.bottom - sr.top;
++    if (sw <= 0 || sh <= 0) return;
++    const uint32_t bytes = std::max(1u, BitsPerPixel(fmt) / 8);
++    const uint32_t* table = Decode16Table(fmt);
++    const bool same = dw == sw && dh == sh;
++    for (int y = std::max(dr.top, 0); y < std::min(dr.bottom, d.h); y++) {
++      const int sy = sr.top + (same ? y - dr.top : (y - dr.top) * sh / dh);
++      const uint8_t* row = src + size_t(sy) * pitch;
++      uint32_t* out = &d.px[size_t(y) * d.w];
++      const int x0 = std::max(dr.left, 0), x1 = std::min(dr.right, d.w);
++      if (fmt == Format::A8R8G8B8 && same && !colorkey) {
++        std::memcpy(out + x0, row + size_t(sr.left + x0 - dr.left) * 4, size_t(x1 - x0) * 4);
++        continue;
++      }
++      for (int x = x0; x < x1; x++) {
++        const int sx = sr.left + (same ? x - dr.left : (x - dr.left) * sw / dw);
++        const uint8_t* p = row + size_t(sx) * bytes;
++        if (table) {
++          const uint32_t v = uint32_t(p[0] | p[1] << 8);
++          if (colorkey && v == key) continue;
++          out[x] = table[v];
++        } else {
++          if (colorkey && Raw(p, bytes) == key) continue;
++          out[x] = DecodePixel(p, fmt);
++        }
++      }
++    }
++  }
++
++  static void Read(const Surface& s, const Rect& r, void* dst, uint32_t pitch, Format fmt) {
++    const uint32_t bytes = std::max(1u, BitsPerPixel(fmt) / 8);
++    for (int y = std::max(r.top, 0); y < std::min(r.bottom, s.h); y++) {
++      uint8_t* row = static_cast<uint8_t*>(dst) + size_t(y - r.top) * pitch;
++      const uint32_t* in = &s.px[size_t(y) * s.w];
++      if (fmt == Format::A8R8G8B8 || fmt == Format::X8R8G8B8) {
++        const int x0 = std::max(r.left, 0), x1 = std::min(r.right, s.w);
++        if (x1 > x0) std::memcpy(row + size_t(x0 - r.left) * 4, in + x0, size_t(x1 - x0) * 4);
++        continue;
++      }
++      for (int x = std::max(r.left, 0); x < std::min(r.right, s.w); x++)
++        EncodePixel(row + size_t(x - r.left) * bytes, fmt, in[x]);
++    }
++  }
++
++  // The pointer's or badge's texture, remade when its picture changed;
++  // where it goes (frame pixels), or false if not shown.
++  bool Picture(int i, int* x, int* y) {
++    std::lock_guard<std::mutex> l(present_state::PictureMutex());
++    const present_state::PresentPicture& p = present_state::Pictures()[i];
++    if (p.gen != pic_gen_[i]) {
++      pic_gen_[i] = p.gen;
++      if (pic_tex_[i]) SDL_DestroyTexture(pic_tex_[i]);
++      pic_tex_[i] = nullptr;
++      if (p.iw > 0 && p.ih > 0 && p.image.size() >= size_t(p.iw) * p.ih) {
++        std::vector<uint32_t> img(p.image.begin(), p.image.begin() + size_t(p.iw) * p.ih);
++        for (uint32_t& v : img) v = (v >> 24) >= 0x80 ? (v | 0xFF000000u) : 0;  // alpha below 0x80: none
++        pic_tex_[i] = SDL_CreateTexture(r_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, p.iw, p.ih);
++        if (pic_tex_[i]) {
++          SDL_UpdateTexture(pic_tex_[i], nullptr, img.data(), p.iw * 4);
++          SDL_SetTextureBlendMode(pic_tex_[i], SDL_BLENDMODE_BLEND);
++          SDL_SetTextureScaleMode(pic_tex_[i], SDL_SCALEMODE_NEAREST);
++        }
++        pic_w_[i] = p.iw;
++        pic_h_[i] = p.ih;
++      }
++    }
++    *x = p.x;
++    *y = p.y;
++    return p.shown && pic_tex_[i];
++  }
++
++  void Show() {
++    if (!r_ || w_ <= 0 || h_ <= 0) return;
++    if (!frame_ || frame_w_ != w_ || frame_h_ != h_) {
++      if (frame_) SDL_DestroyTexture(frame_);
++      frame_ = SDL_CreateTexture(r_, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, w_, h_);
++      if (!frame_) return;
++      SDL_SetTextureScaleMode(frame_, SDL_SCALEMODE_LINEAR);
++      frame_w_ = w_;
++      frame_h_ = h_;
++    }
++    SDL_UpdateTexture(frame_, nullptr, front_.px.data(), w_ * 4);
++    int ow = 0, oh = 0;
++    SDL_GetRenderOutputSize(r_, &ow, &oh);
++    const Rect fr = FitRect(w_, h_, ow, oh);
++    const RectF zr = ZoomedRect(fr);
++    SDL_SetRenderClipRect(r_, nullptr);
++    SDL_SetRenderDrawColor(r_, 0, 0, 0, 255);
++    SDL_RenderClear(r_);
++    const SDL_Rect clip{fr.left, fr.top, fr.right - fr.left, fr.bottom - fr.top};
++    SDL_SetRenderClipRect(r_, &clip);
++    const SDL_FRect dst{zr.l, zr.t, zr.r - zr.l, zr.b - zr.t};
++    SDL_RenderTexture(r_, frame_, nullptr, &dst);
++    const float kx = (zr.r - zr.l) / float(w_), ky = (zr.b - zr.t) / float(h_);
++    for (int i : {1, 0}) {  // the badge, then the pointer over it
++      int x, y;
++      if (!Picture(i, &x, &y)) continue;
++      const SDL_FRect pr{zr.l + float(x) * kx, zr.t + float(y) * ky, float(pic_w_[i]) * kx, float(pic_h_[i]) * ky};
++      SDL_RenderTexture(r_, pic_tex_[i], nullptr, &pr);
++    }
++    SDL_RenderPresent(r_);
++    NotePresentation({w_, h_, ow, oh, fr});
++    shown_++;
++  }
++
++  SDL_Window* win_;
++  SDL_Renderer* r_ = nullptr;
++  SDL_Texture* frame_ = nullptr;
++  int frame_w_ = 0, frame_h_ = 0;
++  int w_ = 0, h_ = 0;
++  Surface front_;
++  std::vector<Surface> tex_;
++  std::vector<bool> live_ = {true};
++  TextureId target_ = 0;
++  DepthId next_depth_ = 0;
++  uint32_t next_ticket_ = 0;
++  std::map<uint32_t, Surface> readbacks_;
++  std::vector<uint8_t> map_v_;
++  std::vector<uint16_t> map_i_;
++  SDL_Texture* pic_tex_[2] = {nullptr, nullptr};
++  uint64_t pic_gen_[2] = {0, 0};
++  int pic_w_[2] = {0, 0}, pic_h_[2] = {0, 0};
++  uint64_t shown_ = 0;
++};
++
++}  // namespace
++
++std::unique_ptr<Device> CreateSoftDevice(SDL_Window* window) {
++  auto d = std::make_unique<SoftDevice>(window);
++  if (!d->Init()) return nullptr;
++  return d;
++}
++
++}  // namespace recomp::gfx

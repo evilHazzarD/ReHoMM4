@@ -10,9 +10,11 @@
 // Drive: pick iCloud Drive itself. (Apple gives iCloud's own app containers
 // only to paid developer accounts; a picked folder needs no entitlement.)
 //
-// Both ways, file by file: the newer copy wins (modification times, copied
-// along), a file only one side has is copied over, nothing is deleted. A save
-// still being written (changed in the last 3 s) waits for the next pass.
+// Both ways, file by file, each side against how it was at the last pass (SyncOnce: after
+// HommaRe's cloud_saves, MIT, Copyright (c) 2026 Ilia, github.com/livmaster-dev/HommaRe-public):
+// a change is copied, a deletion is copied, a save changed on both sides keeps the newer one;
+// what is overwritten or deleted is backed up first (<data>/sync-backup). A save still being
+// written (changed in the last 3 s) waits for the next pass.
 // Passes: at start, every 20 s, when the app goes to the background (iOS) or
 // loses the focus or quits (Mac), and on "Sync now".
 #include <TargetConditionals.h>
@@ -24,12 +26,18 @@
 #endif
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <strings.h>
 #include <sys/stat.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdio>
+#include <ctime>
+#include <fstream>
+#include <map>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <unistd.h>
@@ -111,46 +119,289 @@ NSURL* InitialRemote() {
   return MacICloudDrive();
 }
 
-NSDate* ModDate(NSURL* u) {
-  NSDate* d = nil;
-  [u getResourceValue:&d forKey:NSURLContentModificationDateKey error:nil];
-  return d;
+
+// ---- One pass, after HommaRe's cloud_saves (MIT, github.com/livmaster-dev/HommaRe-public):
+// each side compared with how it looked at the last pass (a state file), so a save changed on
+// one side is copied, a save deleted on one side is deleted on the other, and a save changed on
+// both (or two different saves with one name when two devices first meet) keeps the newer one.
+// Whatever a pass overwrites or deletes, on either side, is first copied to
+// <data>/sync-backup/<date time>/ (the newest 10 kept). A side whose synced saves are all gone
+// lost its folder (or had it emptied by hand): the other side's saves go back to it, nothing is
+// deleted. The synced folder's files are only touched through NSFileCoordinator; one not
+// downloaded yet (an iCloud placeholder) is asked for and waited on a little, else left for
+// the next pass, as is a save changed in the last 3 s (the game may be writing it).
+
+struct Stamp {
+  int64_t size = -1, mtime_ns = 0;
+  bool operator==(const Stamp& o) const { return size == o.size && mtime_ns == o.mtime_ns; }
+  bool operator!=(const Stamp& o) const { return !(*this == o); }
+};
+struct Item {
+  std::string path;  // where it is
+  Stamp stamp;
+  bool pending = false;  // the synced folder's, not on this device yet
+};
+using Listing = std::map<std::string, Item>;  // name -> item
+struct Seen {
+  Stamp local, cloud;
+};
+using State = std::map<std::string, Seen>;
+
+constexpr int64_t kBusyNs = 3'000'000'000ll, kSameTimeNs = 2'000'000'000ll;
+constexpr size_t kBackupsKept = 10;
+
+std::string StatePath() { return g_data + "/sync-state.tsv"; }
+std::string BackupRoot() { return g_data + "/sync-backup"; }
+
+bool StatPath(const std::string& path, Stamp* out) {
+  struct stat st {};
+  if (::stat(path.c_str(), &st) != 0 || !S_ISREG(st.st_mode)) return false;
+  out->size = st.st_size;
+  out->mtime_ns = int64_t(st.st_mtimespec.tv_sec) * 1'000'000'000ll + st.st_mtimespec.tv_nsec;
+  return true;
 }
 
-void SetModDate(NSURL* u, NSDate* d) {
-  if (d) [NSFileManager.defaultManager setAttributes:@{NSFileModificationDate : d} ofItemAtPath:u.path error:nil];
+void SetMtime(const std::string& path, int64_t ns) {
+  struct timespec t[2];
+  t[0].tv_sec = 0;
+  t[0].tv_nsec = UTIME_OMIT;
+  t[1].tv_sec = time_t(ns / 1'000'000'000ll);
+  t[1].tv_nsec = long(ns % 1'000'000'000ll);
+  utimensat(AT_FDCWD, path.c_str(), t, 0);
 }
 
-// The regular files of a folder: name -> URL. iCloud keeps a file not downloaded on this device
-// as a placeholder (".name.icloud"): listed under its real name too, its URL the real one (a
-// coordinated read of it downloads it), and named in `pending`. `suffix`: only those names.
-NSMutableDictionary<NSString*, NSURL*>* Files(NSURL* dir, NSMutableSet<NSString*>* pending,
-                                              NSString* suffix = nil) {
-  NSMutableDictionary<NSString*, NSURL*>* out = [NSMutableDictionary new];
-  NSArray<NSURL*>* items = [NSFileManager.defaultManager
-        contentsOfDirectoryAtURL:dir
-      includingPropertiesForKeys:@[ NSURLIsRegularFileKey, NSURLContentModificationDateKey ]
-                         options:0
-                           error:nil];
-  for (NSURL* u in items) {
-    NSString* n = u.lastPathComponent;
-    if ([n hasPrefix:@"."]) {
-      if (pending && [n hasSuffix:@".icloud"] && n.length > 8) {
-        NSString* real = [n substringWithRange:NSMakeRange(1, n.length - 8)];
-        if (suffix && ![real.lowercaseString hasSuffix:suffix]) continue;
-        NSURL* ru = [dir URLByAppendingPathComponent:real];
-        [NSFileManager.defaultManager startDownloadingUbiquitousItemAtURL:ru error:nil];
-        out[real] = ru;
-        [pending addObject:real];
-      }
-      continue;
-    }
-    if (suffix && ![n.lowercaseString hasSuffix:suffix]) continue;
-    NSNumber* reg = nil;
-    [u getResourceValue:&reg forKey:NSURLIsRegularFileKey error:nil];
-    if (reg.boolValue) out[n] = u;
+std::string Dir(const std::string& path) {
+  const size_t k = path.rfind('/');
+  return k == std::string::npos ? "." : path.substr(0, k);
+}
+std::string Base(const std::string& path) {
+  const size_t k = path.rfind('/');
+  return k == std::string::npos ? path : path.substr(k + 1);
+}
+
+// A copy keeping `src`'s modification time, put in place by a rename (a hidden temporary beside
+// `dst`: the listings skip dot files).
+bool CopyKeepingTime(const std::string& src, const std::string& dst) {
+  Stamp st;
+  if (!StatPath(src, &st)) return false;
+  [NSFileManager.defaultManager createDirectoryAtPath:@(Dir(dst).c_str()) withIntermediateDirectories:YES
+                                           attributes:nil error:nil];
+  const std::string tmp = Dir(dst) + "/." + Base(dst) + ".sync-tmp";
+  std::remove(tmp.c_str());
+  NSData* d = [NSData dataWithContentsOfFile:@(src.c_str())];
+  if (!d || ![d writeToFile:@(tmp.c_str()) atomically:NO]) {
+    std::remove(tmp.c_str());
+    return false;
   }
+  SetMtime(tmp, st.mtime_ns);
+  if (rename(tmp.c_str(), dst.c_str()) != 0) {
+    std::remove(tmp.c_str());
+    return false;
+  }
+  return true;
+}
+
+bool SameBytes(const std::string& a, const std::string& b) {
+  NSData* x = [NSData dataWithContentsOfFile:@(a.c_str())];
+  NSData* y = [NSData dataWithContentsOfFile:@(b.c_str())];
+  return x && y && [x isEqualToData:y];
+}
+
+State LoadState(const std::string& cloud) {
+  State s;
+  std::ifstream f(StatePath(), std::ios::binary);
+  std::string line;
+  if (!std::getline(f, line) || line != "#cloud\t" + cloud) return s;  // another folder's: none
+  while (std::getline(f, line)) {
+    std::vector<std::string> c;
+    for (size_t at = 0; at <= line.size();) {
+      size_t end = line.find('\t', at);
+      if (end == std::string::npos) end = line.size();
+      c.push_back(line.substr(at, end - at));
+      at = end + 1;
+    }
+    if (c.size() != 5 || c[0].empty()) continue;
+    s[c[0]] = {{atoll(c[1].c_str()), atoll(c[2].c_str())}, {atoll(c[3].c_str()), atoll(c[4].c_str())}};
+  }
+  return s;
+}
+
+void SaveState(const std::string& cloud, const State& s) {
+  const std::string tmp = StatePath() + ".tmp";
+  {
+    std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
+    f << "#cloud\t" << cloud << '\n';
+    for (const auto& [n, x] : s)
+      f << n << '\t' << x.local.size << '\t' << x.local.mtime_ns << '\t' << x.cloud.size << '\t' << x.cloud.mtime_ns
+        << '\n';
+    if (!f) return;
+  }
+  rename(tmp.c_str(), StatePath().c_str());
+}
+
+// This pass's backup folder, made when something is first put in it; the newest kBackupsKept stay.
+class Backup {
+ public:
+  Backup() {
+    const time_t t = time(nullptr);
+    struct tm tm {};
+    localtime_r(&t, &tm);
+    char name[32];
+    strftime(name, sizeof name, "%Y-%m-%d %H%M%S", &tm);
+    dir_ = BackupRoot() + "/" + name;
+  }
+  std::string Path(const std::string& name) {
+    used_ = true;
+    return dir_ + "/" + name;
+  }
+  void Prune() {
+    if (!used_) return;
+    NSArray<NSString*>* all = [[NSFileManager.defaultManager contentsOfDirectoryAtPath:@(BackupRoot().c_str())
+                                                                                  error:nil]
+        sortedArrayUsingSelector:@selector(compare:)];
+    for (NSUInteger i = 0; i + kBackupsKept < all.count; i++)
+      [NSFileManager.defaultManager removeItemAtPath:[@(BackupRoot().c_str()) stringByAppendingPathComponent:all[i]]
+                                               error:nil];
+  }
+
+ private:
+  std::string dir_;
+  bool used_ = false;
+};
+
+// The local saves: games/ and the saves the game wrote beside it (its save dialog may start
+// there; *.h4s), the newer one when both have a name. Hidden files are skipped.
+Listing LocalListing() {
+  Listing out;
+  auto scan = [&](NSString* dir, bool only_saves) {
+    for (NSString* n in [NSFileManager.defaultManager contentsOfDirectoryAtPath:dir error:nil]) {
+      if ([n hasPrefix:@"."] || (only_saves && ![n.lowercaseString hasSuffix:@".h4s"])) continue;
+      Item it;
+      it.path = [dir stringByAppendingPathComponent:n].fileSystemRepresentation;
+      if (!StatPath(it.path, &it.stamp)) continue;
+      auto have = out.find(n.UTF8String);
+      if (have == out.end() || it.stamp.mtime_ns > have->second.stamp.mtime_ns) out[n.UTF8String] = it;
+    }
+  };
+  scan(LocalGames(), false);
+  scan(LocalInstall(), true);
   return out;
+}
+
+// The synced folder's files (coordinated; metadata only, nothing downloaded). iCloud keeps a file
+// not on this device as ".<name>.icloud" (or as the file with no data): pending, its download
+// started. False when the folder cannot be read.
+bool CloudListingOnce(NSURL* remote, Listing* out, NSError** err) {
+  __block bool ok = true;
+  NSFileManager* fm = NSFileManager.defaultManager;
+  [[[NSFileCoordinator alloc] initWithFilePresenter:nil]
+      coordinateReadingItemAtURL:remote
+                         options:NSFileCoordinatorReadingImmediatelyAvailableMetadataOnly
+                           error:err
+                      byAccessor:^(NSURL* at) {
+                        NSError* e = nil;
+                        NSArray<NSURL*>* items = [fm contentsOfDirectoryAtURL:at
+                                                   includingPropertiesForKeys:@[ NSURLIsRegularFileKey ]
+                                                                      options:0
+                                                                        error:&e];
+                        if (!items) {
+                          ok = false;
+                          return;
+                        }
+                        for (NSURL* u in items) {
+                          NSString* n = u.lastPathComponent;
+                          if ([n hasPrefix:@"."]) {
+                            if ([n hasSuffix:@".icloud"] && n.length > 8) {
+                              NSString* real = [n substringWithRange:NSMakeRange(1, n.length - 8)];
+                              NSURL* ru = [at URLByAppendingPathComponent:real];
+                              [fm startDownloadingUbiquitousItemAtURL:ru error:nil];
+                              Item it;
+                              it.path = ru.path.fileSystemRepresentation;
+                              it.pending = true;
+                              out->emplace(real.UTF8String, it);  // the file itself, if listed, wins
+                            }
+                            continue;
+                          }
+                          NSNumber* reg = nil;
+                          [u getResourceValue:&reg forKey:NSURLIsRegularFileKey error:nil];
+                          if (!reg.boolValue) continue;
+                          Item it;
+                          it.path = u.path.fileSystemRepresentation;
+                          NSNumber* ubiq = nil;
+                          NSString* status = nil;
+                          [u getResourceValue:&ubiq forKey:NSURLIsUbiquitousItemKey error:nil];
+                          if (ubiq.boolValue)
+                            [u getResourceValue:&status forKey:NSURLUbiquitousItemDownloadingStatusKey error:nil];
+                          if ([status isEqualToString:NSURLUbiquitousItemDownloadingStatusNotDownloaded]) {
+                            it.pending = true;
+                            [fm startDownloadingUbiquitousItemAtURL:u error:nil];
+                          } else if (!StatPath(it.path, &it.stamp)) {
+                            continue;
+                          }
+                          (*out)[n.UTF8String] = it;
+                        }
+                      }];
+  return ok && !(err && *err);
+}
+
+// The listing, waiting up to 8 s for the downloads it started.
+bool CloudListing(NSURL* remote, Listing* out, NSError** err) {
+  const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+  for (;;) {
+    Listing l;
+    if (!CloudListingOnce(remote, &l, err)) return false;
+    bool waiting = false;
+    for (const auto& kv : l) waiting |= kv.second.pending;
+    if (!waiting || std::chrono::steady_clock::now() >= until) {
+      *out = std::move(l);
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  }
+}
+
+NSURL* UrlOf(const std::string& path) { return [NSURL fileURLWithPath:@(path.c_str())]; }
+
+// The synced folder's file `src` copied to the local `dst` (downloaded first when needed).
+bool CloudRead(const std::string& src, const std::string& dst) {
+  __block bool ok = false;
+  NSError* e = nil;
+  [[[NSFileCoordinator alloc] initWithFilePresenter:nil]
+      coordinateReadingItemAtURL:UrlOf(src)
+                         options:0
+                           error:&e
+                      byAccessor:^(NSURL* u) { ok = CopyKeepingTime(u.path.fileSystemRepresentation, dst); }];
+  return ok && !e;
+}
+
+// The local `src` put at `dst` in the synced folder; `*now`: how it is there afterwards.
+bool CloudWrite(const std::string& src, const std::string& dst, Stamp* now) {
+  __block bool ok = false;
+  NSError* e = nil;
+  [[[NSFileCoordinator alloc] initWithFilePresenter:nil]
+      coordinateWritingItemAtURL:UrlOf(dst)
+                         options:NSFileCoordinatorWritingForReplacing
+                           error:&e
+                      byAccessor:^(NSURL* u) {
+                        const std::string to = u.path.fileSystemRepresentation;
+                        ok = CopyKeepingTime(src, to) && StatPath(to, now);
+                      }];
+  return ok && !e;
+}
+
+bool CloudRemove(const std::string& path) {
+  __block bool ok = false;
+  NSError* e = nil;
+  [[[NSFileCoordinator alloc] initWithFilePresenter:nil]
+      coordinateWritingItemAtURL:UrlOf(path)
+                         options:NSFileCoordinatorWritingForDeleting
+                           error:&e
+                      byAccessor:^(NSURL* u) {
+                        NSError* gone = nil;
+                        ok = [NSFileManager.defaultManager removeItemAtURL:u error:&gone] ||
+                             gone.code == NSFileNoSuchFileError;
+                      }];
+  return ok && !e;
 }
 
 // iCloud's side of a file in the synced folder: uploaded, or why not ("" when it is not iCloud's,
@@ -189,97 +440,147 @@ std::string SyncOnce() {
   @autoreleasepool {
     const BOOL access = [root startAccessingSecurityScopedResource];
     NSURL* remote = SyncFolder(root);
-    NSURL* local = [NSURL fileURLWithPath:LocalGames() isDirectory:YES];
-    NSFileCoordinator* co = [[NSFileCoordinator alloc] initWithFilePresenter:nil];
-    NSMutableSet<NSString*>* pending = [NSMutableSet new];
-    __block NSDictionary<NSString*, NSURL*>* there = nil;
+    const std::string cloud = remote.path.fileSystemRepresentation;
     NSError* err = nil;
     if (![NSFileManager.defaultManager fileExistsAtPath:remote.path])  // ReHOMM4, made the first time
-      [co coordinateWritingItemAtURL:remote options:0 error:&err byAccessor:^(NSURL* u) {
-        [NSFileManager.defaultManager createDirectoryAtURL:u withIntermediateDirectories:YES attributes:nil error:nil];
-      }];
-    // The listing needs only what is known here (no download of the folder's files).
-    [co coordinateReadingItemAtURL:remote
-                           options:NSFileCoordinatorReadingImmediatelyAvailableMetadataOnly
-                             error:&err
-                        byAccessor:^(NSURL* u) { there = Files(u, pending); }];
-    if (!there) {
+      [[[NSFileCoordinator alloc] initWithFilePresenter:nil]
+          coordinateWritingItemAtURL:remote options:0 error:&err byAccessor:^(NSURL* u) {
+            [NSFileManager.defaultManager createDirectoryAtURL:u withIntermediateDirectories:YES attributes:nil
+                                                         error:nil];
+          }];
+    err = nil;
+    Listing there;
+    if (!CloudListing(remote, &there, &err)) {
       if (access) [root stopAccessingSecurityScopedResource];
       const std::string s = "the iCloud folder cannot be read" +
                             (err ? std::string(" (") + err.localizedDescription.UTF8String + ")" : "");
       SetStatus(s);
       return s;
     }
-    // Here: games/, and the saves the game wrote beside it (its save dialog may start there);
-    // the newer one when both have a name.
-    NSMutableDictionary<NSString*, NSURL*>* here = Files(local, nil);
-    NSDictionary<NSString*, NSURL*>* beside =
-        Files([NSURL fileURLWithPath:LocalInstall() isDirectory:YES], nil, @".h4s");
-    for (NSString* n in beside) {
-      NSURL* u = beside[n];
-      if (!here[n] || [ModDate(u) compare:ModDate(here[n])] == NSOrderedDescending) here[n] = u;
-    }
-    NSMutableSet<NSString*>* names = [NSMutableSet setWithArray:there.allKeys];
-    [names addObjectsFromArray:here.allKeys];
-    int up = 0, down = 0, failed = 0, waiting = 0;
-    NSDate* now = NSDate.date;
-    for (NSString* n in names) {
-      NSURL* ru = there[n] ?: [remote URLByAppendingPathComponent:n];
-      NSURL* lu = here[n];
-      const bool in_cloud = there[n] != nil, not_here_yet = [pending containsObject:n];
-      NSDate* r = in_cloud && !not_here_yet ? ModDate(ru) : nil;
-      NSDate* l = lu ? ModDate(lu) : nil;
-      if (in_cloud && not_here_yet && lu) {  // both have it, the cloud's not downloaded: next pass
+    const std::string games = LocalGames().fileSystemRepresentation;
+    const Listing here = LocalListing();
+    const State state = LoadState(cloud);
+    // A side with none of the saves it had lost them (or its folder): it gets them back.
+    const bool local_lost = !state.empty() && here.empty();
+    const bool cloud_lost = !state.empty() && there.empty();
+    Backup backup;
+    std::set<std::string> names;
+    for (const auto& kv : here) names.insert(kv.first);
+    for (const auto& kv : there) names.insert(kv.first);
+    for (const auto& kv : state) names.insert(kv.first);
+    State next;
+    int up = 0, down = 0, gone_here = 0, gone_there = 0, conflicts = 0, failed = 0, waiting = 0;
+    const int64_t now = int64_t([NSDate.date timeIntervalSince1970] * 1e9);
+    for (const std::string& n : names) {
+      const auto li = here.find(n);
+      const auto ci = there.find(n);
+      const auto si = state.find(n);
+      const Item* l = li != here.end() ? &li->second : nullptr;
+      const Item* c = ci != there.end() ? &ci->second : nullptr;
+      const Seen* s = si != state.end() ? &si->second : nullptr;
+      const std::string lpath = l ? l->path : games + "/" + n, cpath = cloud + "/" + n;
+      const bool busy = l && now - l->stamp.mtime_ns < kBusyNs && l->stamp.mtime_ns <= now;
+      if ((c && c->pending) || busy) {  // next pass
         waiting++;
+        if (s) next[n] = *s;
         continue;
       }
-      const double diff = (r && l) ? [l timeIntervalSinceDate:r] : 0;
-      if (in_cloud && (!lu || diff < -2)) {  // down (downloading first when needed), into games/
-        NSURL* dest = lu && [lu.URLByDeletingLastPathComponent.path isEqualToString:local.path]
-                          ? lu
-                          : [local URLByAppendingPathComponent:n];
-        __block bool ok = false;
-        [co coordinateReadingItemAtURL:ru options:0 error:nil byAccessor:^(NSURL* u) {
-          NSData* d = [NSData dataWithContentsOfURL:u];
-          NSURL* tmp = [local URLByAppendingPathComponent:[@".sync-" stringByAppendingString:n]];
-          if (d && [d writeToURL:tmp atomically:NO]) {
-            SetModDate(tmp, ModDate(u));
-            ok = rename(tmp.path.fileSystemRepresentation, dest.path.fileSystemRepresentation) == 0;
+      auto push = [&] {
+        Seen x;
+        x.local = l->stamp;
+        if (!CloudWrite(lpath, cpath, &x.cloud)) return false;
+        next[n] = x;
+        up++;
+        return true;
+      };
+      auto pull = [&] {
+        Seen x;
+        x.cloud = c->stamp;
+        if (!CloudRead(cpath, lpath) || !StatPath(lpath, &x.local)) return false;
+        next[n] = x;
+        down++;
+        return true;
+      };
+      const bool local_changed = l ? (!s || l->stamp != s->local) : s != nullptr;
+      const bool cloud_changed = c ? (!s || c->stamp != s->cloud) : s != nullptr;
+      bool ok = true;
+      if (l && c) {
+        if (s && !local_changed && !cloud_changed) {
+          next[n] = {l->stamp, c->stamp};
+        } else if (s && local_changed && !cloud_changed) {
+          ok = push();
+        } else if (s && cloud_changed && !local_changed) {
+          ok = pull();
+        } else {  // both changed, or both had it before their first pass together
+          bool same = false;
+          if (l->stamp.size == c->stamp.size) {
+            same = llabs(l->stamp.mtime_ns - c->stamp.mtime_ns) < kSameTimeNs;
+            if (!same) {
+              const std::string probe = Dir(lpath) + "/." + n + ".sync-cmp";
+              same = CloudRead(cpath, probe) && SameBytes(probe, lpath);
+              std::remove(probe.c_str());
+            }
           }
-        }];
-        ok ? down++ : failed++;
-      } else if (lu && (!in_cloud || diff > 2) && [now timeIntervalSinceDate:l] > 3) {  // up
-        __block bool ok = false;
-        NSData* d = [NSData dataWithContentsOfURL:lu];
-        if (d)
-          [co coordinateWritingItemAtURL:ru options:NSFileCoordinatorWritingForReplacing error:nil
-                              byAccessor:^(NSURL* u) {
-                                ok = [d writeToURL:u atomically:YES];
-                                if (ok) SetModDate(u, l);
-                              }];
-        ok ? up++ : failed++;
+          if (same) {
+            next[n] = {l->stamp, c->stamp};
+          } else {
+            conflicts++;
+            ok = l->stamp.mtime_ns >= c->stamp.mtime_ns ? CloudRead(cpath, backup.Path(n)) && push()
+                                                        : CopyKeepingTime(lpath, backup.Path(n)) && pull();
+          }
+        }
+      } else if (l) {
+        if (!s || local_changed || cloud_lost) {
+          ok = push();
+        } else {  // deleted in the synced folder (another device), unchanged here
+          ok = CopyKeepingTime(lpath, backup.Path(n)) && std::remove(lpath.c_str()) == 0;
+          if (ok) gone_here++;
+        }
+      } else if (c) {
+        if (!s || cloud_changed || local_lost) {
+          ok = pull();
+        } else {  // deleted here (the game's own delete), unchanged there
+          ok = CloudRead(cpath, backup.Path(n)) && CloudRemove(cpath);
+          if (ok) gone_there++;
+        }
+      }
+      // else: gone on both sides, and from the state
+      if (!ok) {
+        failed++;
+        std::fprintf(stderr, "h4: save sync: %s could not be synced\n", n.c_str());
+        if (s) next[n] = *s;  // tried again next pass
       }
     }
+    SaveState(cloud, next);
+    backup.Prune();
     // What the folder holds now, and what of it iCloud does not have yet.
     int in_folder = 0, stuck = 0;
     std::string why;
-    for (NSURL* u in Files(remote, [NSMutableSet new]).allValues) {
+    Listing after;
+    CloudListingOnce(remote, &after, nullptr);
+    for (const auto& kv : after) {
       in_folder++;
-      if (NotUploaded(u, &why)) stuck++;
+      if (!kv.second.pending && NotUploaded(UrlOf(kv.second.path), &why)) stuck++;
     }
     if (access) [root stopAccessingSecurityScopedResource];
     NSDateFormatter* f = [NSDateFormatter new];
     f.dateFormat = @"HH:mm";
-    char b[400];
-    std::snprintf(b, sizeof b, "%s: %d save(s) in the folder, %d here; %d sent, %d received%s%s%s",
-                  [f stringFromDate:now].UTF8String, in_folder, int(here.count), up, down,
-                  failed ? (", " + std::to_string(failed) + " failed").c_str() : "",
-                  waiting ? (", " + std::to_string(waiting) + " still downloading").c_str() : "",
-                  stuck ? ("\n⚠️ " + std::to_string(stuck) + " not in iCloud yet" + (why.empty() ? "" : ": " + why) +
-                           " (other devices don't see them)").c_str()
-                        : "");
+    std::string extra;
+    if (gone_here || gone_there)
+      extra += ", " + std::to_string(gone_here + gone_there) + " deleted (as on the other side)";
+    if (conflicts) extra += ", " + std::to_string(conflicts) + " changed on both: the newer kept";
+    if (failed) extra += ", " + std::to_string(failed) + " failed";
+    if (waiting) extra += ", " + std::to_string(waiting) + " waiting";
+    if (stuck)
+      extra += "\n⚠️ " + std::to_string(stuck) + " not in iCloud yet" + (why.empty() ? "" : ": " + why) +
+               " (other devices don't see them)";
+    char b[600];
+    std::snprintf(b, sizeof b, "%s: %d save(s) in the folder, %d here; %d sent, %d received%s",
+                  [f stringFromDate:NSDate.date].UTF8String, in_folder, int(LocalListing().size()), up, down,
+                  extra.c_str());
     static int last_stuck = -1;
-    if (up || down || failed || stuck != last_stuck) std::fprintf(stderr, "h4: save sync %s\n", b);
+    if (up || down || gone_here || gone_there || conflicts || failed || stuck != last_stuck)
+      std::fprintf(stderr, "h4: save sync %s\n", b);
     last_stuck = stuck;
     SetStatus(b);
     return b;
@@ -348,14 +649,21 @@ std::string RemotePass(bool remote) {
 #endif
 }
 
+std::atomic<bool> g_first_done{false};
+
+// The passes, on a thread of their own; the first one waited for up to 3 s (the game is about to
+// read its saves: another device's newer ones should be here by then).
 void PassLoop() {
   std::thread([] {
     for (unsigned n = 0;; n++) {
       RemotePass(n % 3 == 0);
+      g_first_done = true;
       for (int i = 0; i < 200 && !g_wake.exchange(false); i++)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }).detach();
+  for (int i = 0; i < 30 && g_remote && !g_first_done; i++)
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 }  // namespace
@@ -369,6 +677,20 @@ void PassLoop() {
   UsePicked(urls.firstObject);
 }
 @end
+
+namespace {
+// The Files picker for the folder to sync with, opening in iCloud Drive (its provider's root).
+void PickFolder(UIView* source) {
+  UIViewController* top = source.window.rootViewController;
+  while (top.presentedViewController) top = top.presentedViewController;
+  static H4SyncPicker* del = [H4SyncPicker new];
+  UIDocumentPickerViewController* p =
+      [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeFolder ]];
+  p.delegate = del;
+  p.directoryURL = [NSFileManager.defaultManager URLForUbiquityContainerIdentifier:nil].URLByDeletingLastPathComponent;
+  [top presentViewController:p animated:YES completion:nil];
+}
+}  // namespace
 
 namespace h4 {
 
@@ -423,16 +745,7 @@ void ShowSaveSyncSheet(void* source_view, bool ukrainian) {
                        actionWithTitle:folder.empty() ? (ukrainian ? @"Обрати папку…" : @"Choose a folder…")
                                                       : (ukrainian ? @"Обрати іншу папку…" : @"Choose another folder…")
                                  style:UIAlertActionStyleDefault
-                               handler:^(UIAlertAction*) {
-                                 static H4SyncPicker* del = [H4SyncPicker new];
-                                 UIDocumentPickerViewController* p = [[UIDocumentPickerViewController alloc]
-                                     initForOpeningContentTypes:@[ UTTypeFolder ]];
-                                 p.delegate = del;
-                                 // Opens in iCloud Drive (its file provider's root).
-                                 p.directoryURL = [NSFileManager.defaultManager URLForUbiquityContainerIdentifier:nil]
-                                                      .URLByDeletingLastPathComponent;
-                                 [top presentViewController:p animated:YES completion:nil];
-                               }]];
+                               handler:^(UIAlertAction*) { PickFolder(source); }]];
   if (!folder.empty()) {
     [sheet addAction:[UIAlertAction actionWithTitle:ukrainian ? @"Синхронізувати зараз" : @"Sync now"
                                               style:UIAlertActionStyleDefault
@@ -447,6 +760,28 @@ void ShowSaveSyncSheet(void* source_view, bool ukrainian) {
   sheet.popoverPresentationController.sourceView = source;
   sheet.popoverPresentationController.sourceRect = source.bounds;
   [top presentViewController:sheet animated:YES completion:nil];
+}
+
+bool ShowSyncButton() { return !FolderName().empty(); }
+std::string SavesFolder() { return g_data.empty() ? "" : std::string(LocalGames().UTF8String); }
+std::string SyncedFolder() {
+  std::lock_guard<std::mutex> lock(g_state);
+  return g_remote ? std::string(SyncFolder(g_remote).path.UTF8String) : "";
+}
+
+bool AskSaveSyncFolder() {
+  const std::string asked = g_data + "/icloud.asked";
+  if (g_data.empty() || !FolderName().empty() || access(asked.c_str(), F_OK) == 0 ||
+      access(OffPath().c_str(), F_OK) == 0)
+    return false;
+  if (FILE* f = std::fopen(asked.c_str(), "w")) std::fclose(f);
+  return true;
+}
+
+bool SetSaveSync(bool on, void* source_view) {
+  if (!on) StopSync();
+  else if (FolderName().empty()) PickFolder((__bridge UIView*)source_view);  // on once picked
+  return ShowSyncButton();
 }
 
 }  // namespace h4
@@ -468,6 +803,30 @@ void StartSaveSync(const std::string& data_dir) {
   [nc addObserverForName:NSApplicationWillTerminateNotification object:nil queue:nil
               usingBlock:^(NSNotification*) { RemotePass(true); }];  // a last pass before quitting
   PassLoop();
+}
+
+bool ShowSyncButton() { return !FolderName().empty(); }
+std::string SavesFolder() { return g_data.empty() ? "" : std::string(LocalGames().UTF8String); }
+std::string SyncedFolder() {
+  std::lock_guard<std::mutex> lock(g_state);
+  return g_remote ? std::string(SyncFolder(g_remote).path.UTF8String) : "";
+}
+bool AskSaveSyncFolder() { return false; }  // on by itself (iCloud Drive, unless turned off)
+
+// On: iCloud Drive/ReHOMM4 (a folder picked before is forgotten); off: StopSync (and stays off).
+bool SetSaveSync(bool on, void*) {
+  if (!on) {
+    StopSync();
+  } else if (FolderName().empty() && MacICloudDrive()) {
+    std::remove(OffPath().c_str());
+    std::remove(BookmarkPath().c_str());
+    {
+      std::lock_guard<std::mutex> lock(g_state);
+      g_remote = MacICloudDrive();
+    }
+    SyncSoon();
+  }
+  return ShowSyncButton();
 }
 
 // A panel over the game (ShowMacChoice; the game's frames go on), its buttons by what is set.
@@ -509,15 +868,7 @@ void ShowSaveSyncSheet(void* source_view, bool ukrainian) {
               const Action act = r >= 0 && size_t(r) < acts.size() ? acts[size_t(r)] : kCancel;
               if (act == kNow) SyncSoon();
               if (act == kStop) StopSync();
-              if (act == kOn) {
-                std::remove(OffPath().c_str());
-                std::remove(BookmarkPath().c_str());
-                {
-                  std::lock_guard<std::mutex> lock(g_state);
-                  g_remote = MacICloudDrive();
-                }
-                SyncSoon();
-              }
+              if (act == kOn) SetSaveSync(true, nullptr);
               if (act == kOther) {
                 // A sheet (the system's folder picker); ReHOMM4 is made inside what is picked (or it is ReHOMM4).
                 NSOpenPanel* p = [NSOpenPanel openPanel];

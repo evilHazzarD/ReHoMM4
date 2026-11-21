@@ -36,9 +36,16 @@ int main(int argc, char** argv) {
     for (auto& b2 : bad) printf("  bad %s\n", b2.c_str());
     return bad.empty() ? 0 : 1;
   }
+  if (!std::strcmp(argv[1], "langs")) {
+    gog::Session s;
+    std::vector<std::string> langs;
+    if (!s.Languages(&langs, &err)) return fprintf(stderr, "languages: %s\n", err.c_str()), 1;
+    for (const std::string& l : langs) printf("%s\n", l.c_str());
+    return 0;
+  }
   if (!std::strcmp(argv[1], "gog")) {
     gog::Session s;
-    bool ok = s.Download(argv[2], &t, &err);
+    bool ok = s.Download(argv[2], argc > 3 ? argv[3] : "en-US", &t, &err);
     printf("download: %s (%s); %llu of %llu bytes already good\n", ok ? "ok" : "stopped", err.c_str(),
            (unsigned long long)t.done.load(), (unsigned long long)t.total.load());
     return 0;

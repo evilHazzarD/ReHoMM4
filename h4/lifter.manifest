@@ -40,6 +40,7 @@ replace 004A3450 screen_ctor_a
 replace 004A37C0 screen_ctor_b
 replace 0062B6A0 screen_ctor_c
 replace 0069FB50 screen_ctor_d
+replace 0058D970 cinematic_tick
 replace 008AC0C0 screen_ctor_e
 replace 0076D9B0 main_menu_layout
 replace 0076DEB0 main_menu_ctor

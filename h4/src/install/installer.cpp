@@ -4,12 +4,20 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#if defined(__APPLE__)
+#include <copyfile.h>
+#endif
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cctype>
+#include <filesystem>
 #include <functional>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -26,9 +34,11 @@ namespace h4::install {
 namespace {
 
 constexpr uint64_t kMB = 1000 * 1000;
+// In a game folder installed from GOG in another language than English: that language's code.
+constexpr const char* kGameLanguage = "rehomm4-language";
 constexpr uint64_t kSlack = 64 * kMB;  // free space kept beyond the game
 
-enum class Screen { Menu, Picking, Busy, Error, Done };
+enum class Screen { Menu, Picking, Busy, Error, Done, Language };
 
 struct Button {
   SDL_FRect r{};
@@ -127,7 +137,7 @@ struct Ui {
 
 std::string Megabytes(uint64_t b) { return std::to_string((b + kMB / 2) / kMB) + " MB"; }
 
-enum { kGog = 1, kFiles, kCancel, kBack, kSignOut };
+enum { kGog = 1, kFiles, kFolder, kCancel, kBack, kSignOut, kLanguage0 = 100 };
 
 class Installer {
  public:
@@ -153,6 +163,15 @@ class Installer {
     if (autostart_ == "files-fd") setenv("H4_TEST_FDS", "1", 1), autostart_ = "files";
     if (autostart_ == "files") OnPress(kFiles);
     if (autostart_ == "gog") OnPress(kGog);
+    if (autostart_.rfind("folder:", 0) == 0) {  // test: that folder as if picked (desktop)
+      const std::string root = autostart_.substr(7);
+      std::vector<PickedFile> files;
+      std::error_code ec;
+      for (std::filesystem::recursive_directory_iterator it(root, ec), end; !ec && it != end; it.increment(ec))
+        if (it->is_regular_file())
+          files.push_back({it->path().string(), it->path().lexically_relative(root).generic_string()});
+      StartCopy(files);
+    }
     while (!quit && result.empty()) {
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
@@ -189,9 +208,13 @@ class Installer {
     if (!id) return;
     if (screen_ == Screen::Menu && id == kGog) StartGog();
     else if (screen_ == Screen::Menu && id == kFiles) StartFiles();
+    else if (screen_ == Screen::Menu && id == kFolder) StartFolder();
     else if (screen_ == Screen::Menu && id == kSignOut) { session_.SignOut(); RemoveTree(Download()); }
     else if (screen_ == Screen::Busy && id == kCancel) task_->cancel = true;
     else if (screen_ == Screen::Error && id == kBack) screen_ = Screen::Menu;
+    else if (screen_ == Screen::Language && id == kBack) screen_ = Screen::Menu;
+    else if (screen_ == Screen::Language && id >= kLanguage0 && size_t(id - kLanguage0) < gog_langs_.size())
+      StartGogDownload(gog_langs_[size_t(id - kLanguage0)]);
   }
 
   void StartGog() {
@@ -213,12 +236,47 @@ class Installer {
                  "Sign in with the account you bought it on (\"Forget GOG sign-in\" below).";
         return false;
       }
+      t->SetPhase("Getting the game's languages from GOG");
+      std::vector<std::string> langs;
+      if (!session_.Languages(&langs, error)) return false;
+      gog_langs_ = langs;
+      return true;
+    }, "");
+    listing_languages_ = true;
+  }
+
+  // The game in a language GOG has (gog::Session::Languages): English as it is, another one as its
+  // data with the English heroes4.exe; that language is marked in the game folder (kGameLanguage).
+  void StartGogDownload(const std::string& lang) {
+    fprintf(stderr, "installer: downloading the game from GOG in %s\n", lang.c_str());
+    Start([this, lang](Task* t, std::string* error) -> bool {
       if (!EnoughSpace(Download(), error)) return false;
-      if (!session_.Download(Download(), t, error)) return false;
-      if (!Check(Download(), t, error)) return false;
+      if (!session_.Download(Download(), lang, t, error)) return false;
+      const std::string marker = Download() + "/" + kGameLanguage;
+      std::remove(marker.c_str());
+      if (lang == "en-US") {
+        if (!Check(Download(), t, error)) return false;
+      } else {
+        if (!CheckExe(Download(), t, error)) return false;
+        if (FILE* f = fopen(marker.c_str(), "w")) {
+          fputs(lang.substr(0, 2).c_str(), f);
+          fclose(f);
+        }
+      }
       session_.SignOut();  // not needed any more
       return true;
     }, Download());
+  }
+
+  // GOG's languages by name (the installer's font is ASCII only).
+  static std::string LanguageName(const std::string& code) {
+    static const std::pair<const char*, const char*> kNames[] = {
+        {"en-US", "English"},          {"fr-FR", "French (Francais)"}, {"de-DE", "German (Deutsch)"},
+        {"es-ES", "Spanish (Espanol)"}, {"it-IT", "Italian (Italiano)"}, {"pl-PL", "Polish (Polski)"},
+        {"ru-RU", "Russian"},          {"cs-CZ", "Czech (Cestina)"}};
+    for (const auto& [c, n] : kNames)
+      if (code == c) return n;
+    return code;
   }
 
   void StartFiles() {
@@ -253,11 +311,26 @@ class Installer {
     else ShowError("The file picker could not be opened.");
   }
 
+  // An installed game: the player picks its folder (PollPicked), it is copied in.
+  void StartFolder() {
+    picking_folder_ = true;
+    if (BeginPickFiles(true)) screen_ = Screen::Picking;
+    else ShowError("The folder picker could not be opened.");
+  }
+
   void PollPicked() {
     std::vector<PickedFile> files;
     if (!PickedFiles(&files)) return;
     if (files.empty()) {  // cancelled
+      picking_folder_ = false;
       screen_ = Screen::Menu;
+      return;
+    }
+    if (picking_folder_) {
+      picking_folder_ = false;
+      picked_ = true;
+      own_installer_.clear();
+      StartCopy(files);
       return;
     }
     PickedFile exe, bin;
@@ -271,6 +344,123 @@ class Installer {
       return;
     }
     StartUnpack(exe, bin);
+  }
+
+  // The picked folder's files into Unpack(), under the English install's spelling (the folder may
+  // be the game's or one above it: where heroes4.exe is). Its archives may hold a translation (this
+  // app's, applied in place), so only heroes4.exe is checked by its SHA-256 (the app's code is made
+  // from it) and every other file of the install by being there.
+  void StartCopy(const std::vector<PickedFile>& files) {
+    fprintf(stderr, "installer: copying an installed game (%zu files)\n", files.size());
+    Start([this, files](Task* t, std::string* error) -> bool {
+      namespace fs = std::filesystem;
+      auto lower = [](std::string s) {
+        for (char& c : s) c = char(std::tolower(static_cast<unsigned char>(c)));
+        return s;
+      };
+      t->SetPhase("Looking at the folder");
+      std::string root;  // the folder of heroes4.exe, inside the picked one ("" or "a/b/")
+      bool found = false;
+      for (const PickedFile& f : files) {
+        const std::string n = lower(f.name);
+        if (n == "heroes4.exe" || (n.size() > 12 && n.compare(n.size() - 12, 12, "/heroes4.exe") == 0))
+          if (!found || f.name.size() < root.size() + 11) root = f.name.substr(0, f.name.size() - 11), found = true;
+      }
+      if (!found) {
+        *error = "There is no heroes4.exe in this folder. Pick the folder Heroes IV is installed in.";
+        return false;
+      }
+      // The install's spelling of every file and folder, by its lower case.
+      std::map<std::string, std::string> spelled;
+      for (const ManifestFile& m : Manifest())
+        for (size_t at = 0; at != std::string::npos;) {
+          at = std::string(m.path).find('/', at + 1);
+          const std::string part = std::string(m.path).substr(0, at);
+          spelled[lower(part)] = part;
+        }
+      auto respell = [&](const std::string& rel) {
+        std::string out;
+        for (size_t at = 0; at <= rel.size();) {
+          size_t slash = rel.find('/', at);
+          if (slash == std::string::npos) slash = rel.size();
+          const std::string whole = out + rel.substr(at, slash - at);
+          auto it = spelled.find(lower(whole));
+          out = it != spelled.end() ? it->second : whole;
+          if (slash < rel.size()) out += "/";
+          at = slash + 1;
+        }
+        return out;
+      };
+      std::vector<std::pair<std::string, std::string>> todo;  // source, path inside the game
+      uint64_t total = 0;
+      for (const PickedFile& f : files) {
+        if (f.name.size() <= root.size() || f.name.compare(0, root.size(), root) != 0) continue;
+        const std::string rel = f.name.substr(root.size());
+        if (rel.find("..") != std::string::npos) continue;
+        struct stat st;
+        if (stat(f.path.c_str(), &st) == 0) total += uint64_t(st.st_size);
+        todo.push_back({f.path, respell(rel)});
+      }
+      std::set<std::string> have;
+      for (const auto& f : todo) have.insert(lower(f.second));
+      for (const ManifestFile& m : Manifest())
+        if (!have.count(lower(m.path))) {
+          *error = std::string("This is not a whole Heroes IV: Complete install: ") + m.path + " is missing.";
+          return false;
+        }
+      RemoveTree(Unpack());
+      if (!EnoughSpace(Unpack(), error)) return false;
+      t->SetPhase("Copying the game");
+      t->total = total;
+      t->done = 0;
+      std::vector<char> buf(1 << 20);
+      for (const auto& [from, rel] : todo) {
+        if (t->cancel) return *error = "cancelled", false;
+        const std::string to = Unpack() + "/" + rel;
+        std::error_code ec;
+        fs::create_directories(fs::path(to).parent_path(), ec);
+#if defined(__APPLE__)
+        // A clone on the same APFS disk: no second copy of the data.
+        if (copyfile(from.c_str(), to.c_str(), nullptr, COPYFILE_DATA | COPYFILE_CLONE) == 0) {
+          struct stat st;
+          if (stat(to.c_str(), &st) == 0) t->done += uint64_t(st.st_size);
+          continue;
+        }
+#endif
+        FILE* in = fopen(from.c_str(), "rb");
+        FILE* out = in ? fopen(to.c_str(), "wb") : nullptr;
+        bool ok = in && out;
+        for (size_t n; ok && (n = fread(buf.data(), 1, buf.size(), in)) > 0;) {
+          ok = fwrite(buf.data(), 1, n, out) == n;
+          t->done += n;
+          if (t->cancel) break;
+        }
+        if (in) fclose(in);
+        if (out && fclose(out) != 0) ok = false;
+        if (!ok) return *error = "Could not copy " + rel + " (is there space left?).", false;
+      }
+      return CheckExe(Unpack(), t, error);
+    }, Unpack());
+  }
+
+  // heroes4.exe in `dir` is the English GOG 3.0 one: the app's code is made from it, and the game
+  // loads its data sections from the file (the data of another language works with it).
+  static bool CheckExe(const std::string& dir, Task* t, std::string* error) {
+    t->SetPhase("Checking heroes4.exe");
+    const ManifestFile* exe = FindInManifest("heroes4.exe");
+    Sha256 h;
+    std::vector<char> buf(1 << 20);
+    if (FILE* f = fopen((dir + "/heroes4.exe").c_str(), "rb")) {
+      for (size_t n; (n = fread(buf.data(), 1, buf.size(), f)) > 0;) h.Update(buf.data(), n);
+      fclose(f);
+    }
+    if (!exe || h.HexDigest() != exe->sha256) {
+      *error = "This heroes4.exe is not the one of GOG's English Heroes IV: Complete 3.0, which the app "
+               "is made for. Other versions do not work (a translated game's data does: only its "
+               "heroes4.exe must be the English one).";
+      return false;
+    }
+    return true;
   }
 
   void StartUnpack(const PickedFile& exe, const PickedFile& bin) {
@@ -335,6 +525,14 @@ class Installer {
   void Finish() {
     worker_.join();
     if (picked_) EndPickedFiles(), picked_ = false;
+    if (listing_languages_) {  // signed in: which language (only English: at once)
+      listing_languages_ = false;
+      if (ok_ && gog_langs_.size() > 1) screen_ = Screen::Language;
+      else if (ok_) StartGogDownload("en-US");
+      else if (task_->cancel) screen_ = Screen::Menu;
+      else ShowError(error_);
+      return;
+    }
     if (ok_ && rename(out_.c_str(), (files_ + "/game").c_str()) == 0) {
       fprintf(stderr, "installer: game installed into %s/game\n", files_.c_str());
       for (const std::string& p : own_installer_)
@@ -381,7 +579,13 @@ class Installer {
         y += ch * 4.4f;
       }
       ui_.AddButton(kFiles, y, "Install from GOG installer files", 38);
+      y += ch * 4.4f;
+#if !defined(H4_SWITCH_APP)
+      ui_.AddButton(kFolder, y, "Use an installed game (its folder)", 38);
       y += ch * 4.6f;
+#else
+      y += ch * 0.2f;
+#endif
       ui_.Color(150, 140, 120);
       y = ui_.Paragraph(y,
 #if defined(__ANDROID__)
@@ -407,6 +611,24 @@ class Installer {
         y += ch * 0.5f;
         ui_.AddButton(kSignOut, y, "Forget GOG sign-in", 30);
       }
+    } else if (screen_ == Screen::Language) {
+      ui_.Color(232, 220, 190);
+      y = ui_.Paragraph(y, "The game's language:");
+      y += ch * 0.5f;
+      ui_.Color(200, 190, 170);
+      y = ui_.Paragraph(y, "GOG's own versions. Translations from ReHoMM4-translations (Ukrainian and "
+                           "others) work with English only.");
+      y += ch;
+      for (size_t i = 0; i < gog_langs_.size(); i++) {
+        ui_.AddButton(kLanguage0 + int(i), y, LanguageName(gog_langs_[i]), 26);
+        y += ch * 3.7f;
+      }
+      ui_.AddButton(kBack, y + ch * 0.5f, "Back", 24);
+    } else if (screen_ == Screen::Picking && picking_folder_) {
+      ui_.Color(232, 220, 190);
+      y = ui_.Paragraph(y, "Pick the folder Heroes IV is installed in (with heroes4.exe).");
+      y += ch;
+      y = Indeterminate(y);
     } else if (screen_ == Screen::Picking) {
       ui_.Color(232, 220, 190);
       y = ui_.Paragraph(y, "Pick both installer files:");
@@ -472,7 +694,9 @@ class Installer {
   std::unique_ptr<Task> task_;
   std::thread worker_;
   std::atomic<bool> finished_{false};
-  bool ok_ = false, picked_ = false;
+  bool ok_ = false, picked_ = false, picking_folder_ = false;
+  bool listing_languages_ = false;     // the job after signing in: GOG's languages
+  std::vector<std::string> gog_langs_;  // they, for Screen::Language
   std::vector<std::string> own_installer_;  // the installer's files in files_, removed when done
   std::string error_, out_;
 };
@@ -572,6 +796,14 @@ bool Fetch(const std::string& url, uint64_t size, const std::string& sha256, con
 
 std::string DownloadWithProgress(const std::string& title, const std::string& url, uint64_t size,
                                  const std::string& sha256, const std::string& dest) {
+  const std::string why = RunWithProgress(title, [&](Task* task, std::string* error) {
+    return Fetch(url, size, sha256, dest, task, error);
+  });
+  fprintf(stderr, "download %s: %s\n", url.c_str(), why.empty() ? "done" : why.c_str());
+  return why;
+}
+
+std::string RunWithProgress(const std::string& title, const std::function<bool(Task*, std::string*)>& work) {
   PlatformInit();
   if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) return "no video";
   Ui ui;
@@ -590,7 +822,7 @@ std::string DownloadWithProgress(const std::string& title, const std::string& ur
   bool ok = false;
   std::string error;
   std::thread worker([&] {
-    ok = Fetch(url, size, sha256, dest, &task, &error);
+    ok = work(&task, &error);
     finished = true;
   });
   float content_h = 0;
@@ -645,8 +877,7 @@ std::string DownloadWithProgress(const std::string& title, const std::string& ur
   SDL_DestroyRenderer(ui.ren);
   SDL_DestroyWindow(ui.win);
   SDL_QuitSubSystem(SDL_INIT_VIDEO);
-  fprintf(stderr, "download %s: %s\n", url.c_str(), ok ? "done" : error.c_str());
-  return ok ? "" : error;
+  return ok ? "" : error.empty() ? "failed" : error;
 }
 
 }  // namespace h4::install

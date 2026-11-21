@@ -24,7 +24,7 @@ cp -L "$PREFIX/lib/libSDL3.so.0" "$D/lib/libSDL3.so.0"
 for p in "$MOBILE_CACHE"/res/*.h4p; do [[ -f "$p" ]] || continue; cp "$p" "$D/"; done  # the translations in the app
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$D/THIRD_PARTY_NOTICES.txt"
 # The language button and its note, drawn into the frame (h4/src/menu_button_linux.cpp).
-swift "$ROOT/platforms/linux/render_ui.swift" "$D/ui"
+swift "$ROOT/platforms/linux/render_ui.swift" "$D/ui" "${H4_VERSION:-}"
 bash "$ROOT/assets/icon/icon.sh" linux "$D/heroes4.png" >/dev/null
 cat > "$D/install-desktop-entry.sh" <<'SH'
 #!/bin/sh

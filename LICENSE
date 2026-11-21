@@ -6,6 +6,10 @@ Portions Copyright (c) 2026 LeoDeadware, from HoMM4Deadware
 (https://github.com/LeoDeadware/HoMM4Deadware), under this same license: the files that say so at
 their top, and symbols/ and h4/CMakePresets.json.
 
+Portions Copyright (c) 2026 Ilia, from HommaRe (https://github.com/livmaster-dev/HommaRe-public),
+under this same license: the save sync in h4/src/save_sync_apple.mm is adapted from its
+kit/host/cloud_saves.cpp and cloud_saves_apple.mm.
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

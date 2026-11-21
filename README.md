@@ -1,8 +1,12 @@
 # ReHoMM4: Heroes of Might and Magic IV, native
 
-Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android, Linux, Steam Deck, and Nintendo Switch. Runs directly on hardware—no Wine, emulators, or VMs.
+Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android (including Android TV), Linux, Steam Deck, and Nintendo Switch. Runs directly on hardware—no Wine, emulators, or VMs.
 
 [Українською — нижче](#українською)
+
+If you enjoy it, you can support the author (also the ☕ button in the game's main menu):
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/hazzard)
 
 - English, the original, or a translation: Ukrainian today (interface, campaigns, campaign
   voice-over; The Gathering Storm stays in English), and every language added to
@@ -19,43 +23,191 @@ Native port of Heroes of Might and Magic IV (including both expansions) for macO
 - One of:
   - a Mac with macOS 13 or later (an Apple chip or Intel);
   - an iPhone or iPad;
-  - an Android phone or tablet (64-bit, Android 10 or later);
+  - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
   - a Linux PC (x86-64) or a Steam Deck;
   - a Nintendo Switch that runs homebrew.
 - An internet connection and about 3 GB of free space.
 
 ## Install
 
-1. Open the [Releases page](https://github.com/evilHazzarD/ReHoMM4/releases) and download the file
-   for your device:
+Two steps: install the app for your device (below), then open it and let it install the game
+files from your GOG copy ([First start](#first-start-the-game-files)).
 
-   | Device | File | How to install |
-   |---|---|---|
-   | Mac | `HeroesIV-macos-arm64.dmg` (Apple chip: M1 or newer), `HeroesIV-macos-x86_64.dmg` (Intel) | open it, drag **Heroes IV** to **Applications**; the first time, right-click it → **Open** → **Open** |
-   | iPhone, iPad | `HeroesIV-ios.ipa` | install it with [AltStore](https://altstore.io) or [Sideloadly](https://sideloadly.io) (they sign it with your Apple ID); then Settings → General → VPN & Device Management → trust your Apple ID |
-   | Android | `HeroesIV-android_arm64.apk` | open it on the phone and allow installing apps from this source |
-   | Linux, Steam Deck | `HeroesIV-linux-x86_64.tar.gz` | unpack it and run `heroes4`; on the Deck, in Desktop Mode, add `heroes4` to Steam with **Add a Non-Steam Game** |
-   | Switch | `HeroesIV.nro` | copy it to `sdmc:/switch/ReHoMM4/` on the SD card, together with the GOG installer files (step 2); start it from the homebrew menu in title takeover (hold **R** while starting a game) |
+All files are on the [Releases page](https://github.com/evilHazzarD/ReHoMM4/releases): open the
+newest release and, under **Assets**, download the one for your device. `<version>` in the names
+below is the release's number (for example `0.2`).
 
-2. **Open the app.** The first time, it installs the game files. Choose one:
-   - **Sign in to GOG.** GOG's own sign-in page opens; the app checks that your account owns
-     Heroes of Might and Magic IV: Complete and downloads the game (1 GB). Signing in with
-     Google, Discord, Steam or Xbox works too. The sign-in is kept only until the download is done.
-   - **GOG installer files.** On [gog.com](https://www.gog.com/game/heroes_of_might_and_magic_4_complete)
-     download the **Windows offline installer in English** (`setup_heroes_of_might_and_magic_4_complete_….exe`
-     and its `.bin` file; GOG offers it in several languages, and only the English one works) and
-     pick them in the app. On the Mac and Linux, files in **Downloads**
-     are found by themselves; on the Switch, put them next to the `.nro`.
-     On the game's page in your GOG library: **Language: English**, then under
-     **Download offline backup game installers** both parts, **Part 1 of 2** (1 MB, the `.exe`) and
-     **Part 2 of 2** (1.1 GB, the `.bin`). The patches below them are not needed.
+| Device | File |
+|---|---|
+| Mac with an Apple chip (M1 or newer) | `HeroesIV-<version>-macos-arm64.dmg` |
+| Mac with an Intel processor | `HeroesIV-<version>-macos-x86_64.dmg` |
+| iPhone, iPad | `HeroesIV-<version>-ios.ipa` |
+| Android | `HeroesIV-<version>-android_arm64.apk` |
+| Linux PC, Steam Deck | `HeroesIV-<version>-linux-x86_64.tar.gz` |
+| Nintendo Switch | `HeroesIV-<version>-switch.nro` |
 
-     ![The GOG library page: Language English, and the two installer parts to download](docs/gog_files.jpg)
+Not sure which Mac you have:  → **About This Mac**; "Chip: Apple M…" is an Apple chip,
+"Processor: … Intel" is Intel.
 
-   Every game file is checked, then the game starts. An interrupted download continues where it
-   stopped. What happens to the installer files afterwards: see below.
-3. **Language:** the 🌐 button in the top right corner of the main menu opens the list of
-   languages. Pick one and restart the game; the translation is downloaded when it is first chosen.
+### Mac
+
+1. Open the downloaded `.dmg` (double-click it in **Downloads**).
+2. In the window that opens, drag **Heroes IV** onto **Applications**. Then eject the disk
+   ("Heroes IV" in Finder's sidebar → ⏏).
+3. Open **Applications** and double-click **Heroes IV**. The app is not signed by Apple, so
+   the first time macOS refuses to open it:
+   - **macOS 15 (Sequoia) and later:** click **Done** in the message, open  →
+     **System Settings** → **Privacy & Security**, scroll down to *"Heroes IV" was blocked…*,
+     click **Open Anyway** and confirm with your password; then **Open Anyway** once more.
+   - **macOS 13 and 14:** right-click (or Control-click) **Heroes IV** → **Open** → **Open**.
+
+   From then on it opens normally.
+
+**Update:** download the new `.dmg` (or use ⚙ → **Check for updates** in the game) and drag the
+new **Heroes IV** onto **Applications** → **Replace**. Saves and settings are kept (they are in
+`~/Library/Application Support/ReHoMM4`).
+
+### iPhone, iPad
+
+Apps from outside the App Store are installed with a sideloading tool that signs them with your
+own Apple ID; a free Apple ID is enough.
+
+1. On a Mac or Windows PC install [AltStore](https://altstore.io) (with AltServer) or
+   [Sideloadly](https://sideloadly.io) and follow its set-up guide (it needs iTunes/iCloud for
+   Windows on a PC, the iPhone/iPad connected by cable the first time).
+2. Copy `HeroesIV-<version>-ios.ipa` to the computer (AltStore: or to the iPhone's Files) and
+   install it: AltStore → **My Apps** → **+** → pick the `.ipa`; Sideloadly → drag the `.ipa` in,
+   enter your Apple ID → **Start**.
+3. On iOS/iPadOS 16 and later turn on **Developer Mode**: Settings → **Privacy & Security** →
+   **Developer Mode** → on, restart, confirm **Turn On**.
+4. Trust your Apple ID: Settings → **General** → **VPN & Device Management** → your Apple ID →
+   **Trust**.
+5. Open **Heroes IV**.
+
+With a free Apple ID the signature lasts **7 days**: refresh the app before then (AltStore does it
+by itself while AltServer runs on the computer in the same Wi-Fi; Sideloadly: install it again).
+An expired app does not open, but its saves stay; refreshing brings it back.
+
+**Update:** install the new `.ipa` the same way, over the old app.
+
+### Android
+
+Android 10 or later, 64-bit (almost every phone and tablet since 2019).
+
+1. On the phone, download `HeroesIV-<version>-android_arm64.apk` (open the Releases page in the
+   phone's browser).
+2. Open it: from the browser's downloads, or **Files** → **Downloads**.
+3. Android asks to allow installing apps from this source (the browser or Files): **Settings** →
+   turn on **Allow from this source** → back → **Install**.
+4. If Play Protect warns about an unknown app: **More details** → **Install anyway**.
+5. Open **Heroes IV**.
+
+**Update:** download the new `.apk` (or use ⚙ → **Check for updates** in the game; the
+notification installs it) and install it over the old one; saves are kept.
+
+**Android TV:** the same `.apk`. It shows up in the TV's launcher and is played with a gamepad
+(Xbox, PlayStation, Switch or any other Bluetooth/USB pad: the left stick moves the pointer, the
+buttons are set in ⚙ → **Gamepad**); the TV remote cannot play it. Install it with a file manager
+from a USB stick, or from a computer: `adb connect <TV's IP address>`, then `adb install`
+`HeroesIV-<version>-android_arm64.apk`. The TV needs a 64-bit Android with Vulkan: many TV boxes
+and sticks run 32-bit Android and cannot install it.
+
+### Linux
+
+An x86-64 PC with glibc 2.36 or later (Debian 12, Ubuntu 22.10, Fedora 37, SteamOS 3 and newer),
+Vulkan graphics drivers, X11 or Wayland (through Xwayland).
+
+1. Unpack the archive where the game should live, for example `~/Games`:
+   ```sh
+   mkdir -p ~/Games
+   tar -xzf ~/Downloads/HeroesIV-<version>-linux-x86_64.tar.gz -C ~/Games
+   ```
+2. Start it:
+   ```sh
+   ~/Games/"Heroes IV"/heroes4
+   ```
+3. Optional: add it to the desktop's application menu:
+   ```sh
+   ~/Games/"Heroes IV"/install-desktop-entry.sh
+   ```
+
+**Update:** unpack the new archive over the old folder. Saves and settings are in
+`~/.local/share/ReHoMM4`, not in this folder.
+
+### Steam Deck
+
+1. Switch to **Desktop Mode** (Steam button → **Power** → **Switch to Desktop**).
+2. In Firefox (or another browser) download `HeroesIV-<version>-linux-x86_64.tar.gz`.
+3. In **Dolphin** (the file manager) open **Downloads**, right-click the archive → **Extract** →
+   **Extract archive to…** → pick e.g. `/home/deck/Games`.
+4. Add it to Steam: open **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
+   **Browse…** → `/home/deck/Games/Heroes IV/heroes4` → **Add Selected Programs**.
+5. Start it once here in Desktop Mode: the first start installs the game (the GOG sign-in opens in
+   the browser), easier with the desktop's keyboard. Then go back with **Return to Gaming Mode**:
+   the game is in your library under **Non-Steam**.
+
+Controls: the trackpads and the touch screen move the pointer, R2 or a right-trackpad click is the
+left button (Steam's default for non-Steam games). For the gamepad layout ([Controls](#controls)):
+the game's controller settings in Steam → **Gamepad with Mouse Trackpad**.
+
+### Nintendo Switch
+
+Needs a Switch that runs homebrew (Atmosphère custom firmware) and a microSD card with about
+3 GB free. There is no GOG sign-in on the Switch: the game is installed from the GOG installer
+files, downloaded on a computer first (see [First start](#first-start-the-game-files), "GOG
+installer files").
+
+1. Put the SD card in a computer and make the folder `switch/ReHoMM4` on it.
+2. Copy into it `HeroesIV-<version>-switch.nro`, renamed to `HeroesIV.nro`, and both GOG
+   installer files (`setup_heroes_of_might_and_magic_4_complete_….exe` and the `….bin`).
+   The card then holds:
+   ```
+   switch/ReHoMM4/HeroesIV.nro
+   switch/ReHoMM4/setup_heroes_of_might_and_magic_4_complete_….exe
+   switch/ReHoMM4/setup_heroes_of_might_and_magic_4_complete_…-1.bin
+   ```
+3. Put the card back and start Atmosphère.
+4. Open the homebrew menu in **title takeover**: hold **R** while starting any game from the home
+   screen (not from the Album: it has too little memory for the game), then pick **Heroes IV**.
+
+The first start installs the game into `switch/ReHoMM4/game` and deletes the installer files.
+Controls: the touch screen as on phones, and the Joy-Cons as a gamepad ([Controls](#controls)).
+The Switch app has not been tested on a real console yet.
+
+### First start: the game files
+
+Open the app. The first time, it installs the game files. Choose one:
+
+- **Sign in to GOG** (not on the Switch). GOG's own sign-in page opens; the app checks that your
+  account owns Heroes of Might and Magic IV: Complete and downloads the game (1 GB). Signing in
+  with Google, Discord, Steam or Xbox works too. The sign-in is kept only until the download is
+  done. Then pick the game's language: GOG's versions are English, French, German, Spanish,
+  Italian and Polish (another language's data comes with the English `heroes4.exe`, the one the app
+  is made for). The translations of ⚙ settings (Ukrainian and others) work with the English one
+  only.
+- **GOG installer files.** On [gog.com](https://www.gog.com/game/heroes_of_might_and_magic_4_complete)
+  download the **Windows offline installer in English** (`setup_heroes_of_might_and_magic_4_complete_….exe`
+  and its `.bin` file; GOG offers it in several languages, and only the English one works) and
+  pick them in the app. On the Mac and Linux, files in **Downloads** are found by themselves; on
+  the Switch, put them next to the `.nro`.
+  On the game's page in your GOG library: **Language: English**, then under
+  **Download offline backup game installers** both parts, **Part 1 of 2** (1 MB, the `.exe`) and
+  **Part 2 of 2** (1.1 GB, the `.bin`). The patches below them are not needed.
+
+  ![The GOG library page: Language English, and the two installer parts to download](docs/gog_files.jpg)
+- **An installed game** (not on the Switch). Pick the folder of Heroes IV: Complete already
+  installed (from GOG, on a Windows PC, or another device's `game` folder); it is copied in. Its
+  `heroes4.exe` must be the English GOG one (3.0); the data may be translated.
+
+Every game file is checked, then the game starts. An interrupted download continues where it
+stopped. What happens to the installer files afterwards: see below.
+
+### Language and settings
+
+The ⚙ button in the top right corner of the main menu opens the settings: the game's language
+(restart the game to apply it; a translation is downloaded when it is first chosen), fullscreen
+(Mac, Linux), skipping the intro movies, the update check, save sync, and the game's and saves'
+folders. On iPhone and iPad ⚙ opens a menu with the same choices.
 
 ### The installer files after installing
 
@@ -80,8 +232,8 @@ Right-click the app → **Open** → **Open**.
 
 **The installer says the files are not the right ones.** The port works only with the current GOG
 version of Heroes of Might and Magic IV: Complete (the English Windows installer, version 3.0).
-Installers in other languages are not supported: download the English one (translations come
-from the 🌐 button).
+Installers in other languages are not supported: download the English one (translations are
+chosen in ⚙ settings).
 
 **The installation was interrupted.** Open the app again: it continues where it stopped.
 
@@ -107,7 +259,10 @@ saves).
 ## Controls
 
 As in the original game; on touch screens a tap is a click and a long press a right-click. In
-addition, **F10** switches the picture smoothing filter. All the touch gestures:
+addition, **F10** switches the picture smoothing filter. A gamepad works everywhere (Joy-Cons,
+Steam Deck, Xbox, PlayStation, MFi): left stick the pointer, **A** click, **B** right-click, right
+stick scrolls the map, the other buttons are the game's shortcuts (**X** spell, **Y** wait,
+**R** defend/dig, **L** next hero, **+** end turn, **−** save…). All the gestures and buttons:
 [`platforms/README.md`](platforms/README.md#controls).
 
 ## Saves on several devices
@@ -125,11 +280,42 @@ Switch owners are welcome in the [issues](https://github.com/evilHazzarD/ReHoMM4
 
 ## Translations
 
-The translations live in their own repository,
+**Languages today:** English (the original game, built into every app) and **Ukrainian** (interface,
+campaigns, the campaigns' voice-over; The Gathering Storm stays in English). There are no other
+languages yet.
+
+The translations are not in this repository: they live in their own,
 [ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations), and reach the apps
-only through its releases: the apps check the latest one at every start and download a language
-when it is chosen. A new language or a corrected one needs no new app. How to add your language:
-[TRANSLATING.md](https://github.com/evilHazzarD/ReHoMM4-translations/blob/main/TRANSLATING.md).
+only through its releases. The apps check its latest release at every start and download a
+language when it is first chosen (⚙ → Game language, then restart the game). A new or corrected
+language needs no new app.
+
+**Making your own language.** The full guide is
+[TRANSLATING.md](https://github.com/evilHazzarD/ReHoMM4-translations/blob/main/TRANSLATING.md); in
+short:
+
+1. **Check that the game can show it.** Heroes IV writes one byte per letter in a single Windows code
+   page: languages in cp1250–cp1257 work (Polish, Czech, German, French, Spanish, Italian,
+   Portuguese, Russian, Bulgarian, Greek, Turkish, the Baltic languages…). Chinese, Japanese, Korean,
+   Arabic, Hebrew, Thai and others would need changes to the game's text drawing.
+2. **Get the tools:** a GOG copy of the game (its `Data/` folder; in a checkout of this repository,
+   `game/`), Python 3.9+, and a Mac for drawing the letters into the game's fonts (the other steps
+   work anywhere).
+3. **Create the language** in a fork of ReHoMM4-translations, for example Czech:
+   `python3 tools/new_language.py cs cp1250 "Čeština" "Czech"`, then bring in the English text and
+   build the fonts (step 3 of the guide).
+4. **Translate** the files in `languages/cs/text/` (with `GLOSSARY.md` for your names and terms).
+5. **Try it in the game:** `python3 tools/pack.py cs /path/to/game`, or build an app with your
+   language inside: `H4_TRANSLATIONS_DIR=<your translations checkout> platforms/build.sh <platform>`.
+6. **Share it:** `python3 tools/export.py cs`, `python3 tools/check.py cs`, commit, and open a pull
+   request to ReHoMM4-translations. Once it is in a release, every app offers it.
+
+Recording the campaigns' narration in your language is optional (step 7 of the guide).
+
+**A language GOG sells the game in** (an official translation) needs no translating:
+its pack is made from GOG's localized installer as it is (text, fonts, pictures with words,
+voice-over), while the app keeps running the English game. Only a `language.json` goes into the
+repository: [Official translations](https://github.com/evilHazzarD/ReHoMM4-translations/blob/main/TRANSLATING.md#official-translations).
 
 ## How it is made
 
@@ -165,11 +351,27 @@ game and prepares its code, then for each platform `platforms/deps.sh <platform>
 
 Details: [`platforms/README.md`](platforms/README.md).
 
+The side panels beside the centred screens are not in the repository: the build
+downloads [`HOMM4-extra-assets.zip`](https://github.com/evilHazzarD/ReHoMM4/releases/download/0.1/HOMM4-extra-assets.zip) by itself (or put it
+into `~/Downloads` first; without it the sides are black).
+
+**A release** is made on the maintainer's Mac in one command (the game is lifted from their own
+`heroes4.exe`, which never goes to GitHub; GitHub's CI only checks the repository). The version is in
+`VERSION`, the release notes are its section in [`CHANGELOG.md`](CHANGELOG.md):
+
+```
+tools/release/make_release.sh 0.2           # builds every app, checks them: .cache/release-0.2/
+tools/release/make_release.sh 0.2 --draft   # then pushes tag 0.2 and makes a draft release on GitHub
+```
+
 ## Credits
 
 ReHoMM4 started from [HoMM4Deadware](https://github.com/LeoDeadware/HoMM4Deadware) by
 LeoDeadware (MIT License): the port's first version and the Ukrainian translation come from it.
 The files taken from it say so at their top.
+The way saves are synced on the iPhone, iPad and Mac (`h4/src/save_sync_apple.mm`) is adapted
+from the `cloud_saves` of [HommaRe](https://github.com/livmaster-dev/HommaRe-public) by Ilia
+(MIT License).
 
 ## License
 
@@ -187,9 +389,13 @@ Ubisoft or GOG.
 
 ## Українською
 
-«Герої меча і магії IV» з обома доповненнями як рідна програма для Мака, iPhone та iPad, Android,
+«Герої меча і магії IV» з обома доповненнями як рідна програма для Мака, iPhone та iPad, Android (зокрема Android TV),
 Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і віртуальних машин: гра працює на
 пристрої напряму.
+
+Якщо вам подобається, можна підтримати автора (також кнопка ☕ у головному меню гри):
+
+[![Підтримати на Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/hazzard)
 
 - Англійська (оригінал) або переклад: зараз українська (інтерфейс, кампанії, озвучка кампаній;
   доповнення The Gathering Storm лишається англійською) і кожна мова, додана до
@@ -206,43 +412,188 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 - Один з пристроїв:
   - Мак з macOS 13 або новішою (процесор Apple або Intel);
   - iPhone або iPad;
-  - телефон чи планшет на Android (64-бітний, Android 10 або новіший);
+  - телефон, планшет чи телевізор на Android (64-бітний, Android 10 або новіший; на телевізорі — з геймпадом);
   - ПК з Linux (x86-64) або Steam Deck;
   - Nintendo Switch, на якому запускається homebrew.
 - Інтернет і близько 3 ГБ вільного місця.
 
 ### Встановлення
 
-1. Відкрийте [сторінку Releases](https://github.com/evilHazzarD/ReHoMM4/releases) і завантажте
-   файл для свого пристрою:
+Два кроки: встановіть програму для свого пристрою (нижче), потім відкрийте її, і вона встановить
+файли гри з вашої копії GOG ([Перший запуск](#перший-запуск-файли-гри)).
 
-   | Пристрій | Файл | Як встановити |
-   |---|---|---|
-   | Мак | `HeroesIV-macos-arm64.dmg` (процесор Apple: M1 або новіший), `HeroesIV-macos-x86_64.dmg` (Intel) | відкрийте його, перетягніть **Heroes IV** у **Applications**; першого разу — правою кнопкою → **«Відкрити»** → **«Відкрити»** |
-   | iPhone, iPad | `HeroesIV-ios.ipa` | встановіть через [AltStore](https://altstore.io) або [Sideloadly](https://sideloadly.io) (вони підписують її вашим Apple ID); далі Параметри → Загальні → Керування VPN і пристроями → довіряти своєму Apple ID |
-   | Android | `HeroesIV-android_arm64.apk` | відкрийте його на телефоні й дозвольте встановлення програм з цього джерела |
-   | Linux, Steam Deck | `HeroesIV-linux-x86_64.tar.gz` | розпакуйте й запустіть `heroes4`; на Deck — у режимі робочого столу додайте `heroes4` у Steam через **Add a Non-Steam Game** |
-   | Switch | `HeroesIV.nro` | скопіюйте в `sdmc:/switch/ReHoMM4/` на SD-картці разом з файлами інсталятора GOG (крок 2); запускайте з homebrew-меню в режимі title takeover (тримайте **R**, запускаючи гру) |
+Усі файли — на [сторінці Releases](https://github.com/evilHazzarD/ReHoMM4/releases): відкрийте
+найновіший реліз і в розділі **Assets** завантажте файл для свого пристрою. `<version>` в іменах
+нижче — номер релізу (наприклад, `0.2`).
 
-2. **Відкрийте програму.** Першого разу вона встановлює файли гри. Оберіть одне:
-   - **Увійти в GOG.** Відкривається сторінка входу GOG; програма перевіряє, що на вашому
-     обліковому записі є Heroes of Might and Magic IV: Complete, і завантажує гру (1 ГБ). Вхід через
-     Google, Discord, Steam чи Xbox теж працює. Вхід зберігається лише до кінця завантаження.
-   - **Файли інсталятора GOG.** На [gog.com](https://www.gog.com/game/heroes_of_might_and_magic_4_complete)
-     завантажте **англійський офлайн-інсталятор для Windows** (`setup_heroes_of_might_and_magic_4_complete_….exe`
-     і його файл `.bin`; GOG пропонує його кількома мовами, а підходить лише англійський) і
-     оберіть їх у програмі. На Маці й Linux файли з теки **«Завантаження»**
-     знаходяться самі; на Switch покладіть їх поруч із `.nro`.
-     На сторінці гри у вашій бібліотеці GOG: **Language: English**, далі в розділі
-     **Download offline backup game installers** обидві частини — **Part 1 of 2** (1 МБ, `.exe`) і
-     **Part 2 of 2** (1,1 ГБ, `.bin`). Патчі під ними не потрібні.
+| Пристрій | Файл |
+|---|---|
+| Мак із процесором Apple (M1 або новіший) | `HeroesIV-<version>-macos-arm64.dmg` |
+| Мак із процесором Intel | `HeroesIV-<version>-macos-x86_64.dmg` |
+| iPhone, iPad | `HeroesIV-<version>-ios.ipa` |
+| Android | `HeroesIV-<version>-android_arm64.apk` |
+| ПК з Linux, Steam Deck | `HeroesIV-<version>-linux-x86_64.tar.gz` |
+| Nintendo Switch | `HeroesIV-<version>-switch.nro` |
 
-     ![Сторінка бібліотеки GOG: Language English і дві частини інсталятора](docs/gog_files.jpg)
+Який у вас Мак:  → **Про цей Mac**; «Чип: Apple M…» — процесор Apple, «Процесор: … Intel» — Intel.
 
-   Кожен файл гри перевіряється, далі гра запускається. Перерване завантаження продовжується з
-   того місця, де зупинилося. Що буває з файлами інсталятора потім — див. нижче.
-3. **Мова:** кнопка 🌐 у правому верхньому куті головного меню відкриває список мов. Оберіть мову
-   й перезапустіть гру; переклад завантажується, коли його обрано вперше.
+#### Мак
+
+1. Відкрийте завантажений `.dmg` (двічі клацніть його в **«Завантаженнях»**).
+2. У вікні, що відкриється, перетягніть **Heroes IV** на **Applications**. Потім вийміть диск
+   («Heroes IV» на бічній панелі Finder → ⏏).
+3. Відкрийте **«Програми»** й двічі клацніть **Heroes IV**. Програма не підписана Apple, тому
+   першого разу macOS не дає її відкрити:
+   - **macOS 15 (Sequoia) і новіші:** натисніть **«Готово»** в повідомленні, відкрийте  →
+     **«Системні параметри»** → **«Приватність і безпека»**, прокрутіть до *«Heroes IV» заблоковано…*,
+     натисніть **«Усе одно відкрити»** й підтвердіть паролем; потім ще раз **«Усе одно відкрити»**.
+   - **macOS 13 і 14:** правою кнопкою (або з Control) клацніть **Heroes IV** → **«Відкрити»** →
+     **«Відкрити»**.
+
+   Далі вона відкривається як звичайно.
+
+**Оновлення:** завантажте новий `.dmg` (або ⚙ → **«Перевірити оновлення»** у грі) і перетягніть
+нову **Heroes IV** на **Applications** → **«Замінити»**. Збереження й налаштування лишаються (вони в
+`~/Library/Application Support/ReHoMM4`).
+
+#### iPhone, iPad
+
+Програми не з App Store встановлюються спеціальною програмою, яка підписує їх вашим Apple ID;
+безкоштовного Apple ID досить.
+
+1. На Маці або ПК з Windows встановіть [AltStore](https://altstore.io) (з AltServer) або
+   [Sideloadly](https://sideloadly.io) і виконайте їхню інструкцію з налаштування (на ПК потрібні
+   iTunes та iCloud для Windows; першого разу iPhone/iPad під'єднано кабелем).
+2. Скопіюйте `HeroesIV-<version>-ios.ipa` на комп'ютер (для AltStore — або у «Файли» на iPhone) і
+   встановіть: AltStore → **My Apps** → **+** → оберіть `.ipa`; Sideloadly → перетягніть `.ipa`,
+   введіть Apple ID → **Start**.
+3. На iOS/iPadOS 16 і новіших увімкніть **режим розробника**: Параметри → **«Приватність і
+   безпека»** → **«Режим розробника»** → увімкнути, перезапуск, підтвердіть **«Увімкнути»**.
+4. Довіртеся своєму Apple ID: Параметри → **«Загальні»** → **«Керування VPN і пристроями»** → ваш
+   Apple ID → **«Довіряти»**.
+5. Відкрийте **Heroes IV**.
+
+З безкоштовним Apple ID підпис діє **7 днів**: оновіть програму до того (AltStore робить це сам,
+поки AltServer працює на комп'ютері в тій самій Wi-Fi; у Sideloadly — встановіть ще раз).
+Прострочена програма не відкривається, але збереження лишаються; після оновлення підпису все працює.
+
+**Оновлення:** встановіть новий `.ipa` так само, поверх старої програми.
+
+#### Android
+
+Android 10 або новіший, 64-бітний (майже всі телефони й планшети з 2019 року).
+
+1. На телефоні завантажте `HeroesIV-<version>-android_arm64.apk` (відкрийте сторінку Releases у
+   браузері телефона).
+2. Відкрийте його: із завантажень браузера або **«Файли»** → **«Завантаження»**.
+3. Android попросить дозволити встановлення програм із цього джерела (браузера чи «Файлів»):
+   **«Налаштування»** → увімкніть **«Дозволити з цього джерела»** → назад → **«Встановити»**.
+4. Якщо Play Protect попереджає про невідому програму: **«Докладніше»** → **«Усе одно встановити»**.
+5. Відкрийте **Heroes IV**.
+
+**Оновлення:** завантажте новий `.apk` (або ⚙ → **«Перевірити оновлення»** у грі; встановлюється
+зі сповіщення) і встановіть поверх старого; збереження лишаються.
+
+**Android TV:** той самий `.apk`. Гра з'являється в меню телевізора, грати в неї треба геймпадом
+(Xbox, PlayStation, Switch чи будь-яким іншим Bluetooth/USB-геймпадом: лівий стік рухає курсор,
+кнопки налаштовуються в ⚙ → **«Геймпад»**); пультом від телевізора грати не вийде. Встановіть її
+файловим менеджером із флешки або з комп'ютера: `adb connect <IP-адреса телевізора>`, потім
+`adb install` `HeroesIV-<version>-android_arm64.apk`. Телевізору потрібні 64-бітний Android і
+Vulkan: багато ТВ-приставок і стіків працюють на 32-бітному Android, і на них гра не встановиться.
+
+#### Linux
+
+ПК x86-64 з glibc 2.36 або новішою (Debian 12, Ubuntu 22.10, Fedora 37, SteamOS 3 і новіші),
+драйвери з Vulkan, X11 або Wayland (через Xwayland).
+
+1. Розпакуйте архів туди, де житиме гра, наприклад у `~/Games`:
+   ```sh
+   mkdir -p ~/Games
+   tar -xzf ~/Downloads/HeroesIV-<version>-linux-x86_64.tar.gz -C ~/Games
+   ```
+2. Запустіть:
+   ```sh
+   ~/Games/"Heroes IV"/heroes4
+   ```
+3. За бажанням додайте її в меню програм:
+   ```sh
+   ~/Games/"Heroes IV"/install-desktop-entry.sh
+   ```
+
+**Оновлення:** розпакуйте новий архів поверх старої теки. Збереження й налаштування — у
+`~/.local/share/ReHoMM4`, не в цій теці.
+
+#### Steam Deck
+
+1. Перейдіть у **режим робочого столу** (кнопка Steam → **Power** → **Switch to Desktop**).
+2. У Firefox (чи іншому браузері) завантажте `HeroesIV-<version>-linux-x86_64.tar.gz`.
+3. У **Dolphin** (файловий менеджер) відкрийте **Downloads**, правою кнопкою на архіві → **Extract** →
+   **Extract archive to…** → оберіть, наприклад, `/home/deck/Games`.
+4. Додайте в Steam: **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
+   **Browse…** → `/home/deck/Games/Heroes IV/heroes4` → **Add Selected Programs**.
+5. Запустіть її раз тут, у режимі робочого столу: перший запуск встановлює гру (вхід у GOG
+   відкривається в браузері), з клавіатурою робочого столу простіше. Потім **Return to Gaming Mode**:
+   гра у вашій бібліотеці в розділі **Non-Steam**.
+
+Керування: трекпади й сенсорний екран рухають курсор, R2 або натискання правого трекпада — ліва
+кнопка (стандартне для ігор не зі Steam). Для розкладки геймпада ([Керування](#керування)): у
+налаштуваннях контролера гри в Steam → **Gamepad with Mouse Trackpad**.
+
+#### Nintendo Switch
+
+Потрібна Switch, що запускає homebrew (кастомна прошивка Atmosphère), і microSD з ~3 ГБ вільного
+місця. Входу в GOG на Switch немає: гра встановлюється з файлів інсталятора GOG, завантажених
+спершу на комп'ютері (див. [Перший запуск](#перший-запуск-файли-гри), «Файли інсталятора GOG»).
+
+1. Вставте SD-картку в комп'ютер і створіть на ній теку `switch/ReHoMM4`.
+2. Скопіюйте в неї `HeroesIV-<version>-switch.nro`, перейменувавши на `HeroesIV.nro`, і обидва файли
+   інсталятора GOG (`setup_heroes_of_might_and_magic_4_complete_….exe` і `….bin`). На картці:
+   ```
+   switch/ReHoMM4/HeroesIV.nro
+   switch/ReHoMM4/setup_heroes_of_might_and_magic_4_complete_….exe
+   switch/ReHoMM4/setup_heroes_of_might_and_magic_4_complete_…-1.bin
+   ```
+3. Поверніть картку й запустіть Atmosphère.
+4. Відкрийте homebrew-меню в режимі **title takeover**: тримайте **R**, запускаючи будь-яку гру з
+   головного екрана (не з «Альбому»: там замало пам'яті для гри), і оберіть **Heroes IV**.
+
+Перший запуск встановлює гру в `switch/ReHoMM4/game` і видаляє файли інсталятора.
+Керування: сенсорний екран як на телефонах і Joy-Con як геймпад ([Керування](#керування)). На
+справжній консолі програму для Switch ще не перевірено.
+
+#### Перший запуск: файли гри
+
+Відкрийте програму. Першого разу вона встановлює файли гри. Оберіть одне:
+
+- **Увійти в GOG** (крім Switch). Відкривається сторінка входу GOG; програма перевіряє, що на
+  вашому обліковому записі є Heroes of Might and Magic IV: Complete, і завантажує гру (1 ГБ). Вхід
+  через Google, Discord, Steam чи Xbox теж працює. Вхід зберігається лише до кінця завантаження.
+  Потім оберіть мову гри: у GOG є англійська, французька, німецька, іспанська, італійська й
+  польська версії (дані іншої мови йдуть з англійським `heroes4.exe`, під який зроблено програму).
+  Переклади з налаштувань ⚙ (українська та інші) працюють лише з англійською.
+- **Файли інсталятора GOG.** На [gog.com](https://www.gog.com/game/heroes_of_might_and_magic_4_complete)
+  завантажте **англійський офлайн-інсталятор для Windows** (`setup_heroes_of_might_and_magic_4_complete_….exe`
+  і його файл `.bin`; GOG пропонує його кількома мовами, а підходить лише англійський) і оберіть
+  їх у програмі. На Маці й Linux файли з теки **«Завантаження»** знаходяться самі; на Switch
+  покладіть їх поруч із `.nro`.
+  На сторінці гри у вашій бібліотеці GOG: **Language: English**, далі в розділі
+  **Download offline backup game installers** обидві частини — **Part 1 of 2** (1 МБ, `.exe`) і
+  **Part 2 of 2** (1,1 ГБ, `.bin`). Патчі під ними не потрібні.
+
+  ![Сторінка бібліотеки GOG: Language English і дві частини інсталятора](docs/gog_files.jpg)
+- **Встановлена гра** (не на Switch). Оберіть теку вже встановленої Heroes IV: Complete (з GOG, на
+  комп'ютері з Windows або теку `game` з іншого пристрою), її буде скопійовано. Її `heroes4.exe` має
+  бути англійським з GOG (3.0); дані можуть бути перекладені.
+
+Кожен файл гри перевіряється, далі гра запускається. Перерване завантаження продовжується з того
+місця, де зупинилося. Що буває з файлами інсталятора потім — див. нижче.
+
+#### Мова й налаштування
+
+Кнопка ⚙ у правому верхньому куті головного меню відкриває налаштування: мову гри (щоб застосувати,
+перезапустіть гру; переклад завантажується, коли його обрано вперше), повноекранний режим (Мак,
+Linux), пропуск вступних відео, перевірку оновлень, синхронізацію збережень, теки гри й збережень.
+На iPhone і iPad ⚙ відкриває меню з тими самими пунктами.
 
 #### Файли інсталятора після встановлення
 
@@ -268,7 +619,7 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 
 **Інсталятор каже, що файли не ті.** Порт працює тільки з актуальною версією Heroes of Might and
 Magic IV: Complete з GOG (англійський інсталятор для Windows, версія 3.0). Інсталятори іншими
-мовами не підходять: завантажте англійський (переклади — через кнопку 🌐).
+мовами не підходять: завантажте англійський (переклади обираються в налаштуваннях ⚙).
 
 **Встановлення перервалося.** Відкрийте програму ще раз: вона продовжить з того місця, де
 зупинилася.
@@ -294,8 +645,11 @@ Linux — `~/.local/share/ReHoMM4` (файли гри й збереження).
 ### Керування
 
 Як в оригінальній грі; на сенсорних екранах дотик — це клік, довге натискання — правий клік.
-Додатково: **F10** перемикає фільтр згладжування картинки. Усі жести дотиком:
-[`platforms/README.md`](platforms/README.md#controls).
+Додатково: **F10** перемикає фільтр згладжування картинки. Геймпад працює всюди (Joy-Con, Steam
+Deck, Xbox, PlayStation, MFi): лівий стік — курсор, **A** — клік, **B** — правий клік, правий стік
+прокручує мапу, решта кнопок — гарячі клавіші гри (**X** — магія, **Y** — чекати, **R** —
+захист/копати, **L** — наступний герой, **+** — кінець ходу, **−** — збереження…). Усі жести й
+кнопки: [`platforms/README.md`](platforms/README.md#controls).
 
 ### Збереження на кількох пристроях
 
@@ -312,11 +666,41 @@ Switch не перевірена: автор не має Switch з кастом�
 
 ### Переклади
 
-Переклади живуть в окремому репозиторії,
+**Мови зараз:** англійська (оригінальна гра, є в кожній програмі) і **українська** (інтерфейс,
+кампанії, озвучення кампаній; The Gathering Storm лишається англійською). Інших мов поки немає.
+
+Переклади не в цьому репозиторії: вони в окремому,
 [ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations), і потрапляють у
-програми тільки через його релізи: програми перевіряють найновіший при кожному запуску й
-завантажують мову, коли її обрано. Нова чи виправлена мова не потребує нової програми. Як додати
-свою мову: [TRANSLATING.md](https://github.com/evilHazzarD/ReHoMM4-translations/blob/main/TRANSLATING.md).
+програми тільки через його релізи. Програми перевіряють найновіший реліз при кожному запуску й
+завантажують мову, коли її обрано вперше (⚙ → Мова гри, потім перезапустіть гру). Нова чи
+виправлена мова не потребує нової програми.
+
+**Як зробити свою мову.** Повна інструкція —
+[TRANSLATING.md](https://github.com/evilHazzarD/ReHoMM4-translations/blob/main/TRANSLATING.md)
+(англійською); коротко:
+
+1. **Перевірте, чи гра може її показати.** Heroes IV пише один байт на літеру в одній кодовій
+   сторінці Windows: підходять мови з cp1250–cp1257 (польська, чеська, німецька, французька,
+   іспанська, італійська, португальська, російська, болгарська, грецька, турецька, балтійські…).
+   Китайська, японська, корейська, арабська, іврит, тайська та інші потребують змін у тому, як гра
+   малює текст.
+2. **Потрібне:** копія гри з GOG (її тека `Data/`; у копії цього репозиторію — `game/`), Python
+   3.9+ і Мак, щоб намалювати літери в шрифтах гри (решта кроків працює будь-де).
+3. **Створіть мову** у своєму форку ReHoMM4-translations, наприклад чеську:
+   `python3 tools/new_language.py cs cp1250 "Čeština" "Czech"`, далі перенесіть англійський текст
+   і зберіть шрифти (крок 3 інструкції).
+4. **Перекладіть** файли в `languages/cs/text/` (з `GLOSSARY.md` для власних назв і термінів).
+5. **Спробуйте в грі:** `python3 tools/pack.py cs /path/to/game` або зберіть програму з вашою мовою:
+   `H4_TRANSLATIONS_DIR=<ваша копія перекладів> platforms/build.sh <платформа>`.
+6. **Поділіться:** `python3 tools/export.py cs`, `python3 tools/check.py cs`, коміт і pull request у
+   ReHoMM4-translations. Щойно мова потрапить у реліз, її запропонує кожна програма.
+
+Озвучити кампанії своєю мовою — за бажанням (крок 7 інструкції).
+
+**Мова, якою GOG продає гру** (офіційний переклад), перекладу не потребує: її пакет
+робиться з локалізованого інсталятора GOG як є (текст, шрифти, картинки з написами, озвучення), а
+програма й далі запускає англійську гру. У репозиторій іде лише `language.json`:
+[Official translations](https://github.com/evilHazzarD/ReHoMM4-translations/blob/main/TRANSLATING.md#official-translations).
 
 ### Як це зроблено
 
@@ -352,11 +736,26 @@ SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У р�
 
 Подробиці: [`platforms/README.md`](platforms/README.md).
 
+Бічних панелей поруч із центрованими екранами в репозиторії немає: перед збиранням збірка сама
+завантажує [`HOMM4-extra-assets.zip`](https://github.com/evilHazzarD/ReHoMM4/releases/download/0.1/HOMM4-extra-assets.zip) (або покладіть його
+у `~/Downloads` заздалегідь; без нього краї чорні).
+
+**Реліз** робиться на Маці автора однією командою (гра перекомпільовується з його власного
+`heroes4.exe`, який на GitHub не потрапляє; CI на GitHub лише перевіряє репозиторій). Версія — у
+`VERSION`, текст релізу — її розділ у [`CHANGELOG.md`](CHANGELOG.md):
+
+```
+tools/release/make_release.sh 0.2           # збирає всі програми й перевіряє їх: .cache/release-0.2/
+tools/release/make_release.sh 0.2 --draft   # далі пушить тег 0.2 і створює чернетку релізу на GitHub
+```
+
 ### Подяки
 
 ReHoMM4 почався з [HoMM4Deadware](https://github.com/LeoDeadware/HoMM4Deadware) від LeoDeadware
 (ліцензія MIT): звідти перша версія порту й український переклад. Файли, узяті звідти, кажуть про
 це на початку.
+Спосіб синхронізації збережень на iPhone, iPad і Маці (`h4/src/save_sync_apple.mm`) узято з
+`cloud_saves` проєкту [HommaRe](https://github.com/livmaster-dev/HommaRe-public) від Ilia (ліцензія MIT).
 
 ### Ліцензія
 

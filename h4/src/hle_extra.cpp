@@ -14,6 +14,7 @@
 //   network  no multiplayer: sockets fail.
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -24,6 +25,7 @@
 #include <string>
 #include <vector>
 
+#include "intro.h"
 #include "runtime/audio/source.h"
 #include "runtime/guest_alloc.h"
 #include "runtime/hle/com.h"
@@ -31,6 +33,15 @@
 #include "runtime/hle/win32.h"
 #include "runtime/log.h"
 #include "runtime/runtime.h"
+
+// intro.h's switch (here: in every build; resolution.cpp reads it).
+namespace h4 {
+namespace {
+std::atomic<bool> g_skip_intro{false};
+}
+void SkipIntroMovies(bool on) { g_skip_intro = on; }
+bool SkipIntroMoviesNow() { return g_skip_intro; }
+}  // namespace h4
 
 namespace recomp::hle {
 
@@ -431,19 +442,6 @@ HLE_NAMED("dsound.dll", "#1", H4_DirectSoundCreate, 3) {
 HLE_NAMED("binkw32.dll", "_BinkSetVolume@8", H4_BinkSetVolume8, 2) {
   return CallGuest(c, ThunkFor("binkw32.dll", "_BinkSetVolume@12"), {Arg(c, 0), 0, Arg(c, 1)});
 }
-// (bink, flags): the frame's dirty rectangles, in the BINK struct
-// (FrameRects at +0x34, {left, top, width, height} each; NumRects at
-// +0xB4). The game invalidates exactly these (0x58DA00), so the movie only
-// reaches the screen through them. Every decoded frame is whole here.
-HLE_NAMED("binkw32.dll", "_BinkGetRects@8", H4_BinkGetRects, 2) {
-  gaddr b = Arg(c, 0);
-  Wr32(b + 0x34, 0);
-  Wr32(b + 0x38, 0);
-  Wr32(b + 0x3C, Rd32(b + 0x00));  // Width
-  Wr32(b + 0x40, Rd32(b + 0x04));  // Height
-  Wr32(b + 0xB4, 1);
-  return 1;
-}
 // BINKSUMMARY from the BINK struct: the game reads TotalFrames / FrameRate.
 HLE_NAMED("binkw32.dll", "_BinkGetSummary@8", H4_BinkGetSummary, 2) {
   gaddr b = Arg(c, 0), s = Arg(c, 1);
@@ -456,6 +454,20 @@ HLE_NAMED("binkw32.dll", "_BinkGetSummary@8", H4_BinkGetSummary, 2) {
   Wr32(s + 0x18, Rd32(b + 0x18));  // FrameRateDiv
   Wr32(s + 0x20, Rd32(b + 0x08));  // TotalFrames
   return 0;
+}
+
+// (bink, flags): the frame's dirty rectangles, in the BINK struct
+// (FrameRects at +0x34, {left, top, width, height} each; NumRects at
+// +0xB4). The game invalidates exactly these (0x58DA00), so the movie only
+// reaches the screen through them. Every decoded frame is whole here.
+HLE_NAMED("binkw32.dll", "_BinkGetRects@8", H4_BinkGetRects, 2) {
+  gaddr b = Arg(c, 0);
+  Wr32(b + 0x34, 0);
+  Wr32(b + 0x38, 0);
+  Wr32(b + 0x3C, Rd32(b + 0x00));  // Width
+  Wr32(b + 0x40, Rd32(b + 0x04));  // Height
+  Wr32(b + 0xB4, 1);
+  return 1;
 }
 
 // ---- mss32: RIB and the MP3 ASI codec

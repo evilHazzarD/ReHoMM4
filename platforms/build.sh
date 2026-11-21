@@ -10,7 +10,7 @@
 #   platforms/build.sh macos-arm64     ->  .cache/outputs/macos-arm64/dist/Heroes IV.app (+ HeroesIV-macos-arm64.dmg)
 #   platforms/build.sh macos-x86_64    ->  .cache/outputs/macos-x86_64/dist/Heroes IV.app (+ HeroesIV-macos-x86_64.dmg, Intel Macs)
 #
-# Needs what tools/build.sh made first: game/ (your GOG install), h4/generated/ (lifted heroes4.exe)
+# Needs what tools/build.sh made first: game/ (your GOG install), h4/generated/ (lifted heroes4.exe, kept up to date by tools/lift.sh)
 # and third_party/x86recomp with patches/ applied (incl. x86recomp-mobile.patch) and its host build
 # (recomp_lift, the fetched softfloat/core-math). Then platforms/deps.sh for the target.
 # iOS without TEAM_ID: compiled but unsigned; with it (or H4_TEAM_ID), signed for your device.
@@ -21,7 +21,8 @@ X="$ROOT/third_party/x86recomp"
 HOST_DEPS="$X/out/build/release/_deps"
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
-[[ -d "$ROOT/h4/generated" ]] || die "no h4/generated: run tools/build.sh first (it lifts heroes4.exe)"
+# h4/generated lifted again when what it is made from changed (tools/lift.sh).
+bash "$ROOT/tools/lift.sh" || die "lifting heroes4.exe failed (tools/lift.sh)"
 [[ -d "$HOST_DEPS/softfloat-src" ]] || die "no host build of x86recomp: run tools/build.sh first"
 [[ -f "$PREFIX/lib/libavcodec.a" ]] || bash "$ROOT/platforms/deps.sh" "$TARGET"
 
@@ -36,7 +37,7 @@ HOSTTOOLS=(-DRECOMP_GLSLANG="$(command -v glslangValidator)")
 B="$MOBILE_CACHE/build"
 # The side panels beside the centred screens (platforms/wings.sh; the project's art, never committed).
 WINGS="$(bash "$ROOT/platforms/wings.sh" "$MOBILE_CACHE/res")"
-[[ -n "$WINGS" ]] || echo "warning: no art/combat_wings (heroes4-mac-assets.zip from Releases): black sides"
+[[ -n "$WINGS" ]] || echo "warning: no art/combat_wings (HOMM4-extra-assets.zip: platforms/extra-assets.sh): black sides"
 # The translations: released on their own from the ReHoMM4-translations repository. The app starts with
 # the latest release's list and checks for a newer one at every start (platforms/languages.py).
 LANGS="$ROOT/.cache/shared/languages"
