@@ -1,6 +1,6 @@
 // The gamepad's settings (the apps' settings, "Gamepad"): the left stick's pointer speed, the right
 // stick's scrolling speed and what each button does. Kept in <data>/gamepad.conf (lines
-// "key=value": enabled=1, style=ps, pointer=1.5, scroll=0.5, A=click, ZL=esc...; what is not there: the default), read
+// "key=value": style=ps, pointer=1.5, scroll=0.5, A=click, ZL=esc...; what is not there: the default), read
 // at start and changed in the settings at once (recomp::SetPad*).
 #pragma once
 
@@ -35,8 +35,6 @@ const char* PadButtonId(int button);   // "A", "Up", "L3"...
 const char* PadStyleId(int style);     // "ps", "xbox", "switch"
 
 void LoadPadConfig(const std::string& path);
-bool PadEnabled();  // the gamepad read at all (on at first)
-void SetPadEnabled(bool on);
 float PadPointerSpeed();
 void SetPadPointerSpeed(float factor);
 float PadScrollSpeed();

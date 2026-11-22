@@ -128,7 +128,7 @@ uint64_t g_note_until = 0;            // the note shown until then (ms)
 struct Hit {
   int id, x0, y0, x1, y1;
 };
-enum { kHitClose = 1, kHitSupport, kHitPointer, kHitScroll, kHitPreset, kHitReset, kHitBind = 100 };
+enum { kHitClose = 1, kHitPointer, kHitScroll, kHitPreset, kHitReset, kHitBind = 100 };
 std::vector<Hit> g_gp_hits;
 Picture g_gp;              // the panel as it is now
 bool g_gp_new = false;     // made again since it was last given to the frame
@@ -313,12 +313,12 @@ Picture MakeButton(const std::string& code) {
 }
 
 // ---- The gamepad panel (pad_config.h), put together from ui/gp_*.argb (labels, render_ui.swift)
-// with the boxes, sliders and plates drawn here. Top to bottom: the title and ✕, the support
-// checkbox, the two speeds (sliders), the buttons (two columns: the name, its action in a box that
-// takes the next action on a click, the previous one on a right-click), the note, and the preset
-// (a box: the next one) at the left with Reset at the right.
+// with the boxes, sliders and plates drawn here. Top to bottom: the title and ✕, the two speeds
+// (sliders), the buttons (two columns: the name, its action in a box that takes the next action on
+// a click, the previous one on a right-click), the note, and the preset (a box: the next one) at
+// the left with Reset at the right.
 struct GpPics {
-  Picture title, support, pointer, scroll, buttons, preset, reset, hint, pct;
+  Picture title, pointer, scroll, buttons, preset, reset, hint, pct;
   Picture style[h4::kPadStyles];
   std::vector<Picture> act;                           // by action
   Picture names[h4::kPadStyles][h4::kPadButtons];     // by style, button
@@ -327,7 +327,7 @@ struct GpPics {
 bool LoadGamepad() {
   GpPics& g = g_gp_pics;
   const std::string d = UiDir();
-  bool ok = Load(d, "gp_title", &g.title) && Load(d, "gp_support", &g.support) && Load(d, "gp_pointer", &g.pointer) &&
+  bool ok = Load(d, "gp_title", &g.title) && Load(d, "gp_pointer", &g.pointer) &&
             Load(d, "gp_scroll", &g.scroll) && Load(d, "gp_buttons", &g.buttons) && Load(d, "gp_preset", &g.preset) &&
             Load(d, "gp_reset", &g.reset) && Load(d, "gp_hint", &g.hint) && Load(d, "gp_pct", &g.pct);
   g.act.resize(size_t(h4::PadActionCount()));
@@ -414,7 +414,7 @@ void MakeGamepad() {
   const int W = kGpW, pad = kGpPad, style = h4::PadStyle();
   g_gp_hits.clear();
   // The height first: the rows as laid out below.
-  const int H = pad + 30 + 28 + 2 * 30 + 24 + 8 * 26 + 4 + g.hint.h + 8 + 30 + pad;
+  const int H = pad + 30 + 2 * 30 + 24 + 8 * 26 + 4 + g.hint.h + 8 + 30 + pad;
   Picture& p = g_gp;
   p.w = W, p.h = H;
   p.argb.assign(size_t(W) * H, 0);
@@ -432,18 +432,6 @@ void MakeGamepad() {
     g_gp_hits.push_back({kHitClose, x - 4, y - 8, x + s + 4, y + s});
   }
   y += 30;
-  {  // the support checkbox
-    const bool on = h4::PadEnabled();
-    Plate(p, pad, y + 2, 16, 16, on ? kGold : kBox, kGold, 3);
-    if (on)  // a tick
-      for (int k = 0; k < 9; k++) {
-        const int tx = pad + 3 + k, ty = k < 3 ? y + 10 + k : y + 13 - (k - 3);
-        Fill(p, tx, ty, 2, 2, kDark);
-      }
-    Blit(p, g.support, pad + 24, y + 2);
-    g_gp_hits.push_back({kHitSupport, pad - 4, y - 2, pad + 24 + g.support.w + 4, y + 24});
-  }
-  y += 28;
   // The sliders: the track from x0 to x1, the knob at the value, the value (%) right of it.
   const int x0 = kSlX0, x1 = kSlX1;
   auto slider = [&](const Picture& title, int id, float v, float lo, float hi) {
@@ -503,7 +491,6 @@ bool GamepadClick(float px, float py, bool right) {
   const int id = HitAt(px, py), step = right ? -1 : 1;
   auto slide = [&](float lo, float hi) { return lo + std::clamp((px - kSlX0) / float(kSlX1 - kSlX0), 0.0f, 1.0f) * (hi - lo); };
   if (id == kHitClose) return false;
-  if (id == kHitSupport && !right) h4::SetPadEnabled(!h4::PadEnabled());
   if (id == kHitPointer && !right) h4::SetPadPointerSpeed(slide(h4::kPointerMin, h4::kPointerMax));
   if (id == kHitScroll && !right) h4::SetPadScrollSpeed(slide(h4::kScrollMin, h4::kScrollMax));
   if (id == kHitPreset) h4::ApplyPadPreset((h4::PadStyle() + step + h4::kPadStyles) % h4::kPadStyles);
@@ -541,6 +528,8 @@ bool LoadChoices() {
   std::vector<Choice> out;
   if (!g_saved.empty())
     for (const h4::LanguageInfo& l : h4::Languages()) out.push_back({l.code, MakeButton(l.code)});
+  else if (const std::string gog = h4::GogLanguage(); !gog.empty())
+    out.push_back({gog, MakeButton(gog)});  // installed from GOG in it: shown, nothing to choose
   g_choices = std::move(out);
   return true;
 }

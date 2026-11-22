@@ -1,5 +1,7 @@
 #include "install/inno.h"
 
+#include <fcntl.h>
+#include <vector>
 #include <dirent.h>
 #include <unistd.h>
 
@@ -75,7 +77,9 @@ std::vector<PickedFile> FilesIn(const std::string& dir) {
   if (DIR* d = opendir(dir.c_str())) {
     while (dirent* e = readdir(d)) {
       const std::string n = Lower(e->d_name);
-      if ((n.rfind("setup_", 0) == 0 && EndsWith(n, ".exe")) || EndsWith(n, ".bin"))
+      if (n.rfind("._", 0) == 0) continue;  // macOS's metadata beside files copied to exFAT/FAT cards
+      // (and the English heroes4.exe beside an installer in another language: Installer, StartUnpack)
+      if ((n.rfind("setup_", 0) == 0 && EndsWith(n, ".exe")) || EndsWith(n, ".bin") || n == "heroes4.exe")
         out.push_back({dir + "/" + e->d_name, e->d_name});
     }
     closedir(d);
@@ -92,20 +96,33 @@ bool Extract(const PickedFile& exe, const PickedFile& bin, const std::string& st
   const std::string sexe = stage + "/setup.exe", sbin = stage + "/setup-1.bin";
   // Android's picked files are descriptors (/proc/self/fd/N) that cannot be opened again by
   // path: empty stand-ins, read through the descriptors (recomp_inno_map_file).
-  auto stage_file = [](const PickedFile& f, const std::string& name) {
+  // Where there are no symlinks (the Switch's FAT/exFAT SD card): the same, through descriptors
+  // opened here (closed when done).
+  std::vector<int> opened;
+  auto stand_in = [](const std::string& name, int fd) {
+    FILE* fp = fopen(name.c_str(), "wb");
+    if (!fp) return false;
+    fclose(fp);
+    recomp_inno_map_file(name.c_str(), fd);
+    return true;
+  };
+  auto stage_file = [&](const PickedFile& f, const std::string& name) {
     const std::string fd_prefix = "/proc/self/fd/";
-    if (f.path.compare(0, fd_prefix.size(), fd_prefix) == 0) {
-      FILE* fp = fopen(name.c_str(), "wb");
-      if (!fp) return false;
-      fclose(fp);
-      recomp_inno_map_file(name.c_str(), atoi(f.path.c_str() + fd_prefix.size()));
-      return true;
-    }
-    return symlink(f.path.c_str(), name.c_str()) == 0;
+    if (f.path.compare(0, fd_prefix.size(), fd_prefix) == 0)
+      return stand_in(name, atoi(f.path.c_str() + fd_prefix.size()));
+    if (symlink(f.path.c_str(), name.c_str()) == 0) return true;
+    const int fd = open(f.path.c_str(), O_RDONLY);
+    if (fd < 0) return false;
+    opened.push_back(fd);
+    return stand_in(name, fd);
   };
   struct Unmap {
-    ~Unmap() { recomp_inno_map_file(nullptr, -1); }
-  } unmap;
+    std::vector<int>& fds;
+    ~Unmap() {
+      recomp_inno_map_file(nullptr, -1);
+      for (int fd : fds) close(fd);
+    }
+  } unmap{opened};
   if (!stage_file(exe, sexe) || !stage_file(bin, sbin)) {
     *error = "cannot prepare the installer files";
     return false;

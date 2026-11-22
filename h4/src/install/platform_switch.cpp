@@ -1,10 +1,11 @@
 // install/platform.h on the Nintendo Switch (homebrew, H4_SWITCH_APP): HTTPS
 // through libcurl (devkitPro's switch-curl, linked in; the sockets started
-// here), no file picker and no web view: the installer takes the GOG
-// installer files put on the SD card (sdmc:/switch/ReHoMM4/, found by
-// the installer itself), and offers no GOG sign-in.
+// here), no file picker and no web view: no install there (the installer
+// screen only says where to copy an installed game: sdmc:/switch/ReHoMM4/game),
+// and no GOG sign-in.
 #include <curl/curl.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <switch.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -30,6 +31,20 @@ extern "C" ssize_t pwrite(int fd, const void* buf, size_t n, off_t at) {
   std::lock_guard<std::mutex> l(g_positional_io);
   if (lseek(fd, at, SEEK_SET) == off_t(-1)) return -1;
   return write(fd, buf, n);
+}
+
+// Threads started without a stack size (std::thread: the installer's worker, the game's helpers)
+// get 8 MB as on a PC, not libnx's 128 KB, which the installer's unpacking overflows (the
+// link wraps pthread_create: h4/CMakeLists.txt). Those that ask for a size keep it.
+extern "C" int __real_pthread_create(pthread_t*, const pthread_attr_t*, void* (*)(void*), void*);
+extern "C" int __wrap_pthread_create(pthread_t* t, const pthread_attr_t* attr, void* (*fn)(void*),
+                                     void* arg) {
+  size_t size = 0;
+  if (attr && pthread_attr_getstacksize(attr, &size) == 0 && size) return __real_pthread_create(t, attr, fn, arg);
+  pthread_attr_t big = attr ? *attr : pthread_attr_t{};
+  if (!attr) pthread_attr_init(&big);
+  pthread_attr_setstacksize(&big, 8u << 20);
+  return __real_pthread_create(t, &big, fn, arg);
 }
 
 namespace h4::install {

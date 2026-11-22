@@ -152,26 +152,25 @@ the game's controller settings in Steam → **Gamepad with Mouse Trackpad**.
 ### Nintendo Switch
 
 Needs a Switch that runs homebrew (Atmosphère custom firmware) and a microSD card with about
-3 GB free. There is no GOG sign-in on the Switch: the game is installed from the GOG installer
-files, downloaded on a computer first (see [First start](#first-start-the-game-files), "GOG
-installer files").
+2 GB free. The Switch does not install the game itself (no GOG sign-in, no installer files):
+copy a game installed on a computer from your GOG copy (the folder with `heroes4.exe`, as GOG's
+installer or GOG Galaxy makes it, or the `game` folder of ReHoMM4 on a Mac or PC).
 
 1. Put the SD card in a computer and make the folder `switch/ReHoMM4` on it.
-2. Copy into it `HeroesIV-<version>-switch.nro`, renamed to `HeroesIV.nro`, and both GOG
-   installer files (`setup_heroes_of_might_and_magic_4_complete_….exe` and the `….bin`).
-   The card then holds:
+2. Copy into it `HeroesIV-<version>-switch.nro`, renamed to `HeroesIV.nro`, and the installed
+   game folder, renamed to `game`. The card then holds:
    ```
    switch/ReHoMM4/HeroesIV.nro
-   switch/ReHoMM4/setup_heroes_of_might_and_magic_4_complete_….exe
-   switch/ReHoMM4/setup_heroes_of_might_and_magic_4_complete_…-1.bin
+   switch/ReHoMM4/game/heroes4.exe   (and the rest of the game)
    ```
 3. Put the card back and start Atmosphère.
 4. Open the homebrew menu in **title takeover**: hold **R** while starting any game from the home
    screen (not from the Album: it has too little memory for the game), then pick **Heroes IV**.
 
-The first start installs the game into `switch/ReHoMM4/game` and deletes the installer files.
+Without `switch/ReHoMM4/game` the app shows where to copy it. A game in another language works
+too, with the `heroes4.exe` of the English GOG version put in its place ("An installed game" below).
 Controls: the touch screen as on phones, and the Joy-Cons as a gamepad ([Controls](#controls)).
-The Switch app has not been tested on a real console yet.
+The Switch app has been tested only in the Astris emulator, not on a real console yet.
 
 ### First start: the game files
 
@@ -180,23 +179,26 @@ Open the app. The first time, it installs the game files. Choose one:
 - **Sign in to GOG** (not on the Switch). GOG's own sign-in page opens; the app checks that your
   account owns Heroes of Might and Magic IV: Complete and downloads the game (1 GB). Signing in
   with Google, Discord, Steam or Xbox works too. The sign-in is kept only until the download is
-  done. Then pick the game's language: GOG's versions are English, French, German, Spanish,
-  Italian and Polish (another language's data comes with the English `heroes4.exe`, the one the app
-  is made for). The translations of ⚙ settings (Ukrainian and others) work with the English one
-  only.
+  done. Then pick the language you want: GOG's versions are English, French, German, Spanish,
+  Italian and Polish. The app installs that language's data with the English `heroes4.exe` (the
+  one the app is made for), so the game plays in it. The translations of ⚙ settings (Ukrainian and
+  others) work with the English version only.
 - **GOG installer files.** On [gog.com](https://www.gog.com/game/heroes_of_might_and_magic_4_complete)
-  download the **Windows offline installer in English** (`setup_heroes_of_might_and_magic_4_complete_….exe`
-  and its `.bin` file; GOG offers it in several languages, and only the English one works) and
-  pick them in the app. On the Mac and Linux, files in **Downloads** are found by themselves; on
-  the Switch, put them next to the `.nro`.
-  On the game's page in your GOG library: **Language: English**, then under
+  download the **Windows offline installer** (`setup_heroes_of_might_and_magic_4_complete_….exe`
+  and its `.bin` file) and pick them in the app (not on the Switch). GOG offers it in several
+  languages. **An installer in another language** needs `heroes4.exe` from GOG's English version
+  put beside its files (or picked with them); the game then plays in the installer's language. On the Mac and Linux, files in **Downloads** are found
+  by themselves.
+  On the game's page in your GOG library: the **Language** you want, then under
   **Download offline backup game installers** both parts, **Part 1 of 2** (1 MB, the `.exe`) and
   **Part 2 of 2** (1.1 GB, the `.bin`). The patches below them are not needed.
 
   ![The GOG library page: Language English, and the two installer parts to download](docs/gog_files.jpg)
-- **An installed game** (not on the Switch). Pick the folder of Heroes IV: Complete already
-  installed (from GOG, on a Windows PC, or another device's `game` folder); it is copied in. Its
-  `heroes4.exe` must be the English GOG one (3.0); the data may be translated.
+- **An installed game** (on the Switch: copied to the card, see [Nintendo Switch](#nintendo-switch)).
+  Pick the folder of Heroes IV: Complete already installed (from GOG, on a Windows PC, or another
+  device's `game` folder); it is copied in. Its `heroes4.exe` must be the one of GOG's English
+  version (3.0). **A game in another language:** replace its `heroes4.exe` with the one from an
+  English GOG installation; the rest stays as it is, and the game then plays in its own language.
 
 Every game file is checked, then the game starts. An interrupted download continues where it
 stopped. What happens to the installer files afterwards: see below.
@@ -541,25 +543,26 @@ Vulkan: багато ТВ-приставок і стіків працюють н
 
 #### Nintendo Switch
 
-Потрібна Switch, що запускає homebrew (кастомна прошивка Atmosphère), і microSD з ~3 ГБ вільного
-місця. Входу в GOG на Switch немає: гра встановлюється з файлів інсталятора GOG, завантажених
-спершу на комп'ютері (див. [Перший запуск](#перший-запуск-файли-гри), «Файли інсталятора GOG»).
+Потрібна Switch, що запускає homebrew (кастомна прошивка Atmosphère), і microSD з ~2 ГБ вільного
+місця. Switch не встановлює гру сама (ні входу в GOG, ні файлів інсталятора): скопіюйте гру,
+встановлену на комп'ютері з вашої копії GOG (теку з `heroes4.exe`, як її робить інсталятор GOG
+чи GOG Galaxy, або теку `game` ReHoMM4 на Mac чи ПК).
 
 1. Вставте SD-картку в комп'ютер і створіть на ній теку `switch/ReHoMM4`.
-2. Скопіюйте в неї `HeroesIV-<version>-switch.nro`, перейменувавши на `HeroesIV.nro`, і обидва файли
-   інсталятора GOG (`setup_heroes_of_might_and_magic_4_complete_….exe` і `….bin`). На картці:
+2. Скопіюйте в неї `HeroesIV-<version>-switch.nro`, перейменувавши на `HeroesIV.nro`, і теку
+   встановленої гри, перейменувавши на `game`. На картці:
    ```
    switch/ReHoMM4/HeroesIV.nro
-   switch/ReHoMM4/setup_heroes_of_might_and_magic_4_complete_….exe
-   switch/ReHoMM4/setup_heroes_of_might_and_magic_4_complete_…-1.bin
+   switch/ReHoMM4/game/heroes4.exe   (і решта гри)
    ```
 3. Поверніть картку й запустіть Atmosphère.
 4. Відкрийте homebrew-меню в режимі **title takeover**: тримайте **R**, запускаючи будь-яку гру з
    головного екрана (не з «Альбому»: там замало пам'яті для гри), і оберіть **Heroes IV**.
 
-Перший запуск встановлює гру в `switch/ReHoMM4/game` і видаляє файли інсталятора.
-Керування: сенсорний екран як на телефонах і Joy-Con як геймпад ([Керування](#керування)). На
-справжній консолі програму для Switch ще не перевірено.
+Без `switch/ReHoMM4/game` програма покаже, куди її скопіювати. Гра іншою мовою теж підходить, якщо
+замінити в ній `heroes4.exe` на файл з англійської версії GOG («Встановлена гра» нижче).
+Керування: сенсорний екран як на телефонах і Joy-Con як геймпад ([Керування](#керування)). Програму
+для Switch перевірено лише в емуляторі Astris, на справжній консолі — ще ні.
 
 #### Перший запуск: файли гри
 
@@ -568,22 +571,26 @@ Vulkan: багато ТВ-приставок і стіків працюють н
 - **Увійти в GOG** (крім Switch). Відкривається сторінка входу GOG; програма перевіряє, що на
   вашому обліковому записі є Heroes of Might and Magic IV: Complete, і завантажує гру (1 ГБ). Вхід
   через Google, Discord, Steam чи Xbox теж працює. Вхід зберігається лише до кінця завантаження.
-  Потім оберіть мову гри: у GOG є англійська, французька, німецька, іспанська, італійська й
-  польська версії (дані іншої мови йдуть з англійським `heroes4.exe`, під який зроблено програму).
-  Переклади з налаштувань ⚙ (українська та інші) працюють лише з англійською.
+  Потім оберіть бажану мову: у GOG є англійська, французька, німецька, іспанська, італійська й
+  польська версії. Програма встановлює дані цієї мови з англійським `heroes4.exe` (під який її
+  зроблено), тож гра йде цією мовою. Переклади з налаштувань ⚙ (українська та інші) працюють лише
+  з англійською версією.
 - **Файли інсталятора GOG.** На [gog.com](https://www.gog.com/game/heroes_of_might_and_magic_4_complete)
-  завантажте **англійський офлайн-інсталятор для Windows** (`setup_heroes_of_might_and_magic_4_complete_….exe`
-  і його файл `.bin`; GOG пропонує його кількома мовами, а підходить лише англійський) і оберіть
-  їх у програмі. На Маці й Linux файли з теки **«Завантаження»** знаходяться самі; на Switch
-  покладіть їх поруч із `.nro`.
-  На сторінці гри у вашій бібліотеці GOG: **Language: English**, далі в розділі
+  завантажте **офлайн-інсталятор для Windows** (`setup_heroes_of_might_and_magic_4_complete_….exe`
+  і його файл `.bin`) і оберіть їх у програмі (не на Switch). GOG пропонує його кількома мовами.
+  **Інсталятору іншою мовою** потрібен `heroes4.exe` з англійської версії GOG поруч з його файлами
+  (або обраний разом з ними); тоді гра йде мовою інсталятора. На Маці й Linux файли з теки **«Завантаження»** знаходяться
+  самі.
+  На сторінці гри у вашій бібліотеці GOG: потрібна **Language**, далі в розділі
   **Download offline backup game installers** обидві частини — **Part 1 of 2** (1 МБ, `.exe`) і
   **Part 2 of 2** (1,1 ГБ, `.bin`). Патчі під ними не потрібні.
 
   ![Сторінка бібліотеки GOG: Language English і дві частини інсталятора](docs/gog_files.jpg)
-- **Встановлена гра** (не на Switch). Оберіть теку вже встановленої Heroes IV: Complete (з GOG, на
-  комп'ютері з Windows або теку `game` з іншого пристрою), її буде скопійовано. Її `heroes4.exe` має
-  бути англійським з GOG (3.0); дані можуть бути перекладені.
+- **Встановлена гра** (на Switch: копіюється на картку, див. [Nintendo Switch](#nintendo-switch-1)).
+  Оберіть теку вже встановленої Heroes IV: Complete (з GOG, на комп'ютері з Windows або теку
+  `game` з іншого пристрою), її буде скопійовано. Її `heroes4.exe` має бути з англійської версії
+  GOG (3.0). **Гра іншою мовою:** замініть у ній `heroes4.exe` на файл з англійської інсталяції
+  GOG; решта лишається як є, і гра йде своєю мовою.
 
 Кожен файл гри перевіряється, далі гра запускається. Перерване завантаження продовжується з того
 місця, де зупинилося. Що буває з файлами інсталятора потім — див. нижче.

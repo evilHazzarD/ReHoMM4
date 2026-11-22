@@ -38,6 +38,14 @@ LanguageInfo FindLanguage(const std::string& code);
 // languages.json and updates the list.
 void RefreshLanguages(const std::string& data_dir);
 
+// A game installed from GOG in another language than English (install/installer.cpp): its code
+// ("de"), set at start, or "". The settings show it as the game's language, with none to choose
+// (the translations' packs are made from the English data).
+void SetGogLanguage(const std::string& code);
+std::string GogLanguage();
+// The name of GOG's language `code` in that language ("Deutsch"), the code if it is not known.
+std::string GogLanguageName(const std::string& code);
+
 // The pack of `code` in the app ("" if it is downloaded instead): a path SDL_IOFromFile opens
 // (on Android an asset's).
 std::string BundledPack(const std::string& code);

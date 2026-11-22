@@ -1,0 +1,28 @@
+diff --git a/src/runtime/platform.cpp b/src/runtime/platform.cpp
+--- a/src/runtime/platform.cpp
++++ b/src/runtime/platform.cpp
+@@ -12,6 +12,7 @@
+ 
+ #include <errno.h>
+ #include <signal.h>
++#include <string.h>
+ #include <time.h>
+ #if !defined(__SWITCH__)
+ #include <ucontext.h>
+@@ -99,9 +100,15 @@
+ void RunOnStack(void* stack, size_t size, void (*fn)()) {
+   g_run_stack_lo = uintptr_t(stack);
+   g_run_stack_hi = uintptr_t(stack) + size;
++  // The top page is not used, and zero: the outermost frame's link points past the stack the
++  // context runs on, and a walk that does not know where that ends (the system's backtrace(),
++  // under an exception's call stack, say) reads a null frame there and stops, instead of the
++  // unmapped page past the stack.
++  constexpr size_t kTop = 4096;
++  memset(static_cast<uint8_t*>(stack) + size - kTop, 0, kTop);
+   getcontext(&g_stack_ctx);
+   g_stack_ctx.uc_stack.ss_sp = stack;
+-  g_stack_ctx.uc_stack.ss_size = size;
++  g_stack_ctx.uc_stack.ss_size = size - kTop;
+   g_stack_ctx.uc_link = &g_caller_ctx;  // resume here on return
+   makecontext(&g_stack_ctx, fn, 0);
+   swapcontext(&g_caller_ctx, &g_stack_ctx);

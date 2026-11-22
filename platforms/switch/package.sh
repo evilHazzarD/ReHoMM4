@@ -5,8 +5,8 @@
 #                       pictures), the translations built in (<code>.h4p), THIRD_PARTY_NOTICES.txt; the shield icon (assets/icon).
 #   THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py), beside it too
 #
-# On the Switch (Atmosphere): copy it to sdmc:/switch/ReHoMM4/HeroesIV.nro, the GOG
-# installer files beside it, and start it from the homebrew menu in title takeover (hold R
+# On the Switch (Atmosphere): copy it to sdmc:/switch/ReHoMM4/HeroesIV.nro, an installed game
+# (the folder with heroes4.exe) to sdmc:/switch/ReHoMM4/game, and start it from the homebrew menu in title takeover (hold R
 # while starting a game: the album applet has too little memory for the game).
 #
 #   platforms/switch/package.sh <build dir>

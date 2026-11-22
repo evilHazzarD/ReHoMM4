@@ -81,11 +81,10 @@ int ActionIndex(const char* id) {
 std::string g_path;
 int g_style = -1;  // PadStyle; -1: not chosen (the pad's own)
 float g_pointer = 1, g_scroll = 1;
-bool g_on = true;
 int g_binding[kPadButtons];
 
 void Apply() {
-  recomp::SetPadEnabled(g_on);
+  recomp::SetPadEnabled(true);  // always: no setting to turn it off (an old "enabled=0" is ignored)
   recomp::SetPadPointerSpeed(g_pointer);
   recomp::SetPadScrollSpeed(g_scroll);
   for (int b = 0; b < kPadButtons; b++) {
@@ -100,7 +99,6 @@ void Apply() {
 
 void Defaults() {
   g_style = -1;
-  g_on = true;
   g_pointer = g_scroll = 1;
   for (int b = 0; b < kPadButtons; b++) g_binding[b] = std::max(0, ActionIndex(kButtons[b].preset));
 }
@@ -110,7 +108,6 @@ const char* const kStyleIds[] = {"ps", "xbox", "switch"};
 void Save() {
   FILE* f = std::fopen(g_path.c_str(), "w");
   if (!f) return;
-  std::fprintf(f, "enabled=%d\n", g_on ? 1 : 0);
   if (g_style >= 0) std::fprintf(f, "style=%s\n", kStyleIds[g_style]);
   std::fprintf(f, "pointer=%.2f\nscroll=%.2f\n", g_pointer, g_scroll);
   for (int b = 0; b < kPadButtons; b++) std::fprintf(f, "%s=%s\n", kButtons[b].id, kActions[g_binding[b]].id);
@@ -166,9 +163,7 @@ void ResetPadConfig() {
 
 void ApplyPadPreset(int style) {
   const float pointer = g_pointer, scroll = g_scroll;  // (the speeds stay)
-  const bool on = g_on;
   Defaults();
-  g_on = on;
   g_pointer = pointer;
   g_scroll = scroll;
   g_style = std::clamp(style, 0, kPadStyles - 1);
@@ -198,9 +193,7 @@ void LoadPadConfig(const std::string& path) {
       if (!eq) continue;
       *eq = 0;
       const char* value = eq + 1;
-      if (!std::strcmp(line, "enabled")) {
-        g_on = std::atoi(value) != 0;
-      } else if (!std::strcmp(line, "style")) {
+      if (!std::strcmp(line, "style")) {
         for (int i = 0; i < kPadStyles; i++)
           if (!std::strcmp(value, kStyleIds[i])) g_style = i;
       } else if (!std::strcmp(line, "pointer")) {
@@ -215,14 +208,6 @@ void LoadPadConfig(const std::string& path) {
     std::fclose(f);
   }
   Apply();
-}
-
-bool PadEnabled() { return g_on; }
-void SetPadEnabled(bool on) {
-  g_on = on;
-  Apply();
-  Save();
-  std::fprintf(stderr, "h4: gamepad %s\n", on ? "on" : "off");
 }
 
 float PadPointerSpeed() { return g_pointer; }

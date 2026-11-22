@@ -254,7 +254,7 @@ void ShowGamepad();
 
 // The settings panel (the game's frames go on while it is up), top to bottom:
 // "ReHoMM4 v<version>" with the update check, the language (a dropdown), fullscreen, the intro
-// movies, save sync (and the folder synced, while on), the saves' folder, the game's folder; ✕
+// movies, save sync, the saves' folder (the synced one while the sync is on), the game's folder; ✕
 // closes it.
 void ShowSettings() {
   NSView* view = g_button.window.contentView;
@@ -364,6 +364,12 @@ void ShowSettings() {
       ClosePanel();  // its note (restart to apply), then the settings again
       dispatch_async(dispatch_get_main_queue(), ^{ Choose(code); });
     };
+  } else if (const std::string gog = h4::GogLanguage(); !gog.empty()) {
+    // Installed from GOG in that language: shown, nothing to choose.
+    NSTextField* name = text(h4::GogLanguageName(gog) + " (GOG)", [NSFont systemFontOfSize:12], Cream(),
+                             NSTextAlignmentRight);
+    name.frame = NSMakeRect(0, 0, 180, name.frame.size.height);
+    titled(uk ? "Мова гри" : "Game language", name, 28);
   }
   check(uk ? "Повноекранний режим" : "Fullscreen", h4::Fullscreen(), [](bool on) {
     h4::SetFullscreen(on);
@@ -384,10 +390,11 @@ void ShowSettings() {
           });
           return now;
         });
+  // One saves folder: the synced one while the sync is on (the saves are kept in step with it),
+  // else the saves' own.
   if (const std::string synced = h4::SyncedFolder(); !synced.empty()) {
-    folder(uk ? "Синхронізується з" : "Synced with", synced);
-  }
-  if (const std::string saves = h4::SavesFolder(); !saves.empty()) {
+    folder(uk ? "Збереження (синхронізуються)" : "Saves (synced)", synced);
+  } else if (const std::string saves = h4::SavesFolder(); !saves.empty()) {
     folder(uk ? "Збереження" : "Saves", saves);
   }
   if (!h4::GameFolder().empty()) {
@@ -433,32 +440,6 @@ void ShowGamepad() {
                             [NSFont boldSystemFontOfSize:15], Gold(), inner);
   title.alignment = NSTextAlignmentCenter;
   rows.push_back(title);
-  {  // on or off: a gold checkbox, as the settings' ones
-    NSButton* c = [NSButton buttonWithTitle:@"" target:target action:@selector(check:)];
-    c.buttonType = NSButtonTypeToggle;
-    c.bordered = NO;
-    NSImageSymbolConfiguration* cfg = [NSImageSymbolConfiguration configurationWithPointSize:15
-                                                                                     weight:NSFontWeightRegular];
-    c.image = [[NSImage imageWithSystemSymbolName:@"square" accessibilityDescription:nil]
-        imageWithSymbolConfiguration:cfg];
-    c.alternateImage = [[NSImage imageWithSystemSymbolName:@"checkmark.square.fill" accessibilityDescription:nil]
-        imageWithSymbolConfiguration:cfg];
-    c.contentTintColor = Gold();
-    c.imagePosition = NSImageLeft;
-    c.imageHugsTitle = YES;
-    c.alignment = NSTextAlignmentLeft;
-    c.attributedTitle = [[NSAttributedString alloc]
-        initWithString:Str(uk ? " Підтримка геймпада" : " Gamepad support")
-            attributes:@{NSFontAttributeName : [NSFont boldSystemFontOfSize:12], NSForegroundColorAttributeName : Cream()}];
-    c.tag = 0;
-    c.state = h4::PadEnabled() ? NSControlStateValueOn : NSControlStateValueOff;
-    c.frame = NSMakeRect(0, 0, inner, 26);
-    target.checked = {[](bool on) {
-      h4::SetPadEnabled(on);
-      return on;
-    }};
-    rows.push_back(c);
-  }
   // A slider row: the title, the slider, its value (in %).
   enum { kPointer, kScroll };
   auto slider = [&](const std::string& t, int tag, float value, float lo, float hi) {

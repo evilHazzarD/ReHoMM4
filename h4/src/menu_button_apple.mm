@@ -150,6 +150,16 @@ void SetMenu(UIButton* b) {
       a.state = code == g_next ? UIMenuElementStateOn : UIMenuElementStateOff;
       [langs addObject:a];
     }
+  if (g_saved.empty() && !h4::GogLanguage().empty()) {
+    // Installed from GOG in that language: shown, nothing to choose.
+    UIAction* a = [UIAction actionWithTitle:Str(h4::GogLanguageName(h4::GogLanguage()) + " (GOG)")
+                                      image:nil
+                                 identifier:nil
+                                    handler:^(UIAction*){}];
+    a.state = UIMenuElementStateOn;
+    a.attributes = UIMenuElementAttributesDisabled;
+    [langs addObject:a];
+  }
   UIAction* sync = [UIAction actionWithTitle:Uk() ? @"Синхронізація збережень (кнопка ☁️ у меню)"
                                                   : @"Sync saved games (the ☁️ button in the menu)"
                                        image:nil
@@ -196,6 +206,9 @@ void SetMenu(UIButton* b) {
     if (@available(iOS 15.0, *))
       for (const h4::LanguageInfo& l : h4::Languages())
         if (l.code == g_next) m.subtitle = Str(l.name);
+    if (@available(iOS 15.0, *))
+      if (g_saved.empty() && !h4::GogLanguage().empty())
+        m.subtitle = Str(h4::GogLanguageName(h4::GogLanguage()));
     [items addObject:m];
   }
   [items addObject:[UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline

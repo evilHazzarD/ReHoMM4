@@ -489,6 +489,21 @@ public class HeroesActivity extends SDLActivity {
             row.addView(sp);
             row.setPadding(0, Math.round(4 * dp), 0, Math.round(4 * dp));
             box.addView(row);
+        } else if (items.size() == 1 && items.get(0).length > 1) {
+            // Installed from GOG in that language (menu_button_android.cpp): shown, nothing to choose.
+            android.widget.LinearLayout row = new android.widget.LinearLayout(a);
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            android.widget.TextView t = new android.widget.TextView(a);
+            t.setText(uk ? "Мова гри" : "Game language");
+            t.setTypeface(null, android.graphics.Typeface.BOLD);
+            row.addView(t, new android.widget.LinearLayout.LayoutParams(0,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            android.widget.TextView name = new android.widget.TextView(a);
+            name.setText(items.get(0)[1]);
+            row.addView(name);
+            row.setPadding(0, Math.round(8 * dp), 0, Math.round(8 * dp));
+            box.addView(row);
         }
         android.widget.CheckBox c = new android.widget.CheckBox(a);
         c.setText(uk ? "Синхронізація збережень (кнопка \u2601\uFE0F у меню)"
@@ -612,12 +627,10 @@ public class HeroesActivity extends SDLActivity {
             return;
         }
         String[] style = null, pointer = null, scroll = null, actions = null;
-        boolean enabled = true;
         final java.util.List<String[]> buttons = new java.util.ArrayList<>();
         for (String line : state.split("\n")) {
             String[] f = line.split("\t", -1);
             switch (f[0]) {
-                case "enabled": enabled = "1".equals(f[1]); break;
                 case "style": style = f; break;
                 case "pointer": pointer = f; break;
                 case "scroll": scroll = f; break;
@@ -634,11 +647,6 @@ public class HeroesActivity extends SDLActivity {
         box.setPadding(pad, Math.round(8 * dp), pad, 0);
         scrollView.addView(box);
         final android.app.AlertDialog[] dialog = new android.app.AlertDialog[1];
-        android.widget.CheckBox on = new android.widget.CheckBox(a);
-        on.setText(uk ? "Підтримка геймпада" : "Gamepad support");
-        on.setChecked(enabled);
-        on.setOnCheckedChangeListener((v, c) -> h4PadSet("enabled", c ? 1 : 0));
-        box.addView(on);
         // A slider: its title, the slider and its value (%) on one row.
         final String[][] sliders = {pointer, scroll};
         final String[] titles = uk ? new String[] {"Швидкість курсора (лівий стік)", "Швидкість прокрутки мапи (правий стік)"}

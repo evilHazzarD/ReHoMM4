@@ -58,6 +58,8 @@ struct Ui {
     int iw = 0, ih = 0;
     SDL_GetRenderOutputSize(ren, &iw, &ih);
     w = float(iw), h = float(ih);
+    static bool logged = false;
+    if (!logged) fprintf(stderr, "installer: drawing on %dx%d\n", iw, ih), fflush(stderr), logged = true;
     SDL_Rect sa{};
     const float d = SDL_GetWindowPixelDensity(win) > 0 ? SDL_GetWindowPixelDensity(win) : 1.0f;
     if (SDL_GetWindowSafeArea(win, &sa) && sa.w > 0 && sa.h > 0)
@@ -67,7 +69,15 @@ struct Ui {
     // Text about 10 points high whatever the screen's density, but at least 40 columns across
     // (a phone held upright).
     const float scale = SDL_GetWindowDisplayScale(win) > 0 ? SDL_GetWindowDisplayScale(win) : d;
+#if defined(__SWITCH__)
+    // A TV or the handheld screen: text by the height (3 at 1080p, 2 at 720p), lines at most
+    // 64 columns (the whole width of a TV is too long to read).
+    (void)scale;
+    s = std::max(2.0f, std::round(h / 360.0f));
+    if (safe.w > 64 * Ch()) safe = {safe.x + (safe.w - 64 * Ch()) / 2, safe.y, 64 * Ch(), safe.h};
+#else
     s = std::max(2.0f, std::min(std::round(10.0f * scale / 8.0f), std::floor(safe.w / (42 * 8.0f))));
+#endif
     const float m = 1.5f * Ch();
     safe = {safe.x + m, safe.y + m, safe.w - 2 * m, safe.h - 2 * m};
   }
@@ -135,9 +145,35 @@ struct Ui {
   }
 };
 
+// The Switch's SDL loads EGL only for an OpenGL window (its only renderer is OpenGL ES): without
+// the flag the window fails ("EGL not initialized").
+#if defined(__SWITCH__)
+// It also wants the window's size (a fullscreen one of 0x0 gets no drawable area).
+constexpr SDL_WindowFlags kGlWindow = SDL_WINDOW_OPENGL;
+#else
+constexpr SDL_WindowFlags kGlWindow = 0;
+#endif
+
+// The window's size: on the Switch the screen's (1920x1080 docked, 1280x720 handheld); elsewhere
+// a fullscreen window takes it by itself.
+SDL_Window* CreateUiWindow() {
+  int w = 0, h = 0;
+#if defined(__SWITCH__)
+  w = 1280, h = 720;
+  if (const SDL_DisplayMode* m = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay())) w = m->w, h = m->h;
+#endif
+  return SDL_CreateWindow("Heroes IV", w, h,
+                          SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE | kGlWindow);
+}
+
+// "sdmc:/switch/..." as the player sees it on the card: "/switch/...".
+[[maybe_unused]] std::string SdPath(const std::string& p) {
+  return p.rfind("sdmc:", 0) == 0 ? p.substr(5) : p;
+}
+
 std::string Megabytes(uint64_t b) { return std::to_string((b + kMB / 2) / kMB) + " MB"; }
 
-enum { kGog = 1, kFiles, kFolder, kCancel, kBack, kSignOut, kLanguage0 = 100 };
+enum { kGog = 1, kFiles, kFolder, kCancel, kBack, kSignOut, kQuit, kLanguage0 = 100 };
 
 class Installer {
  public:
@@ -149,17 +185,17 @@ class Installer {
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) return "";
     // This screen turns with the device (the game's window is landscape only: main.cpp).
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight Portrait PortraitUpsideDown");
-    ui_.win = SDL_CreateWindow("Heroes IV", 0, 0,
-                               SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE);
+    ui_.win = CreateUiWindow();
     ui_.ren = ui_.win ? SDL_CreateRenderer(ui_.win, nullptr) : nullptr;
     if (!ui_.ren) {
       fprintf(stderr, "installer: no window: %s\n", SDL_GetError());
+      if (ui_.win) SDL_DestroyWindow(ui_.win);
+      SDL_QuitSubSystem(SDL_INIT_VIDEO);
       return "";
     }
     SDL_SetRenderVSync(ui_.ren, 1);
     SDL_DisableScreenSaver();  // a download takes minutes
     std::string result;
-    bool quit = false;
     if (autostart_ == "files-fd") setenv("H4_TEST_FDS", "1", 1), autostart_ = "files";
     if (autostart_ == "files") OnPress(kFiles);
     if (autostart_ == "gog") OnPress(kGog);
@@ -172,10 +208,10 @@ class Installer {
           files.push_back({it->path().string(), it->path().lexically_relative(root).generic_string()});
       StartCopy(files);
     }
-    while (!quit && result.empty()) {
+    while (!quit_ && result.empty()) {
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
-        if (e.type == SDL_EVENT_QUIT) quit = true;
+        if (e.type == SDL_EVENT_QUIT) quit_ = true;
         if (e.type == SDL_EVENT_MOUSE_BUTTON_UP) {
           SDL_ConvertEventToRenderCoordinates(ui_.ren, &e);
           OnPress(ui_.Hit(e.button.x, e.button.y));
@@ -206,6 +242,11 @@ class Installer {
 
   void OnPress(int id) {
     if (!id) return;
+    if (id == kQuit) {  // an unfinished job stops (Run: cancelled, joined); a download continues next time
+      fprintf(stderr, "installer: closed\n");
+      quit_ = true;
+      return;
+    }
     if (screen_ == Screen::Menu && id == kGog) StartGog();
     else if (screen_ == Screen::Menu && id == kFiles) StartFiles();
     else if (screen_ == Screen::Menu && id == kFolder) StartFolder();
@@ -254,10 +295,9 @@ class Installer {
       if (!session_.Download(Download(), lang, t, error)) return false;
       const std::string marker = Download() + "/" + kGameLanguage;
       std::remove(marker.c_str());
-      if (lang == "en-US") {
-        if (!Check(Download(), t, error)) return false;
-      } else {
-        if (!CheckExe(Download(), t, error)) return false;
+      // Every chunk was checked by its MD5 as it came (gog.cpp): here only heroes4.exe.
+      if (!CheckExe(Download(), t, error)) return false;
+      if (lang != "en-US") {
         if (FILE* f = fopen(marker.c_str(), "w")) {
           fputs(lang.substr(0, 2).c_str(), f);
           fclose(f);
@@ -304,7 +344,7 @@ class Installer {
           if (fd >= 0) f->path = "/proc/self/fd/" + std::to_string(fd);
         }
       }
-      StartUnpack(exe, bin);
+      StartUnpack(exe, bin, EnglishExe(files));
       return;
     }
     if (BeginPickFiles()) screen_ = Screen::Picking;
@@ -343,7 +383,31 @@ class Installer {
       ShowError(err);
       return;
     }
-    StartUnpack(exe, bin);
+    StartUnpack(exe, bin, EnglishExe(files));
+  }
+
+  // heroes4.exe among the installer's files (put beside it, or picked with it): the English one,
+  // for an installer in another language (StartUnpack). None: an empty path.
+  static PickedFile EnglishExe(const std::vector<PickedFile>& files) {
+    for (const PickedFile& f : files) {
+      std::string n = f.name;
+      for (char& c : n) c = char(std::tolower(static_cast<unsigned char>(c)));
+      if (n == "heroes4.exe") return f;
+    }
+    return {};
+  }
+
+  // The language of an installer in another language than English, by its file's name (GOG's
+  // names say it: "..._(french)_..."); "xx" when it does not (GogLanguageName: "Own").
+  static std::string InstallerLanguage(const std::string& name) {
+    std::string n = name;
+    for (char& c : n) c = char(std::tolower(static_cast<unsigned char>(c)));
+    static const std::pair<const char*, const char*> kWords[] = {
+        {"french", "fr"}, {"german", "de"},  {"spanish", "es"}, {"italian", "it"},
+        {"polish", "pl"}, {"russian", "ru"}, {"czech", "cs"}};
+    for (const auto& [w, code] : kWords)
+      if (n.find(w) != std::string::npos) return code;
+    return "xx";
   }
 
   // The picked folder's files into Unpack(), under the English install's spelling (the folder may
@@ -463,15 +527,58 @@ class Installer {
     return true;
   }
 
-  void StartUnpack(const PickedFile& exe, const PickedFile& bin) {
-    fprintf(stderr, "installer: unpacking %s\n", exe.name.c_str());
-    Start([this, exe, bin](Task* t, std::string* error) -> bool {
+  // A GOG installer in any language: its data with the English heroes4.exe (the one it has, if it is
+  // that, else `english` put beside it); another language is marked in the game folder
+  // (kGameLanguage), as from GOG.
+  void StartUnpack(const PickedFile& exe, const PickedFile& bin, const PickedFile& english) {
+    fprintf(stderr, "installer: unpacking %s%s\n", exe.name.c_str(),
+            english.path.empty() ? "" : " (an English heroes4.exe beside it)");
+    Start([this, exe, bin, english](Task* t, std::string* error) -> bool {
       t->SetPhase("Preparing");
       RemoveTree(Unpack());  // an earlier, unfinished unpack (can take a while)
       if (!EnoughSpace(Unpack(), error)) return false;
       if (!inno::Extract(exe, bin, ScratchDir() + "/installer-links", Unpack(), t, error)) return false;
-      return Check(Unpack(), t, error);
+      std::string exe_error;
+      if (!CheckExe(Unpack(), t, &exe_error)) {
+        if (english.path.empty() || !CopyFile(english.path, Unpack() + "/heroes4.exe")) {
+          *error = "This installer's heroes4.exe is not the one of GOG's English version, which the "
+                   "app is made for. Put heroes4.exe from GOG's English version beside the "
+                   "installer files (or pick it with them), and the game plays in the "
+                   "installer's language.";
+          return false;
+        }
+        if (!CheckExe(Unpack(), t, error)) {
+          *error = "The heroes4.exe beside the installer is not the one of GOG's English Heroes IV: "
+                   "Complete 3.0 either.";
+          return false;
+        }
+      }
+      // Only heroes4.exe is checked: the installer checks its own files as it unpacks, and another
+      // language's has a set of its own (GOG's Polish one: fewer contest maps, no ddraw.dll...).
+      // English, or the installer's language (by its name; "xx" when the name does not say and its
+      // own heroes4.exe was not the English one).
+      std::string lang = InstallerLanguage(exe.name);
+      if (lang == "xx" && exe_error.empty()) lang.clear();
+      if (!lang.empty()) {
+        fprintf(stderr, "installer: the game in %s\n", lang.c_str());
+        if (FILE* f = fopen((Unpack() + "/" + kGameLanguage).c_str(), "w")) {
+          fputs(lang.c_str(), f);
+          fclose(f);
+        }
+      }
+      return true;
     }, Unpack());
+  }
+
+  static bool CopyFile(const std::string& from, const std::string& to) {
+    FILE* in = fopen(from.c_str(), "rb");
+    FILE* out = in ? fopen(to.c_str(), "wb") : nullptr;
+    bool ok = in && out;
+    std::vector<char> buf(1 << 20);
+    for (size_t n; ok && (n = fread(buf.data(), 1, buf.size(), in)) > 0;) ok = fwrite(buf.data(), 1, n, out) == n;
+    if (in) fclose(in);
+    if (out && fclose(out) != 0) ok = false;
+    return ok;
   }
 
   bool EnoughSpace(const std::string& dir, std::string* error) {
@@ -488,24 +595,6 @@ class Installer {
     if (free >= 0 && uint64_t(free) < need) {
       *error = "Not enough free space: the game needs " + Megabytes(need) + ", there is " +
                Megabytes(uint64_t(free)) + ".";
-      return false;
-    }
-    return true;
-  }
-
-  static bool Check(const std::string& dir, Task* t, std::string* error) {
-    t->SetPhase("Checking the game files");
-    t->total = ManifestBytes();
-    t->done = 0;
-    std::vector<std::string> bad =
-        VerifyDir(dir, [t](uint64_t d, uint64_t) { t->done = d; }, t->cancel);
-    if (t->cancel) {
-      *error = "cancelled";
-      return false;
-    }
-    if (!bad.empty()) {
-      *error = std::to_string(bad.size()) + " file(s) did not match, e.g. " + bad.front() +
-               ". Try again (a download continues where it stopped).";
       return false;
     }
     return true;
@@ -535,8 +624,12 @@ class Installer {
     }
     if (ok_ && rename(out_.c_str(), (files_ + "/game").c_str()) == 0) {
       fprintf(stderr, "installer: game installed into %s/game\n", files_.c_str());
-      for (const std::string& p : own_installer_)
+      for (const std::string& p : own_installer_) {
         if (std::remove(p.c_str()) == 0) fprintf(stderr, "installer: removed %s\n", p.c_str());
+        // And macOS's "._" metadata beside it (copied to a FAT/exFAT card from a Mac).
+        const size_t slash = p.rfind('/');
+        if (slash != std::string::npos) std::remove((p.substr(0, slash + 1) + "._" + p.substr(slash + 1)).c_str());
+      }
       own_installer_.clear();
       screen_ = Screen::Done;
       return;
@@ -570,16 +663,19 @@ class Installer {
     if (screen_ == Screen::Menu) {
       const bool resume = IsDirectory(Download());
       y = ui_.Paragraph(y, "The game files are needed once (" + Megabytes(ManifestBytes()) +
-                               "). Use your GOG copy of Heroes of Might and Magic IV: Complete "
-                               "(English).");
+                               "). Use your GOG copy of Heroes of Might and Magic IV: Complete. "
+                               "An installer in another language than English needs the English "
+                               "heroes4.exe beside it.");
       y += ch;
       if (CanSignInToGog()) {
         ui_.AddButton(kGog, y, resume ? "Continue the GOG.com download"
                                       : "Sign in to GOG.com and download", 38);
         y += ch * 4.4f;
       }
+#if !defined(H4_SWITCH_APP)
       ui_.AddButton(kFiles, y, "Install from GOG installer files", 38);
       y += ch * 4.4f;
+#endif
 #if !defined(H4_SWITCH_APP)
       ui_.AddButton(kFolder, y, "Use an installed game (its folder)", 38);
       y += ch * 4.6f;
@@ -592,10 +688,9 @@ class Installer {
           "Installer files: setup_heroes_of_might_and_magic_4_complete_...exe and its -1.bin "
           "(pick both, or adb push them to " + files_ + "). Or adb push a ready \"game\" folder there."
 #elif defined(H4_SWITCH_APP)
-          "Download the Windows installer from your GOG library on a computer (gog.com > Games > "
-          "Heroes of Might and Magic IV: Complete): setup_heroes_of_might_and_magic_4_complete_"
-          "...exe and its -1.bin. Copy both to the SD card, into " + files_ + ", then start the "
-          "game again."
+          "Install the game on a computer from your GOG library (gog.com > Games > Heroes of "
+          "Might and Magic IV: Complete), then copy its folder (the one with heroes4.exe) to the "
+          "SD card as\n" + SdPath(files_) + "/game\nand start the game again."
 #elif defined(H4_DESKTOP_APP)
           "Download the Windows installer from your GOG library (gog.com > Games > Heroes of Might "
           "and Magic IV: Complete): setup_heroes_of_might_and_magic_4_complete_...exe and its "
@@ -667,6 +762,12 @@ class Installer {
     }
     for (const auto& b : ui_.buttons) y = std::max(y, b.r.y + b.r.h);
     content_h_ = y - top;
+#if defined(H4_DESKTOP_APP)
+    {  // ✕ at the top right: the fullscreen window has no title bar to close it with
+      const float s = ch * 3.2f, m = ch;
+      ui_.buttons.push_back({{ui_.safe.x + ui_.safe.w - s - m, ui_.safe.y + m, s, s}, "X", kQuit});
+    }
+#endif
     ui_.DrawButtons();
     SDL_RenderPresent(ui_.ren);
   }
@@ -695,6 +796,7 @@ class Installer {
   std::thread worker_;
   std::atomic<bool> finished_{false};
   bool ok_ = false, picked_ = false, picking_folder_ = false;
+  bool quit_ = false;                  // closed (the window, or ✕ on the Mac and Linux)
   bool listing_languages_ = false;     // the job after signing in: GOG's languages
   std::vector<std::string> gog_langs_;  // they, for Screen::Language
   std::vector<std::string> own_installer_;  // the installer's files in files_, removed when done
@@ -807,8 +909,7 @@ std::string RunWithProgress(const std::string& title, const std::function<bool(T
   PlatformInit();
   if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) return "no video";
   Ui ui;
-  ui.win = SDL_CreateWindow("Heroes IV", 0, 0,
-                            SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE);
+  ui.win = CreateUiWindow();
   ui.ren = ui.win ? SDL_CreateRenderer(ui.win, nullptr) : nullptr;
   if (!ui.ren) {
     if (ui.win) SDL_DestroyWindow(ui.win);

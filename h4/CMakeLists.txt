@@ -70,6 +70,8 @@ if(TARGET h4_lifted)
     target_compile_definitions(h4 PRIVATE H4_SWITCH_APP=1)
     target_link_libraries(h4 PRIVATE ${H4_INNOEXTRACT} ${H4_LZMA} curl mbedtls mbedx509 mbedcrypto
                           bz2 z nx)
+    # Threads without a stack size get 8 MB, not libnx's 128 KB (install/platform_switch.cpp).
+    target_link_options(h4 PRIVATE "-Wl,--wrap=pthread_create")
   elseif(H4_DESKTOP_APP)
     add_executable(h4 ${_h4_sources} src/install/platform_desktop.cpp src/menu_button_linux.cpp
                    src/save_sync.cpp $<TARGET_OBJECTS:h4_lifted>)

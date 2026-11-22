@@ -291,7 +291,9 @@ LanguageInfo FindLanguage(const std::string& code) {
 }
 
 void RefreshLanguages(const std::string& data_dir) {
-#if defined(H4_TRANSLATIONS_URL)
+// Not on the Switch: its HTTPS at the start took the emulator (Ryujinx) down; it has the
+// translations of its release in the .nro.
+#if defined(H4_TRANSLATIONS_URL) && !defined(__SWITCH__)
   std::thread([data_dir] {
     int status = 0;
     std::string body, error;
@@ -311,6 +313,23 @@ void RefreshLanguages(const std::string& data_dir) {
 #else
   (void)data_dir;
 #endif
+}
+
+namespace {
+std::string& g_gog_language = *new std::string;
+}
+
+void SetGogLanguage(const std::string& code) { g_gog_language = code; }
+std::string GogLanguage() { return g_gog_language; }
+
+std::string GogLanguageName(const std::string& code) {
+  // GOG's languages of the game (install/installer.cpp: LanguageName).
+  static const std::pair<const char*, const char*> kNames[] = {
+      {"en", "English"}, {"fr", "Français"}, {"de", "Deutsch"}, {"es", "Español"},
+      {"it", "Italiano"}, {"pl", "Polski"},  {"ru", "Русский"}, {"cs", "Čeština"}, {"xx", "Own"}};
+  for (const auto& [c, n] : kNames)
+    if (code == c) return n;
+  return code;
 }
 
 std::string BundledPack(const std::string& code) {

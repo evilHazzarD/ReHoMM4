@@ -164,6 +164,7 @@ void ChooseLanguage(const std::string& game, const std::string& data) {
       std::printf("h4: language %s (the game's own, from GOG)\n", own.c_str());
       recomp::SetTranslationFiles(h4::TranslationFiles("", data + "/translation"));
       setenv("H4_LANG", own.c_str(), 1);
+      h4::SetGogLanguage(own);
       h4::SetLanguageChoice(own, "");
       std::fflush(stdout);
       return;
@@ -313,6 +314,11 @@ std::string MobileSetup() {
     dup2(fd, 2);
     close(fd);
   }
+#if defined(H4_SWITCH_APP)
+  // Every line on the card at once: a crash there leaves no other trace.
+  setvbuf(stdout, nullptr, _IOLBF, 0);
+  setvbuf(stderr, nullptr, _IOLBF, 0);
+#endif
   h4::LoadSkipIntro(data + "/skip_intro");
   h4::LoadPadConfig(data + "/gamepad.conf");
 #if defined(H4_DESKTOP_APP)
@@ -450,6 +456,10 @@ int main(int argc, char** argv) {
   // The game draws its own cursor where GetCursorPos says, in exclusive
   // mode too, and never re-centres it.
   game.own_cursor = true;
+  // 60 frames a second at most, on 120 Hz screens too: the game's motion
+  // (smooth.cpp) is updated at most every 16 ms, so faster only costs GPU
+  // work and battery. H4_MAX_FPS=0 shows every refresh.
+  game.max_frame_rate = 60;
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }
 

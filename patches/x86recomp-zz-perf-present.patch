@@ -1,0 +1,745 @@
+diff --git a/src/runtime/gfx/device.h b/src/runtime/gfx/device.h
+--- a/src/runtime/gfx/device.h
++++ b/src/runtime/gfx/device.h
+@@ -255,6 +255,9 @@
+   // Smooths the steps of 16-bit colour (banding) in flat areas before
+   // scaling, edges and detail kept (the <ID>_DEBAND switch).
+   virtual void SetPresentDeband(bool on) { (void)on; }
++  // Shows at most `hz` frames a second (0: one per display refresh), as
++  // every n-th refresh of a faster display. From the next ResetSwapChain.
++  virtual void SetMaxShowRate(int hz) { (void)hz; }
+ 
+   // ---- fixed-function state (D3D7 enums)
+   virtual void SetRenderState(uint32_t state, uint32_t value) = 0;
+diff --git a/src/runtime/gfx/gpu_device.cpp b/src/runtime/gfx/gpu_device.cpp
+--- a/src/runtime/gfx/gpu_device.cpp
++++ b/src/runtime/gfx/gpu_device.cpp
+@@ -816,6 +816,7 @@
+ 
+   void ResetSwapChain(int w, int h, bool vsync) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     Flush();
+     pass_color_ = pass_depth_ = nullptr;
+     pass_colors_.fill(nullptr);
+@@ -852,8 +853,17 @@
+         // the vsync queue over minutes, and then nextDrawable blocks the
+         // game and frames drop (it cleared when the window was hidden and
+         // shown again). Slower, a frame is now and then shown twice.
+-        refresh_ns_ = uint64_t(1e9 / hz * 1.005 + 0.5);
+-        WarnF("gfx: display refresh %.2f Hz\n", hz);
++        // At most max_show_hz_ frames a second: every n-th refresh, n
++        // whole so frames stay evenly paced (120 Hz at 60: every second
++        // one; 119.88 Hz counts as 120).
++        int every = 1;
++        if (max_show_hz_ > 0) every = std::max(1, int(hz / max_show_hz_ + 0.05));
++        refresh_ns_ = uint64_t(every * 1e9 / hz * 1.005 + 0.5);
++        if (every > 1)
++          WarnF("gfx: display refresh %.2f Hz, a frame every %d (%.0f a second)\n", hz, every,
++                hz / every);
++        else
++          WarnF("gfx: display refresh %.2f Hz\n", hz);
+         next_show_ns_ = 0;
+         if (!presenter_.joinable()) presenter_ = std::thread([this] { PresentLoop(); });
+       }
+@@ -875,6 +885,7 @@
+ 
+   TextureId CreateTexture(int w, int h, int levels, Format fmt, bool rt) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (w <= 0 || h <= 0) return 0;
+     if (levels <= 0) {
+       levels = 1;
+@@ -908,6 +919,7 @@
+ 
+   void DestroyTexture(TextureId id) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     auto it = textures_.find(id);
+     if (it == textures_.end()) return;
+     if (Pending(it->second.tex)) Flush();
+@@ -925,6 +937,7 @@
+ 
+   void FillTexture(TextureId id, const Rect& r, uint32_t argb) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     auto it = textures_.find(id);
+     if (it == textures_.end()) return;
+     Rect c = Clip(r, it->second.w, it->second.h);
+@@ -972,6 +985,7 @@
+ 
+   TextureId CreateCubeTexture(int size, int levels, Format fmt) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (size <= 0) return 0;
+     if (levels <= 0) {
+       levels = 1;
+@@ -1009,6 +1023,7 @@
+ 
+   DepthId CreateDepth(int w, int h, Format fmt) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     Depth d;
+     d.w = w;
+     d.h = h;
+@@ -1042,6 +1057,7 @@
+ 
+   void DestroyDepth(DepthId id) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     auto it = depths_.find(id);
+     if (it == depths_.end()) return;
+     if (pass_depth_ == it->second.tex) Flush();
+@@ -1055,6 +1071,7 @@
+ 
+   void SetRenderTarget(TextureId color, DepthId depth) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     current_color_ = color;
+     current_level_ = 0;
+     current_extra_.fill({});
+@@ -1064,6 +1081,7 @@
+ 
+   void SetRenderTargets(const ColorTarget color[4], DepthId depth) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     current_color_ = color[0].tex;
+     current_level_ = color[0].tex ? color[0].level : 0;
+     for (int i = 0; i < 3; i++) current_extra_[i] = color[i + 1];
+@@ -1074,6 +1092,7 @@
+   void StretchRect(ColorTarget src, const Rect& sr, ColorTarget dst, const Rect& dr,
+                    bool linear) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     auto target = [&](ColorTarget t, int* w, int* h) -> SDL_GPUTexture* {
+       if (!t.tex) {
+         *w = bb_w_;
+@@ -1120,21 +1139,25 @@
+   void Blit(const void* src, uint32_t pitch, Format fmt, const Rect& sr, const Rect& dr,
+             bool colorkey, uint32_t key) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     DrawImage(src, pitch, fmt, sr, dr, colorkey, key);
+   }
+ 
+   void BlitBlend(const void* src, uint32_t pitch, const Rect& sr, const Rect& dr) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     DrawImage(src, pitch, Format::A8R8G8B8, sr, dr, false, 0, true);
+   }
+ 
+   void ReadBack(const Rect& r, void* dst, uint32_t pitch, Format fmt) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     ReadTexture(pass_color_, pass_w_, pass_h_, r, dst, pitch, fmt, pass_levels_[0]);
+   }
+ 
+   uint32_t StartReadBack(const Rect& r) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     uint32_t t = next_read_++;
+     if (!t) t = next_read_++;
+     reads_[t] = StartRead(pass_color_, pass_w_, pass_h_, r, false, pass_levels_[0]);
+@@ -1143,6 +1166,7 @@
+ 
+   void FinishReadBack(uint32_t ticket, void* dst, uint32_t pitch, Format fmt) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     auto it = reads_.find(ticket);
+     if (it == reads_.end()) return;
+     FinishRead(it->second, dst, pitch, fmt);
+@@ -1152,9 +1176,14 @@
+   void BlitFront(const void* src, uint32_t pitch, Format fmt, const Rect& sr,
+                  const Rect& dr) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    // The pass stays on the front buffer: the game's next updates of the
++    // shown frame (often many small rects a frame) go into the same flush,
++    // not one command buffer each (on some drivers, Adreno's, every new
++    // command buffer costs kernel calls). Whatever next draws to the D3D
++    // targets switches back first (Rebind).
+     SetPass(front_, nullptr);
+     DrawImage(src, pitch, fmt, sr, dr, false, 0);
+-    BindTarget();
++    rebind_ = true;
+   }
+ 
+   void ReadBackFront(const Rect& r, void* dst, uint32_t pitch, Format fmt) override {
+@@ -1165,11 +1194,11 @@
+   void PresentFront() override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
+     if (presenter_.joinable()) {
+-      // Shown by the presenting thread at the display's pace.
++      // Shown by the presenting thread at the display's pace. It flushes
++      // what is recorded itself, just before it draws the front buffer:
++      // a flush here (games that update the shown frame in many small
++      // blits present after each) cost a command buffer per blit.
+       PollFilterKey();
+-      SyncOverlays();
+-      SyncCursor();
+-      Flush();
+       if (!pending_) pending_since_ns_ = SDL_GetTicksNS();
+       pending_ = true;
+       present_cv_.notify_one();
+@@ -1196,6 +1225,7 @@
+ 
+   void SetRenderState(uint32_t s, uint32_t v) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (s >= rs_.size()) return;
+     rs_[s] = v;
+     vs_dirty_ = fs_dirty_ = true;
+@@ -1203,6 +1233,7 @@
+ 
+   void SetTextureStageState(uint32_t stage, uint32_t type, uint32_t v) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (stage >= 8 || type >= 33) return;
+     tss_[stage][type] = v;
+     vs_dirty_ = fs_dirty_ = true;
+@@ -1210,6 +1241,7 @@
+ 
+   void SetTexture(uint32_t stage, TextureId t) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (stage >= 8) return;
+     stage_tex_[stage] = t;
+     fs_dirty_ = true;
+@@ -1217,6 +1249,7 @@
+ 
+   void SetTransform(uint32_t type, const float m[16]) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     Mat x;
+     std::memcpy(x.data(), m, sizeof(float) * 16);
+     switch (type) {
+@@ -1233,29 +1266,34 @@
+ 
+   void SetViewport(const Viewport& v) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     viewport_ = v;
+     vs_dirty_ = true;
+   }
+ 
+   void SetScissor(const Rect& r) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     scissor_ = r;
+   }
+ 
+   void SetMaterial(const Material& m) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     material_ = m;
+     vs_dirty_ = true;
+   }
+ 
+   void SetLight(uint32_t i, const Light& li) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     lights_[i] = li;
+     vs_dirty_ = true;
+   }
+ 
+   void LightEnable(uint32_t i, bool e) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (e) {
+       lights_on_.insert(i);
+       if (!lights_.count(i)) lights_[i] = DefaultLight();
+@@ -1267,6 +1305,7 @@
+ 
+   void SetClipPlane(uint32_t i, const float p[4]) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (i >= 8) return;
+     std::memcpy(clip_[i].data(), p, sizeof(float) * 4);
+     vs_dirty_ = true;
+@@ -1277,6 +1316,7 @@
+   void Clear(uint32_t count, const Rect* rects, uint32_t flags, uint32_t color, float z,
+              uint32_t stencil) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (!pass_depth_) flags &= ~6u;
+     if (!pass_stencil_) flags &= ~4u;
+     if (!(flags & 7)) return;
+@@ -1348,6 +1388,7 @@
+   void Draw(uint32_t prim, uint32_t fvf, const void* vertices, uint32_t nv, uint32_t stride,
+             const uint16_t* indices, uint32_t ni) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     if (!vertices || !nv || !stride || (stride & 3)) return;
+     uint32_t count = PrimitiveCountFromVertices(prim, indices ? ni : nv);
+     if (!count) return;
+@@ -1409,6 +1450,7 @@
+   // mapped draws are built in scratch memory and recorded like any other.
+   Mapped MapDraw(uint32_t nv, uint32_t stride, uint32_t ni) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     mapped_ = {nv, stride, ni};
+     mapped_vertices_.resize(size_t(nv) * stride);
+     mapped_indices_.resize(ni);
+@@ -1417,6 +1459,7 @@
+ 
+   void DrawMapped(uint32_t prim, uint32_t fvf) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     Draw(prim, fvf, mapped_vertices_.data(), mapped_.nv, mapped_.stride,
+          mapped_indices_.data(), mapped_.ni);
+   }
+@@ -1538,6 +1581,7 @@
+ 
+   ShaderId CreateShader(const hlsl::Program& prog) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     Shader sh;
+     sh.stage = prog.stage;
+     sh.inputs = prog.inputs.size();
+@@ -1583,6 +1627,7 @@
+ 
+   void DestroyShader(ShaderId id) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     auto it = shaders_.find(id);
+     if (it == shaders_.end()) return;
+     // Recorded draws and cached pipelines may use it.
+@@ -1601,6 +1646,7 @@
+ 
+   void DrawShader(const ShaderDraw& d) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     auto vit = shaders_.find(d.vs), pit = shaders_.find(d.ps);
+     if (vit == shaders_.end() || pit == shaders_.end()) return;
+     const Shader& vs = vit->second;
+@@ -1755,6 +1801,7 @@
+ 
+   void Present() override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     Flush();
+     SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(dev_);
+     SDL_GPUCopyPass* cp = SDL_BeginGPUCopyPass(cmd);
+@@ -1931,6 +1978,11 @@
+       case Format::A32B32G32R32F: return SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT;
+       default: return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
+     }
++  }
++
++  // The D3D targets' pass again after BlitFront left the front buffer's.
++  void Rebind() {
++    if (rebind_) BindTarget();
+   }
+ 
+   static int LevelSize(int size, int level) { return std::max(1, size >> level); }
+@@ -1938,6 +1990,7 @@
+   // The pass for the D3D render targets (current_color_ at current_level_,
+   // current_extra_, current_depth_).
+   void BindTarget() {
++    rebind_ = false;
+     SDL_GPUTexture* color = backbuffer_;
+     int w = bb_w_, h = bb_h_;
+     bool alpha = false;
+@@ -2021,11 +2074,19 @@
+   void QueueUpload(SDL_GPUTexture* tex, int level, int x, int y, int w, int h, const void* src,
+                    uint32_t src_pitch, uint32_t rows, uint32_t row_bytes, bool cycle = false,
+                    bool compressed = false, int layer = 0) {
+-    size_t off = (upload_bytes_.size() + 15) & ~size_t(15);
+-    upload_bytes_.resize(off + size_t(rows) * row_bytes);
++    uint8_t* d = ReserveUpload(tex, level, x, y, w, h, rows, row_bytes, cycle, compressed, layer);
+     for (uint32_t r = 0; r < rows; r++)
+-      std::memcpy(upload_bytes_.data() + off + size_t(r) * row_bytes,
++      std::memcpy(d + size_t(r) * row_bytes,
+                   static_cast<const uint8_t*>(src) + size_t(r) * src_pitch, row_bytes);
++  }
++
++  // QueueUpload's room in upload_bytes_ (rows of row_bytes, 16-byte
++  // aligned), for the caller to fill before the next flush.
++  uint8_t* ReserveUpload(SDL_GPUTexture* tex, int level, int x, int y, int w, int h,
++                         uint32_t rows, uint32_t row_bytes, bool cycle = false,
++                         bool compressed = false, int layer = 0) {
++    size_t off = (upload_bytes_.size() + 15) & ~size_t(15);
++    upload_bytes_.resize(off + size_t(rows) * row_bytes);
+     Upload u{tex, layer, level, uint32_t(x), uint32_t(y), uint32_t(w), uint32_t(h),
+              uint32_t(off), uint32_t(w), uint32_t(h), cycle};
+     if (compressed) {
+@@ -2033,6 +2094,7 @@
+       u.rows = (uint32_t(h) + 3) & ~3u;
+     }
+     uploads_.push_back(u);
++    return upload_bytes_.data() + off;
+   }
+ 
+   uint32_t AppendVertices(const void* v, uint32_t n, uint32_t stride) {
+@@ -2263,12 +2325,19 @@
+ 
+   void SetPresentSharpness(float stops) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     sharpness_ = std::clamp(stops, 0.0f, 2.0f);
+   }
+ 
+   void SetPresentDeband(bool on) override {
+     std::lock_guard<std::recursive_mutex> l(mu_);
++    Rebind();
+     deband_ = on;
++  }
++
++  void SetMaxShowRate(int hz) override {
++    std::lock_guard<std::recursive_mutex> l(mu_);
++    max_show_hz_ = std::max(hz, 0);
+   }
+ 
+   SDL_GPUShader* CompilePresentShader(const char* glsl, bool vertex, Uint32 samplers = 1) {
+@@ -2883,31 +2952,10 @@
+                  bool colorkey, uint32_t key, bool blend = false) {
+     int w = sr.right - sr.left, h = sr.bottom - sr.top;
+     if (w <= 0 || h <= 0 || dr.right <= dr.left || dr.bottom <= dr.top) return;
+-    std::vector<uint32_t> px(size_t(w) * h);
+-    uint32_t bpp = BitsPerPixel(fmt) / 8;
+-    const uint8_t* base = static_cast<const uint8_t*>(src) + size_t(sr.top) * pitch +
+-                          size_t(sr.left) * bpp;
+-    if (!colorkey) {
+-      ConvertToArgb(base, pitch, fmt, w, h, px.data());
+-      if (!blend)
+-        for (uint32_t& p : px) p |= 0xFF000000u;
+-    } else if (const uint32_t* t = Decode16Table(fmt)) {
+-      const uint16_t k16 = uint16_t(key);
+-      const bool keyable = key <= 0xFFFF;
+-      for (int y = 0; y < h; y++) {
+-        const auto* s = reinterpret_cast<const uint16_t*>(base + size_t(y) * pitch);
+-        uint32_t* d = px.data() + size_t(y) * w;
+-        for (int x = 0; x < w; x++)
+-          d[x] = keyable && s[x] == k16 ? 0 : (t[s[x]] | 0xFF000000u);
+-      }
+-    } else {
+-      for (int y = 0; y < h; y++) {
+-        const uint8_t* s = base + size_t(y) * pitch;
+-        for (int x = 0; x < w; x++, s += bpp)
+-          px[size_t(y) * w + x] = RawPixel(s, fmt) == key ? 0 : (DecodePixel(s, fmt) | 0xFF000000u);
+-      }
+-    }
+-    // A pool texture per blit in this flush.
++    // A pool texture per blit in this flush; at most kMaxBlitsPerFlush
++    // (blits that are batched, BlitFront's, would otherwise each keep a
++    // texture of their own: every one stays as large as it has been).
++    if (blit_used_ >= kMaxBlitsPerFlush) Flush();
+     if (blit_used_ == blit_pool_.size()) blit_pool_.push_back({nullptr, 0, 0});
+     size_t slot = blit_used_++;
+     if (blit_pool_[slot].w < w || blit_pool_[slot].h < h) {
+@@ -2931,9 +2979,32 @@
+       if (!b.tex) FatalF("gfx: blit texture %dx%d: %s", b.w, b.h, SDL_GetError());
+     }
+     const BlitTex& bt = blit_pool_[slot];
+-    QueueUpload(bt.tex, 0, 0, 0, w, h, px.data(), uint32_t(w) * 4, uint32_t(h),
+-                uint32_t(w) * 4, true);
+-
++    // Converted straight into the upload queue (no copy of its own).
++    uint32_t* px = reinterpret_cast<uint32_t*>(
++        ReserveUpload(bt.tex, 0, 0, 0, w, h, uint32_t(h), uint32_t(w) * 4, true));
++    uint32_t bpp = BitsPerPixel(fmt) / 8;
++    const uint8_t* base = static_cast<const uint8_t*>(src) + size_t(sr.top) * pitch +
++                          size_t(sr.left) * bpp;
++    if (!colorkey) {
++      ConvertToArgb(base, pitch, fmt, w, h, px);
++      if (!blend)
++        for (size_t i = 0; i < size_t(w) * h; i++) px[i] |= 0xFF000000u;
++    } else if (const uint32_t* t = Decode16Table(fmt)) {
++      const uint16_t k16 = uint16_t(key);
++      const bool keyable = key <= 0xFFFF;
++      for (int y = 0; y < h; y++) {
++        const auto* s = reinterpret_cast<const uint16_t*>(base + size_t(y) * pitch);
++        uint32_t* d = px + size_t(y) * w;
++        for (int x = 0; x < w; x++)
++          d[x] = keyable && s[x] == k16 ? 0 : (t[s[x]] | 0xFF000000u);
++      }
++    } else {
++      for (int y = 0; y < h; y++) {
++        const uint8_t* s = base + size_t(y) * pitch;
++        for (int x = 0; x < w; x++, s += bpp)
++          px[size_t(y) * w + x] = RawPixel(s, fmt) == key ? 0 : (DecodePixel(s, fmt) | 0xFF000000u);
++      }
++    }
+     PipelineKey k = BaseKey(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST);
+     if (blend) {
+       k.blend = 1;
+@@ -3484,6 +3555,7 @@
+   int bb_w_ = 0, bb_h_ = 0;
+   // Mailbox emulated on vsync (ResetSwapChain, Show).
+   bool mailbox_emulated_ = false;
++  int max_show_hz_ = 0;  // SetMaxShowRate; 0: every refresh
+   uint64_t refresh_ns_ = 0, next_show_ns_ = 0;
+   bool pending_ = false;  // the front buffer changed since it was last shown
+   std::atomic<uint64_t> shown_{0};  // frames shown
+@@ -3532,12 +3604,15 @@
+   std::vector<uint8_t> mapped_vertices_;
+   std::vector<uint16_t> mapped_indices_;
+   size_t blit_used_ = 0;
++  // The pass is the front buffer's (BlitFront), not the D3D targets'.
++  bool rebind_ = false;
+ 
+   SDL_GPUBuffer* vbuf_ = nullptr;
+   SDL_GPUBuffer* ibuf_ = nullptr;
+   uint32_t vbuf_cap_ = 0, ibuf_cap_ = 0;
+   SDL_GPUTransferBuffer* upload_tb_ = nullptr;
+   static constexpr size_t kMaxInFlight = 4;
++  static constexpr size_t kMaxBlitsPerFlush = 16;
+   std::deque<SDL_GPUFence*> in_flight_;  // submitted, not known finished
+   SDL_GPUTransferBuffer* download_tb_ = nullptr;
+   std::map<uint32_t, Read> reads_;  // StartReadBack tickets
+diff --git a/src/runtime/gfx/soft_device.cpp b/src/runtime/gfx/soft_device.cpp
+--- a/src/runtime/gfx/soft_device.cpp
++++ b/src/runtime/gfx/soft_device.cpp
+@@ -74,8 +74,16 @@
+     front_.Resize(w, h);
+     tex_[0].Resize(w, h);
+     SDL_SetRenderVSync(r_, vsync ? 1 : 0);
++    // Frames are shown at most once a refresh (and at most max_show_hz_).
++    const SDL_DisplayMode* dm = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(win_));
++    double hz = dm && dm->refresh_rate > 0 ? double(dm->refresh_rate) : 60.0;
++    if (max_show_hz_ > 0) hz = std::min(hz, double(max_show_hz_));
++    show_period_ns_ = uint64_t(1e9 / hz);
++    MarkAll();
+   }
+ 
++  void SetMaxShowRate(int hz) override { max_show_hz_ = std::max(hz, 0); }
++
+   // ---- resources
+   TextureId CreateTexture(int w, int h, int, Format fmt, bool) override {
+     Surface s;
+@@ -182,11 +190,22 @@
+   // ---- front buffer
+   void BlitFront(const void* src, uint32_t pitch, Format fmt, const Rect& sr, const Rect& dr) override {
+     Copy(static_cast<const uint8_t*>(src), pitch, fmt, sr, front_, dr, false, 0);
++    Mark(dr);
+   }
+   void ReadBackFront(const Rect& r, void* dst, uint32_t pitch, Format fmt) override {
+     Read(front_, r, dst, pitch, fmt);
+   }
+-  void PresentFront() override { Show(); }
++  // Games that update the shown frame in many small blits present after
++  // each: the frame is shown when due (once a refresh), the rest on the
++  // next ShowPending (the host event pump), never one full upload and
++  // present per blit.
++  void PresentFront() override {
++    pending_ = true;
++    ShowIfDue();
++  }
++  void ShowPending() override {
++    if (pending_) ShowIfDue();
++  }
+   uint64_t ShownFrames() const override { return shown_; }
+ 
+   // ---- Direct3D: not drawn
+@@ -220,7 +239,9 @@
+   void DrawMapped(uint32_t, uint32_t) override {}
+   void Present() override {
+     front_ = tex_[0];
+-    Show();
++    MarkAll();
++    pending_ = true;
++    ShowIfDue();
+   }
+   ShaderId CreateShader(const hlsl::Program&) override { return 0; }
+   void DestroyShader(ShaderId) override {}
+@@ -254,6 +275,11 @@
+         std::memcpy(out + x0, row + size_t(sr.left + x0 - dr.left) * 4, size_t(x1 - x0) * 4);
+         continue;
+       }
++      if (table && same && !colorkey) {  // the common case: 16-bit, 1:1
++        const auto* in = reinterpret_cast<const uint16_t*>(row) + (sr.left + x0 - dr.left);
++        for (int x = x0; x < x1; x++) out[x] = table[in[x - x0]];
++        continue;
++      }
+       for (int x = x0; x < x1; x++) {
+         const int sx = sr.left + (same ? x - dr.left : (x - dr.left) * sw / dw);
+         const uint8_t* p = row + size_t(sx) * bytes;
+@@ -311,6 +337,28 @@
+     return p.shown && pic_tex_[i];
+   }
+ 
++  // Marks rect r of the front buffer as changed (clipped).
++  void Mark(const Rect& r) {
++    const Rect c{std::max(r.left, 0), std::max(r.top, 0), std::min(r.right, w_), std::min(r.bottom, h_)};
++    if (c.right <= c.left || c.bottom <= c.top) return;
++    if (dirty_.right <= dirty_.left || dirty_.bottom <= dirty_.top) {
++      dirty_ = c;
++      return;
++    }
++    dirty_ = {std::min(dirty_.left, c.left), std::min(dirty_.top, c.top), std::max(dirty_.right, c.right),
++              std::max(dirty_.bottom, c.bottom)};
++  }
++  void MarkAll() { dirty_ = {0, 0, w_, h_}; }
++
++  void ShowIfDue() {
++    const uint64_t now = SDL_GetTicksNS();
++    if (next_show_ns_ && now < next_show_ns_) return;
++    next_show_ns_ = next_show_ns_ && now < next_show_ns_ + show_period_ns_ ? next_show_ns_ + show_period_ns_
++                                                                           : now + show_period_ns_;
++    pending_ = false;
++    Show();
++  }
++
+   void Show() {
+     if (!r_ || w_ <= 0 || h_ <= 0) return;
+     if (!frame_ || frame_w_ != w_ || frame_h_ != h_) {
+@@ -320,8 +368,14 @@
+       SDL_SetTextureScaleMode(frame_, SDL_SCALEMODE_LINEAR);
+       frame_w_ = w_;
+       frame_h_ = h_;
++      MarkAll();
+     }
+-    SDL_UpdateTexture(frame_, nullptr, front_.px.data(), w_ * 4);
++    // Only what changed since the last frame (the texture keeps the rest).
++    if (dirty_.right > dirty_.left && dirty_.bottom > dirty_.top) {
++      const SDL_Rect d{dirty_.left, dirty_.top, dirty_.right - dirty_.left, dirty_.bottom - dirty_.top};
++      SDL_UpdateTexture(frame_, &d, front_.px.data() + size_t(d.y) * w_ + d.x, w_ * 4);
++    }
++    dirty_ = {};
+     int ow = 0, oh = 0;
+     SDL_GetRenderOutputSize(r_, &ow, &oh);
+     const Rect fr = FitRect(w_, h_, ow, oh);
+@@ -363,6 +417,11 @@
+   uint64_t pic_gen_[2] = {0, 0};
+   int pic_w_[2] = {0, 0}, pic_h_[2] = {0, 0};
+   uint64_t shown_ = 0;
++  // Deferred showing (PresentFront, ShowPending) and the changed region.
++  bool pending_ = false;
++  int max_show_hz_ = 0;
++  uint64_t show_period_ns_ = 16666667, next_show_ns_ = 0;
++  Rect dirty_{};
+ };
+ 
+ }  // namespace
+diff --git a/src/runtime/guest_memory.cpp b/src/runtime/guest_memory.cpp
+--- a/src/runtime/guest_memory.cpp
++++ b/src/runtime/guest_memory.cpp
+@@ -6,6 +6,13 @@
+ #include <vector>
+ 
+ #if defined(__SWITCH__)
++#include <unistd.h>
++#include <switch.h>
++extern "C" char* fake_heap_start;  // libnx: the C heap
++extern "C" char* fake_heap_end;
++#endif
++
++#if defined(__SWITCH__)
+ // The Switch (homebrew): no mmap/mprotect, and no way for an applet to map
+ // memory page by page into a reserved range. The arena is one block of the
+ // heap, committed whole: 2 GiB (a 32-bit guest that is not large-address-
+@@ -21,11 +28,33 @@
+     return false;
+   }
+   const uint64_t size = 1ull << 31;
+-  void* p = std::aligned_alloc(0x10000, size_t(size));
++  // Straight from the heap's break: newlib's malloc cannot take 2 GiB in one request (its
++  // heap growth is a 32-bit signed size), so two 1 GiB steps, which are contiguous; malloc
++  // goes on above them.
++  void* p = nullptr;
++  {
++    const uintptr_t brk = reinterpret_cast<uintptr_t>(sbrk(0));
++    const intptr_t pad = intptr_t((0x10000 - (brk & 0xFFFF)) & 0xFFFF);
++    char* a = pad ? static_cast<char*>(sbrk(pad)) : nullptr;
++    char* lo = static_cast<char*>(sbrk(intptr_t(size / 2)));
++    char* hi = lo != reinterpret_cast<char*>(-1) ? static_cast<char*>(sbrk(intptr_t(size / 2)))
++                                                 : reinterpret_cast<char*>(-1);
++    (void)a;
++    if (lo != reinterpret_cast<char*>(-1) && hi == lo + size / 2 &&
++        (reinterpret_cast<uintptr_t>(lo) & 0xFFFF) == 0)
++      p = lo;
++  }
+   if (!p) {
++    // What the system gave the process, and the C heap (libnx: all of it, at start).
++    u64 total = 0, used = 0;
++    svcGetInfo(&total, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
++    svcGetInfo(&used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
+     std::fprintf(stderr,
+-                 "GuestMemory: cannot allocate the 2 GiB arena (start the game through title "
+-                 "takeover: hold R while launching a game)\n");
++                 "GuestMemory: cannot allocate the 2 GiB arena: the process has %llu MiB, %llu "
++                 "used; the heap is %llu MiB (start the game through title takeover: hold R "
++                 "while launching a game)\n",
++                 (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
++                 (unsigned long long)((fake_heap_end - fake_heap_start) >> 20));
+     return false;
+   }
+   std::memset(p, 0, size_t(size));
+diff --git a/src/runtime/hle/present.cpp b/src/runtime/hle/present.cpp
+--- a/src/runtime/hle/present.cpp
++++ b/src/runtime/hle/present.cpp
+@@ -148,7 +148,11 @@
+       return SDL_WINDOW_VULKAN;
+ #endif
+     case gfx::Backend::Soft:
++#if defined(__SWITCH__)
++      return SDL_WINDOW_OPENGL;  // its SDL loads EGL only for OpenGL windows (GLES renderer)
++#else
+       return 0;  // SDL_Renderer picks
++#endif
+   }
+   return 0;
+ }
+@@ -159,6 +163,9 @@
+   if (const char* f = Env("FILTER")) d->SetPresentFilter(f);
+   if (const char* f = Env("SHARPNESS")) d->SetPresentSharpness(float(std::atof(f)));
+   if (const char* f = Env("DEBAND")) d->SetPresentDeband(std::atoi(f) != 0);
++  int max_fps = int(Game().max_frame_rate);
++  if (const char* f = Env("MAX_FPS")) max_fps = std::atoi(f);
++  if (max_fps > 0) d->SetMaxShowRate(max_fps);
+   return d;
+ }
+ 
+diff --git a/src/runtime/hle/user32_window.cpp b/src/runtime/hle/user32_window.cpp
+--- a/src/runtime/hle/user32_window.cpp
++++ b/src/runtime/hle/user32_window.cpp
+@@ -1194,11 +1194,25 @@
+   if (int(b) >= 0 && b < PadButton::Count) g_pad_map[int(b)] = a;
+ }
+ 
++// The Switch's SDL sizes a window's surface once, when it is made, and never again: its one
++// window is made the screen's size (1920x1080 docked, 1280x720 handheld), whatever the game
++// asks for; the device scales the game's frame into it.
++static void SwitchScreenSize(int* w, int* h) {
++#if defined(__SWITCH__)
++  if (const SDL_DisplayMode* m = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay()))
++    *w = m->w, *h = m->h;
++#else
++  (void)w, (void)h;
++#endif
++}
++
+ uint32_t CreateSdl2Window(const std::string& title_utf8, int w, int h, SDL_WindowFlags flags,
+                           SDL_Window** sdl) {
+   EnsureSdlVideo();
+   Window win;
+-  win.sdl = SDL_CreateWindow(title_utf8.c_str(), ToPoints(nullptr, w), ToPoints(nullptr, h),
++  int sw = w, sh = h;
++  SwitchScreenSize(&sw, &sh);
++  win.sdl = SDL_CreateWindow(title_utf8.c_str(), ToPoints(nullptr, sw), ToPoints(nullptr, sh),
+                              flags | SDL_WINDOW_HIGH_PIXEL_DENSITY | hle::GfxWindowFlags());
+   if (!win.sdl) return 0;
+   win.title = title_utf8;
+@@ -1947,6 +1961,7 @@
+     EnsureSdlVideo();
+     int cw, ch;
+     ClientSize(win, &cw, &ch);
++    SwitchScreenSize(&cw, &ch);
+     win.sdl = SDL_CreateWindow(AnsiToUtf8(win.title).c_str(), ToPoints(nullptr, cw), ToPoints(nullptr, ch),
+                                SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY |
+                                    GfxWindowFlags());
+diff --git a/src/runtime/runtime.h b/src/runtime/runtime.h
+--- a/src/runtime/runtime.h
++++ b/src/runtime/runtime.h
+@@ -69,6 +69,12 @@
+   // from it; a game's best profile may need more than the default.
+   uint32_t video_memory_mb = 64;
+ 
++  // Frames shown a second at most (0: the display's refresh rate). A game
++  // whose picture changes less often than a fast display refreshes (120
++  // Hz) shows each frame on every n-th refresh: the same motion for half
++  // the GPU work. The <ID>_MAX_FPS switch overrides it.
++  uint32_t max_frame_rate = 0;
++
+   // DLLs the game loads itself (LoadLibrary) whose code is lifted with
+   // the EXE (recomp_lift --module), e.g. a game logic DLL. They
+   // are read from guest_dir (the host game directory) by file name.

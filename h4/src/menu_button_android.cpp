@@ -119,7 +119,10 @@ void ShowLanguageButton(bool shown, int x, int y, int left) {
     return;
   }
   std::string list;  // as it is now (a new translations release can add to it)
-  for (const LanguageInfo& lang : Languages()) list += lang.code + "\t" + lang.name + "\t" + lang.note + "\n";
+  if (const std::string gog = GogLanguage(); !gog.empty())  // installed from GOG in it: shown only
+    list = gog + "\t" + GogLanguageName(gog) + " (GOG)\t\n";
+  else
+    for (const LanguageInfo& lang : Languages()) list += lang.code + "\t" + lang.name + "\t" + lang.note + "\n";
   jstring l = env->NewStringUTF(g_lang.c_str()), p = env->NewStringUTF(g_saved.c_str()),
           all = env->NewStringUTF(list.c_str()), skip = env->NewStringUTF(SkipIntroPath().c_str());
   env->CallStaticVoidMethod(cls, m, jboolean(shown), jfloat(vx), jfloat(vy), jfloat(lx), l, p, all, skip);
@@ -138,8 +141,7 @@ void ShowLanguageButton(bool shown, int x, int y, int left) {
 // "button <name> <action>" for each button (pad_config.h's order).
 extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4PadState(JNIEnv* env, jclass,
                                                                                          jboolean uk) {
-  std::string s = "enabled\t" + std::to_string(h4::PadEnabled() ? 1 : 0) + "\n";
-  s += "style\t" + std::to_string(h4::PadStyle());
+  std::string s = "style\t" + std::to_string(h4::PadStyle());
   for (int i = 0; i < h4::kPadStyles; i++) s += std::string("\t") + h4::PadStyleName(i);
   char b[128];
   std::snprintf(b, sizeof b, "\npointer\t%g\t%g\t%g\nscroll\t%g\t%g\t%g\nactions", h4::PadPointerSpeed(),
@@ -164,7 +166,6 @@ extern "C" JNIEXPORT void JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4Pa
   const char* k = env->GetStringUTFChars(key, nullptr);
   const std::string name = k ? k : "";
   if (k) env->ReleaseStringUTFChars(key, k);
-  if (name == "enabled") h4::SetPadEnabled(value != 0);
   else if (name == "pointer") h4::SetPadPointerSpeed(value);
   else if (name == "scroll") h4::SetPadScrollSpeed(value);
   else if (name == "preset") h4::ApplyPadPreset(int(value));

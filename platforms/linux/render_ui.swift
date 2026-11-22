@@ -148,7 +148,6 @@ func label(_ name: String, _ text: String, size: CGFloat = 12, color: NSColor = 
   writeArgb(rep, name)
 }
 label("gp_title", "Gamepad", size: 15, color: gold)
-label("gp_support", "Gamepad support")
 label("gp_pointer", "Pointer speed (left stick)", color: gold)
 label("gp_scroll", "Map scrolling speed (right stick)", color: gold)
 label("gp_buttons", "Buttons", size: 13, color: gold)
