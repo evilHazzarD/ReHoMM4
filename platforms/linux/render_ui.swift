@@ -183,7 +183,7 @@ render("upd_checking", "Checking GitHub for a new version…", size: 15, maxWidt
 render("upd_latest", "You have the latest version.", size: 15, maxWidth: 320)
 render("upd_newer", "A new version is out.\nClick here to download it into Downloads.", size: 15, maxWidth: 320)
 render("upd_downloading", "Downloading the new version…", size: 15, maxWidth: 320)
-render("upd_done", "Downloaded into Downloads (HeroesIV-<version>-linux-x86_64.tar.gz).\nQuit the game and unpack it over the old one.", size: 15, maxWidth: 360)
+render("upd_done", "Downloaded into Downloads (reHoMM4-v<version>-linux-x86_64.tar.gz).\nQuit the game and unpack it over the old one.", size: 15, maxWidth: 360)
 render("upd_failed", "Could not reach GitHub. Try again later.", size: 15, maxWidth: 320)
 // The save sync's row and its help (Linux: save_sync.h; menu_button_linux.cpp).
 render("sync_button", "Saved games sync   ( ? )", size: 12, maxWidth: 300)

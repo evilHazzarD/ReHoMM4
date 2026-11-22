@@ -3,19 +3,19 @@
 # which never leaves it; GitHub's CI only checks the repository: .github/workflows/check.yml).
 #
 #   tools/release/make_release.sh <version>            build, check, collect: .cache/release-<version>/
-#   tools/release/make_release.sh <version> --draft    and then push the tag and make a DRAFT release
+#   tools/release/make_release.sh <version> --draft    and then push the tag (v<version>) and make a DRAFT release
 #                                                      on GitHub with the files (gh); you publish it
 #
 # <version> must be what VERSION says (every app takes its version from there) and have its section
 # "## <version>" in CHANGELOG.md: that section is the release's notes. The working tree must be
 # committed (the release is built from what the tag points at). Steps:
 #   1. every target with platforms/build.sh (iOS unsigned: AltStore/Sideloadly sign it);
-#   2. the files under their release names (HeroesIV-<version>-<platform>.<ext>), each with <file>.sha256 (kept here, not uploaded:
+#   2. the files under their release names (reHoMM4-v<version>-<platform>.<ext>), each with <file>.sha256 (kept here, not uploaded:
 #      GitHub shows each file's SHA-256 itself); for the one release that holds
 #      HOMM4-extra-assets.zip (art/combat_wings, the side panels for builds from source; never
 #      committed; platforms/extra-assets.sh downloads it from there), that zip too;
 #   3. release_check.sh on every file, publish_check.py --release on the tree and the files;
-#   4. --draft: tag <version> on HEAD (if missing), push it, gh release create --draft.
+#   4. --draft: tag v<version> on HEAD (if missing), push it, gh release create --draft.
 # H4_RELEASE_DIRTY=1 tries steps 1-3 on uncommitted changes.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -35,8 +35,11 @@ if [[ -n "$(git status --porcelain)" ]]; then
     die "uncommitted changes: commit first (the release is built from HEAD)"
   echo "warning: uncommitted changes (H4_RELEASE_DIRTY=1): a trial, not a release"
 fi
-if git rev-parse -q --verify "refs/tags/$V" >/dev/null; then
-  [[ "$(git rev-parse "$V^{commit}")" == "$(git rev-parse HEAD)" ]] || die "tag $V exists and is not HEAD"
+# The tag is v<version> (v0.3), as the files' names (reHoMM4-v0.3-…); VERSION has the number alone (0.3). The apps'
+# update checks drop a leading v (0.1 and 0.2 were tagged without it).
+TAG="v$V"
+if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+  [[ "$(git rev-parse "$TAG^{commit}")" == "$(git rev-parse HEAD)" ]] || die "tag $TAG exists and is not HEAD"
 fi
 
 [[ -d art/combat_wings/factions ]] || die "no art/combat_wings: the apps would have black sides"
@@ -46,14 +49,14 @@ printf '%s\n' "$NOTES" | sed -e '/./,$!d' > "$OUT/NOTES.md"   # without the blan
 
 say "Building"
 # target  file it makes (in .cache/outputs/<target>/dist)  its name in the release (with the version:
-# the apps' update checks look for HeroesIV-<version>-<the part after it>)
+# the apps' update checks look for reHoMM4-…-<the part after the version>, 0.2 for HeroesIV-…)
 TARGETS=(
-  "macos-arm64  HeroesIV-macos-arm64.dmg       HeroesIV-$V-macos-arm64.dmg"
-  "macos-x86_64 HeroesIV-macos-x86_64.dmg      HeroesIV-$V-macos-x86_64.dmg"
-  "ios          HeroesIV-ios.ipa               HeroesIV-$V-ios.ipa"
-  "android      HeroesIV-android_arm64.apk     HeroesIV-$V-android_arm64.apk"
-  "linux        HeroesIV-linux-x86_64.tar.gz   HeroesIV-$V-linux-x86_64.tar.gz"
-  "switch       HeroesIV.nro                   HeroesIV-$V-switch.nro"
+  "macos-arm64  HeroesIV-macos-arm64.dmg       reHoMM4-v$V-macos-arm64.dmg"
+  "macos-x86_64 HeroesIV-macos-x86_64.dmg      reHoMM4-v$V-macos-x86_64.dmg"
+  "ios          HeroesIV-ios.ipa               reHoMM4-v$V-ios.ipa"
+  "android      HeroesIV-android_arm64.apk     reHoMM4-v$V-android_arm64.apk"
+  "linux        HeroesIV-linux-x86_64.tar.gz   reHoMM4-v$V-linux-x86_64.tar.gz"
+  "switch       HeroesIV.nro                   reHoMM4-v$V-switch.nro"
 )
 for t in "${TARGETS[@]}"; do
   read -r target built file <<< "$t"
@@ -89,13 +92,13 @@ apksigner="$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/build-tools/*/ap
 # platforms/android/package.sh, unless JAVA_HOME has a working one.
 [[ -x "${JAVA_HOME:-}/bin/java" ]] || export JAVA_HOME=/opt/homebrew/opt/openjdk@17
 export PATH="$JAVA_HOME/bin:$PATH"
-cert="$("$apksigner" verify --print-certs "$OUT/HeroesIV-$V-android_arm64.apk" |
+cert="$("$apksigner" verify --print-certs "$OUT/reHoMM4-v$V-android_arm64.apk" |
   sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
 [[ "$cert" == "$(cat platforms/android/release-cert.sha256)" ]] ||
   die "the APK is not signed with the release key (got ${cert:-nothing}): see platforms/android/app/build.gradle"
 echo "apk: signed with the release key"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-mkdir -p "$T/linux"; tar -xzf "$OUT/HeroesIV-$V-linux-x86_64.tar.gz" -C "$T/linux"
+mkdir -p "$T/linux"; tar -xzf "$OUT/reHoMM4-v$V-linux-x86_64.tar.gz" -C "$T/linux"
 for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk; do
   case "$f" in
     *.dmg) bash tools/release/release_check.sh "$f" 2>/dev/null ;;
@@ -120,12 +123,12 @@ fi
 say "GitHub draft"
 command -v gh >/dev/null || die "no gh (brew install gh)"
 gh auth status >/dev/null 2>&1 || die "gh is not signed in: gh auth login -h github.com"
-git rev-parse -q --verify "refs/tags/$V" >/dev/null || git tag "$V"
-git push origin "$V"
+git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git tag "$TAG"
+git push origin "$TAG"
 files=()
 # The .sha256 files stay here: GitHub shows every file's SHA-256 on the release itself.
-for f in "$OUT"/HeroesIV* "$OUT"/HOMM4-extra-assets.zip; do
+for f in "$OUT"/reHoMM4-* "$OUT"/HOMM4-extra-assets.zip; do
   if [[ -e "$f" && "$f" != *.log && "$f" != *.sha256 ]]; then files+=("$f"); fi
 done
-gh release create "$V" --draft --verify-tag --title "ReHoMM4 $V" --notes-file "$OUT/NOTES.md" "${files[@]}"
+gh release create "$TAG" --draft --verify-tag --title "ReHoMM4 $TAG" --notes-file "$OUT/NOTES.md" "${files[@]}"
 echo "Draft made: check it on GitHub (Releases), then press Publish."

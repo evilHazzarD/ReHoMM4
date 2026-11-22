@@ -787,7 +787,7 @@ public class HeroesActivity extends SDLActivity {
     // Updates: the latest release on GitHub against the app's version; a newer one's APK downloaded
     // by the system's DownloadManager into Downloads (its notification, once done, installs it).
     private static final String RELEASES = "https://api.github.com/repos/evilHazzarD/ReHoMM4/releases/latest";
-    private static final String APK = "-android_arm64.apk";  // HeroesIV-<version>-android_arm64.apk (0.1: none)
+    private static final String APK = "-android_arm64.apk";  // reHoMM4-v<version>-android_arm64.apk (0.2: HeroesIV-<version>-…)
 
     private static boolean newer(String a, String b) {  // "0.10" > "0.9" ("v" in front ignored)
         String[] x = a.replaceFirst("^v", "").split("\\."), y = b.replaceFirst("^v", "").split("\\.");
@@ -819,7 +819,8 @@ public class HeroesActivity extends SDLActivity {
                 page = rel.optString("html_url", "https://github.com/evilHazzarD/ReHoMM4/releases");
                 org.json.JSONArray assets = rel.optJSONArray("assets");
                 for (int i = 0; assets != null && i < assets.length(); i++)
-                    if (assets.getJSONObject(i).optString("name").startsWith("HeroesIV")
+                    if ((assets.getJSONObject(i).optString("name").startsWith("reHoMM4-")
+                            || assets.getJSONObject(i).optString("name").startsWith("HeroesIV-"))
                             && assets.getJSONObject(i).optString("name").endsWith(APK))
                         apk = assets.getJSONObject(i).optString("browser_download_url");
             } catch (Exception e) {
@@ -866,7 +867,7 @@ public class HeroesActivity extends SDLActivity {
                     .setMimeType("application/vnd.android.package-archive")
                     .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                     .setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS,
-                            "HeroesIV-" + tag + APK);
+                            Uri.parse(url).getLastPathSegment());  // the release's own name for it
             dm.enqueue(r);
             new android.app.AlertDialog.Builder(a)
                     .setTitle(uk ? "Завантаження" : "Downloading")

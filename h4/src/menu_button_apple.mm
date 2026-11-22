@@ -119,11 +119,11 @@ void CheckForUpdates() {
             } else {
               NSURL* page = [NSURL URLWithString:rel[@"html_url"] ?: @"https://github.com/evilHazzarD/ReHoMM4/releases"];
               Alert(uk ? @"Є нова версія" : @"A new version",
-                    [NSString stringWithFormat:uk ? @"ReHoMM4 %@ (у вас %@). Завантажте HeroesIV-ios.ipa і встановіть "
+                    [NSString stringWithFormat:uk ? @"ReHoMM4 %@ (у вас %@). Завантажте reHoMM4-%@-ios.ipa і встановіть "
                                                     @"через AltStore чи Sideloadly, як і першу."
-                                                  : @"ReHoMM4 %@ (you have %@). Download HeroesIV-ios.ipa and install "
+                                                  : @"ReHoMM4 %@ (you have %@). Download reHoMM4-%@-ios.ipa and install "
                                                     @"it with AltStore or Sideloadly, as the first one.",
-                                               tag, have],
+                                               tag, have, tag],
                     @[ [UIAlertAction actionWithTitle:uk ? @"Відкрити реліз" : @"Open the release"
                                                 style:UIAlertActionStyleDefault
                                               handler:^(UIAlertAction*) {

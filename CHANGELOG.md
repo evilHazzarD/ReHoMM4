@@ -8,11 +8,11 @@ The Switch app runs, other-language GOG installers, smoother play on phones, and
 
 | Device | File |
 |---|---|
-| Mac, macOS 13+ | `HeroesIV-0.3-macos-arm64.dmg` (Apple chip, M1 or newer) or `HeroesIV-0.3-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad, iOS / iPadOS 17+ | `HeroesIV-0.3-ios.ipa` (install with AltStore or Sideloadly) |
-| Android 10+, 64-bit | `HeroesIV-0.3-android_arm64.apk` |
-| Linux, Steam Deck | `HeroesIV-0.3-linux-x86_64.tar.gz` |
-| Switch (homebrew) | `HeroesIV-0.3-switch.nro` |
+| Mac, macOS 13+ | `reHoMM4-v0.3-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v0.3-macos-x86_64.dmg` (Intel) |
+| iPhone, iPad, iOS / iPadOS 17+ | `reHoMM4-v0.3-ios.ipa` (install with AltStore or Sideloadly) |
+| Android 10+, 64-bit | `reHoMM4-v0.3-android_arm64.apk` |
+| Linux, Steam Deck | `reHoMM4-v0.3-linux-x86_64.tar.gz` |
+| Switch (homebrew) | `reHoMM4-v0.3-switch.nro` |
 
 **New**
 - **GOG installers in any language**: put `heroes4.exe` from GOG's English version next to the installer files (or pick it with them), and the game plays in the installer's language. An installed game in another language works the same way, with the English `heroes4.exe` in its folder.
@@ -20,6 +20,7 @@ The Switch app runs, other-language GOG installers, smoother play on phones, and
 - **Switch**: the game is copied to the card as an installed folder (`switch/ReHoMM4/game`); the app no longer unpacks installers there, and says where to copy the game when it is missing.
 - **60 frames a second at most** by default, on 120 Hz screens too: less battery and heat, the same motion.
 - **Close button** (✕) in the installer on the Mac and Linux.
+- The release is tagged `v0.3` and its files are named `reHoMM4-v0.3-…` (were `HeroesIV-0.2-…`); the update check in the apps finds both.
 
 **Changed**
 - The installer checks only `heroes4.exe`: other languages' installers have a different set of files.
@@ -47,6 +48,7 @@ How to install and run: [README](https://github.com/evilHazzarD/ReHoMM4#readme).
 - **Switch**: гра копіюється на картку встановленою текою (`switch/ReHoMM4/game`); інсталятори там більше не розпаковуються, а без гри програма пише, куди її скопіювати.
 - **Не більше 60 кадрів на секунду** типово, і на екранах 120 Гц: менше витрат батареї й нагріву, рух той самий.
 - **Кнопка закриття** (✕) в інсталяторі на Маці й Linux.
+- Тег релізу — `v0.3`, файли звуться `reHoMM4-v0.3-…` (було `HeroesIV-0.2-…`); перевірка оновлень у програмах знаходить обидва формати.
 
 **Змінено**
 - Інсталятор перевіряє лише `heroes4.exe`: в інсталяторах іншими мовами інший набір файлів.

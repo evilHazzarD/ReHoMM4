@@ -146,13 +146,16 @@ id g_keys = nil;          // its key monitor
 // Mac downloaded into ~/Downloads and opened (the player drags the app into Applications).
 namespace {
 NSString* const kReleases = @"https://api.github.com/repos/evilHazzarD/ReHoMM4/releases/latest";
-// A release's file: HeroesIV-<version>-macos-<arch>.dmg (0.1: without the version).
+// A release's file: reHoMM4-v<version>-macos-<arch>.dmg (0.2: HeroesIV-<version>-…; 0.1: none).
 #if defined(__arm64__)
 NSString* const kDmg = @"macos-arm64.dmg";
 #else
 NSString* const kDmg = @"macos-x86_64.dmg";
 #endif
-bool IsOurDmg(NSString* name) { return [name hasPrefix:@"HeroesIV-"] && [name hasSuffix:[@"-" stringByAppendingString:kDmg]]; }
+bool IsOurDmg(NSString* name) {
+  return ([name hasPrefix:@"reHoMM4-"] || [name hasPrefix:@"HeroesIV-"]) &&
+         [name hasSuffix:[@"-" stringByAppendingString:kDmg]];
+}
 bool UkUi();
 NSString* AppVersion() {
   return [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: @"0";
@@ -191,7 +194,8 @@ void Say(const std::string& title, const std::string& text) {
 
 void Download(NSURL* url, NSString* version) {
   const bool uk = UkUi();
-  NSString* dest_name = [NSString stringWithFormat:@"HeroesIV-%@-%@", version, kDmg];
+  (void)version;
+  NSString* dest_name = url.lastPathComponent;  // the release's own name for it
   auto cancelled = std::make_shared<bool>(false);  // Cancel pressed (or the panel closed)
   h4::ShowMacChoice((__bridge void*)g_button, uk ? "Завантаження" : "Downloading",
                     std::string(dest_name.UTF8String) + "…", {uk ? "Скасувати" : "Cancel"},
@@ -207,7 +211,7 @@ void Download(NSURL* url, NSString* version) {
           // The file at `tmp` is gone once this returns: moved here, the rest on the main thread.
           NSURL* downloads = [NSFileManager.defaultManager URLsForDirectory:NSDownloadsDirectory
                                                                   inDomains:NSUserDomainMask].firstObject;
-          NSString* base = [NSString stringWithFormat:@"HeroesIV-%@-%@", version, kDmg.stringByDeletingPathExtension];
+          NSString* base = dest_name.stringByDeletingPathExtension;
           NSURL* dest = [downloads URLByAppendingPathComponent:[base stringByAppendingString:@".dmg"]];
           for (int i = 2; [NSFileManager.defaultManager fileExistsAtPath:dest.path]; i++)  // never over a file
             dest = [downloads URLByAppendingPathComponent:[NSString stringWithFormat:@"%@ %d.dmg", base, i]];

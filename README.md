@@ -35,15 +35,16 @@ files from your GOG copy ([First start](#first-start-the-game-files)).
 
 All files are on the [Releases page](https://github.com/evilHazzarD/ReHoMM4/releases): open the
 newest release and, under **Assets**, download the one for your device. `<version>` in the names
-below is the release's number (for example `0.2`).
+below is the release's number (for example `0.3`; releases before 0.3 named them
+`HeroesIV-<version>-…`).
 
 | Device | File |
 |---|---|
-| Mac | `HeroesIV-<version>-macos-arm64.dmg` (Apple chip, M1 or newer) or `HeroesIV-<version>-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad | `HeroesIV-<version>-ios.ipa` |
-| Android | `HeroesIV-<version>-android_arm64.apk` |
-| Linux PC, Steam Deck | `HeroesIV-<version>-linux-x86_64.tar.gz` |
-| Nintendo Switch | `HeroesIV-<version>-switch.nro` |
+| Mac | `reHoMM4-v<version>-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
+| iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
+| Android | `reHoMM4-v<version>-android_arm64.apk` |
+| Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` |
+| Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 
 Not sure which Mac you have:  → **About This Mac**; "Chip: Apple M…" is an Apple chip,
 "Processor: … Intel" is Intel.
@@ -74,7 +75,7 @@ own Apple ID; a free Apple ID is enough.
 1. On a Mac or Windows PC install [AltStore](https://altstore.io) (with AltServer) or
    [Sideloadly](https://sideloadly.io) and follow its set-up guide (it needs iTunes/iCloud for
    Windows on a PC, the iPhone/iPad connected by cable the first time).
-2. Copy `HeroesIV-<version>-ios.ipa` to the computer (AltStore: or to the iPhone's Files) and
+2. Copy `reHoMM4-v<version>-ios.ipa` to the computer (AltStore: or to the iPhone's Files) and
    install it: AltStore → **My Apps** → **+** → pick the `.ipa`; Sideloadly → drag the `.ipa` in,
    enter your Apple ID → **Start**.
 3. On iOS/iPadOS 16 and later turn on **Developer Mode**: Settings → **Privacy & Security** →
@@ -93,7 +94,7 @@ An expired app does not open, but its saves stay; refreshing brings it back.
 
 Android 10 or later, 64-bit (almost every phone and tablet since 2019).
 
-1. On the phone, download `HeroesIV-<version>-android_arm64.apk` (open the Releases page in the
+1. On the phone, download `reHoMM4-v<version>-android_arm64.apk` (open the Releases page in the
    phone's browser).
 2. Open it: from the browser's downloads, or **Files** → **Downloads**.
 3. Android asks to allow installing apps from this source (the browser or Files): **Settings** →
@@ -108,7 +109,7 @@ notification installs it) and install it over the old one; saves are kept.
 (Xbox, PlayStation, Switch or any other Bluetooth/USB pad: the left stick moves the pointer, the
 buttons are set in ⚙ → **Gamepad**); the TV remote cannot play it. Install it with a file manager
 from a USB stick, or from a computer: `adb connect <TV's IP address>`, then `adb install`
-`HeroesIV-<version>-android_arm64.apk`. The TV needs a 64-bit Android with Vulkan: many TV boxes
+`reHoMM4-v<version>-android_arm64.apk`. The TV needs a 64-bit Android with Vulkan: many TV boxes
 and sticks run 32-bit Android and cannot install it.
 
 ### Linux
@@ -119,7 +120,7 @@ Vulkan graphics drivers, X11 or Wayland (through Xwayland).
 1. Unpack the archive where the game should live, for example `~/Games`:
    ```sh
    mkdir -p ~/Games
-   tar -xzf ~/Downloads/HeroesIV-<version>-linux-x86_64.tar.gz -C ~/Games
+   tar -xzf ~/Downloads/reHoMM4-v<version>-linux-x86_64.tar.gz -C ~/Games
    ```
 2. Start it:
    ```sh
@@ -136,7 +137,7 @@ Vulkan graphics drivers, X11 or Wayland (through Xwayland).
 ### Steam Deck
 
 1. Switch to **Desktop Mode** (Steam button → **Power** → **Switch to Desktop**).
-2. In Firefox (or another browser) download `HeroesIV-<version>-linux-x86_64.tar.gz`.
+2. In Firefox (or another browser) download `reHoMM4-v<version>-linux-x86_64.tar.gz`.
 3. In **Dolphin** (the file manager) open **Downloads**, right-click the archive → **Extract** →
    **Extract archive to…** → pick e.g. `/home/deck/Games`.
 4. Add it to Steam: open **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
@@ -157,7 +158,7 @@ copy a game installed on a computer from your GOG copy (the folder with `heroes4
 installer or GOG Galaxy makes it, or the `game` folder of ReHoMM4 on a Mac or PC).
 
 1. Put the SD card in a computer and make the folder `switch/ReHoMM4` on it.
-2. Copy into it `HeroesIV-<version>-switch.nro`, renamed to `HeroesIV.nro`, and the installed
+2. Copy into it `reHoMM4-v<version>-switch.nro`, renamed to `HeroesIV.nro`, and the installed
    game folder, renamed to `game`. The card then holds:
    ```
    switch/ReHoMM4/HeroesIV.nro
@@ -363,8 +364,8 @@ into `~/Downloads` first; without it the sides are black).
 `VERSION`, the release notes are its section in [`CHANGELOG.md`](CHANGELOG.md):
 
 ```
-tools/release/make_release.sh 0.2           # builds every app, checks them: .cache/release-0.2/
-tools/release/make_release.sh 0.2 --draft   # then pushes tag 0.2 and makes a draft release on GitHub
+tools/release/make_release.sh 0.3           # builds every app, checks them: .cache/release-0.3/
+tools/release/make_release.sh 0.3 --draft   # then pushes tag v0.3 and makes a draft release on GitHub
 ```
 
 ## Credits
@@ -427,15 +428,15 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 
 Усі файли — на [сторінці Releases](https://github.com/evilHazzarD/ReHoMM4/releases): відкрийте
 найновіший реліз і в розділі **Assets** завантажте файл для свого пристрою. `<version>` в іменах
-нижче — номер релізу (наприклад, `0.2`).
+нижче — номер релізу (наприклад, `0.3`; до 0.3 файли звалися `HeroesIV-<version>-…`).
 
 | Пристрій | Файл |
 |---|---|
-| Мак | `HeroesIV-<version>-macos-arm64.dmg` (процесор Apple, M1 або новіший) або `HeroesIV-<version>-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad | `HeroesIV-<version>-ios.ipa` |
-| Android | `HeroesIV-<version>-android_arm64.apk` |
-| ПК з Linux, Steam Deck | `HeroesIV-<version>-linux-x86_64.tar.gz` |
-| Nintendo Switch | `HeroesIV-<version>-switch.nro` |
+| Мак | `reHoMM4-v<version>-macos-arm64.dmg` (процесор Apple, M1 або новіший) або `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
+| iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
+| Android | `reHoMM4-v<version>-android_arm64.apk` |
+| ПК з Linux, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` |
+| Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 
 Який у вас Мак:  → **Про цей Mac**; «Чип: Apple M…» — процесор Apple, «Процесор: … Intel» — Intel.
 
@@ -466,7 +467,7 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 1. На Маці або ПК з Windows встановіть [AltStore](https://altstore.io) (з AltServer) або
    [Sideloadly](https://sideloadly.io) і виконайте їхню інструкцію з налаштування (на ПК потрібні
    iTunes та iCloud для Windows; першого разу iPhone/iPad під'єднано кабелем).
-2. Скопіюйте `HeroesIV-<version>-ios.ipa` на комп'ютер (для AltStore — або у «Файли» на iPhone) і
+2. Скопіюйте `reHoMM4-v<version>-ios.ipa` на комп'ютер (для AltStore — або у «Файли» на iPhone) і
    встановіть: AltStore → **My Apps** → **+** → оберіть `.ipa`; Sideloadly → перетягніть `.ipa`,
    введіть Apple ID → **Start**.
 3. На iOS/iPadOS 16 і новіших увімкніть **режим розробника**: Параметри → **«Приватність і
@@ -485,7 +486,7 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 
 Android 10 або новіший, 64-бітний (майже всі телефони й планшети з 2019 року).
 
-1. На телефоні завантажте `HeroesIV-<version>-android_arm64.apk` (відкрийте сторінку Releases у
+1. На телефоні завантажте `reHoMM4-v<version>-android_arm64.apk` (відкрийте сторінку Releases у
    браузері телефона).
 2. Відкрийте його: із завантажень браузера або **«Файли»** → **«Завантаження»**.
 3. Android попросить дозволити встановлення програм із цього джерела (браузера чи «Файлів»):
@@ -500,7 +501,7 @@ Android 10 або новіший, 64-бітний (майже всі телеф�
 (Xbox, PlayStation, Switch чи будь-яким іншим Bluetooth/USB-геймпадом: лівий стік рухає курсор,
 кнопки налаштовуються в ⚙ → **«Геймпад»**); пультом від телевізора грати не вийде. Встановіть її
 файловим менеджером із флешки або з комп'ютера: `adb connect <IP-адреса телевізора>`, потім
-`adb install` `HeroesIV-<version>-android_arm64.apk`. Телевізору потрібні 64-бітний Android і
+`adb install` `reHoMM4-v<version>-android_arm64.apk`. Телевізору потрібні 64-бітний Android і
 Vulkan: багато ТВ-приставок і стіків працюють на 32-бітному Android, і на них гра не встановиться.
 
 #### Linux
@@ -511,7 +512,7 @@ Vulkan: багато ТВ-приставок і стіків працюють н
 1. Розпакуйте архів туди, де житиме гра, наприклад у `~/Games`:
    ```sh
    mkdir -p ~/Games
-   tar -xzf ~/Downloads/HeroesIV-<version>-linux-x86_64.tar.gz -C ~/Games
+   tar -xzf ~/Downloads/reHoMM4-v<version>-linux-x86_64.tar.gz -C ~/Games
    ```
 2. Запустіть:
    ```sh
@@ -528,7 +529,7 @@ Vulkan: багато ТВ-приставок і стіків працюють н
 #### Steam Deck
 
 1. Перейдіть у **режим робочого столу** (кнопка Steam → **Power** → **Switch to Desktop**).
-2. У Firefox (чи іншому браузері) завантажте `HeroesIV-<version>-linux-x86_64.tar.gz`.
+2. У Firefox (чи іншому браузері) завантажте `reHoMM4-v<version>-linux-x86_64.tar.gz`.
 3. У **Dolphin** (файловий менеджер) відкрийте **Downloads**, правою кнопкою на архіві → **Extract** →
    **Extract archive to…** → оберіть, наприклад, `/home/deck/Games`.
 4. Додайте в Steam: **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
@@ -549,7 +550,7 @@ Vulkan: багато ТВ-приставок і стіків працюють н
 чи GOG Galaxy, або теку `game` ReHoMM4 на Mac чи ПК).
 
 1. Вставте SD-картку в комп'ютер і створіть на ній теку `switch/ReHoMM4`.
-2. Скопіюйте в неї `HeroesIV-<version>-switch.nro`, перейменувавши на `HeroesIV.nro`, і теку
+2. Скопіюйте в неї `reHoMM4-v<version>-switch.nro`, перейменувавши на `HeroesIV.nro`, і теку
    встановленої гри, перейменувавши на `game`. На картці:
    ```
    switch/ReHoMM4/HeroesIV.nro
@@ -754,8 +755,8 @@ SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У р�
 `VERSION`, текст релізу — її розділ у [`CHANGELOG.md`](CHANGELOG.md):
 
 ```
-tools/release/make_release.sh 0.2           # збирає всі програми й перевіряє їх: .cache/release-0.2/
-tools/release/make_release.sh 0.2 --draft   # далі пушить тег 0.2 і створює чернетку релізу на GitHub
+tools/release/make_release.sh 0.3           # збирає всі програми й перевіряє їх: .cache/release-0.3/
+tools/release/make_release.sh 0.3 --draft   # далі пушить тег v0.4 і створює чернетку релізу на GitHub
 ```
 
 ### Подяки
