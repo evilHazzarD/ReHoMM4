@@ -85,7 +85,11 @@ say "Checking"
 # install over the old version.
 apksigner="$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
 [[ -x "$apksigner" ]] || die "no apksigner (Android SDK build-tools)"
-cert="$(JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}" "$apksigner" verify --print-certs "$OUT/HeroesIV-$V-android_arm64.apk" |
+# apksigner runs the java on PATH (macOS's /usr/bin/java is only a stub): Homebrew's JDK, as
+# platforms/android/package.sh, unless JAVA_HOME has a working one.
+[[ -x "${JAVA_HOME:-}/bin/java" ]] || export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+export PATH="$JAVA_HOME/bin:$PATH"
+cert="$("$apksigner" verify --print-certs "$OUT/HeroesIV-$V-android_arm64.apk" |
   sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
 [[ "$cert" == "$(cat platforms/android/release-cert.sha256)" ]] ||
   die "the APK is not signed with the release key (got ${cert:-nothing}): see platforms/android/app/build.gradle"
