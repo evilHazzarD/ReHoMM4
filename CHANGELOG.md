@@ -2,6 +2,68 @@
 
 Each release's notes on GitHub are its section here (tools/release/make_release.sh). Newest first.
 
+## 0.3
+
+The Switch app runs, other-language GOG installers, smoother play on phones, and fixes.
+
+| Device | File |
+|---|---|
+| Mac, macOS 13+ | `HeroesIV-0.3-macos-arm64.dmg` (Apple chip, M1 or newer) or `HeroesIV-0.3-macos-x86_64.dmg` (Intel) |
+| iPhone, iPad, iOS / iPadOS 17+ | `HeroesIV-0.3-ios.ipa` (install with AltStore or Sideloadly) |
+| Android 10+, 64-bit | `HeroesIV-0.3-android_arm64.apk` |
+| Linux, Steam Deck | `HeroesIV-0.3-linux-x86_64.tar.gz` |
+| Switch (homebrew) | `HeroesIV-0.3-switch.nro` |
+
+**New**
+- **GOG installers in any language**: put `heroes4.exe` from GOG's English version next to the installer files (or pick it with them), and the game plays in the installer's language. An installed game in another language works the same way, with the English `heroes4.exe` in its folder.
+- **The game's language from GOG** shows in the settings when the game was installed in another language.
+- **Switch**: the game is copied to the card as an installed folder (`switch/ReHoMM4/game`); the app no longer unpacks installers there, and says where to copy the game when it is missing.
+- **60 frames a second at most** by default, on 120 Hz screens too: less battery and heat, the same motion.
+- **Close button** (✕) in the installer on the Mac and Linux.
+
+**Changed**
+- The installer checks only `heroes4.exe`: other languages' installers have a different set of files.
+- Gamepad support is always on: the settings no longer have a checkbox for it.
+- The Mac settings show one saves folder: the synced one while sync is on, otherwise the saves' own.
+
+**Fixed**
+- The game could crash on its first start right after installing (Mac).
+- Switch: crashes at the start and while installing, a black screen, and a picture too wide for the screen.
+- Smoother frames on Android phones and on the Switch.
+
+**Known limits**
+- The Mac app is not signed: the first time, right-click it → **Open** → **Open**.
+- The Switch app has been tested only in the Astris emulator, not on a real console. The Intel Mac app has been tested only under Rosetta.
+
+How to install and run: [README](https://github.com/evilHazzarD/ReHoMM4#readme).
+
+---
+
+Програма для Switch запускається, інсталятори GOG іншими мовами, плавніша гра на телефонах і виправлення.
+
+**Нове**
+- **Інсталятори GOG будь-якою мовою**: покладіть `heroes4.exe` з англійської версії GOG поруч з файлами інсталятора (або оберіть його разом з ними) — і гра йде мовою інсталятора. Встановлена гра іншою мовою працює так само, з англійським `heroes4.exe` у її теці.
+- **Мова гри з GOG** показується в налаштуваннях, коли гру встановлено іншою мовою.
+- **Switch**: гра копіюється на картку встановленою текою (`switch/ReHoMM4/game`); інсталятори там більше не розпаковуються, а без гри програма пише, куди її скопіювати.
+- **Не більше 60 кадрів на секунду** типово, і на екранах 120 Гц: менше витрат батареї й нагріву, рух той самий.
+- **Кнопка закриття** (✕) в інсталяторі на Маці й Linux.
+
+**Змінено**
+- Інсталятор перевіряє лише `heroes4.exe`: в інсталяторах іншими мовами інший набір файлів.
+- Підтримка геймпада завжди увімкнена: прапорця для неї в налаштуваннях більше немає.
+- Налаштування на Маці показують одну теку збережень: синхронізовану, коли синхронізація увімкнена, інакше — власну.
+
+**Виправлено**
+- Гра могла падати при першому запуску одразу після встановлення (Мак).
+- Switch: падіння на старті й під час встановлення, чорний екран і зображення, ширше за екран.
+- Плавніші кадри на телефонах з Android і на Switch.
+
+**Обмеження**
+- Програма для Мака не підписана: першого разу — правою кнопкою → **«Відкрити»** → **«Відкрити»**.
+- Програму для Switch перевірено лише в емуляторі Astris, на справжній консолі — ще ні. Програму для Мака з Intel перевірено лише через Rosetta.
+
+Як встановити й запустити: [README](https://github.com/evilHazzarD/ReHoMM4#українською).
+
 ## 0.2
 
 Settings on every device, gamepad controls you can change, and the Ukrainian translation's single scenarios.
