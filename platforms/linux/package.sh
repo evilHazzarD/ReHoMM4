@@ -9,11 +9,12 @@
 #   Heroes IV/THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py)
 #   Heroes IV/install-desktop-entry.sh   adds it to the desktop's menu (Steam Deck: Desktop Mode)
 #
-#   platforms/linux/package.sh <build dir>
+#   platforms/linux/package.sh <build dir> [linux|linux-arm64]
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-source "$ROOT/platforms/env.sh" linux
+source "$ROOT/platforms/env.sh" "${2:-linux}"
 B="$1"
+ARCH=x86_64; [[ $TARGET == linux-arm64 ]] && ARCH=arm64
 OUT="$MOBILE_CACHE/dist"
 D="$OUT/Heroes IV"
 rm -rf "$OUT"; mkdir -p "$D/lib"
@@ -60,5 +61,5 @@ is the left button.
 
 Language: Steam > the game > Properties > Launch options: --lang=<code> (uk Ukrainian, ...) or --lang=en.
 TXT
-tar -czf "$OUT/HeroesIV-linux-x86_64.tar.gz" -C "$OUT" "Heroes IV"
-echo "linux: $OUT/HeroesIV-linux-x86_64.tar.gz ($(du -sh "$OUT/HeroesIV-linux-x86_64.tar.gz" | cut -f1))"
+tar -czf "$OUT/HeroesIV-linux-$ARCH.tar.gz" -C "$OUT" "Heroes IV"
+echo "$TARGET: $OUT/HeroesIV-linux-$ARCH.tar.gz ($(du -sh "$OUT/HeroesIV-linux-$ARCH.tar.gz" | cut -f1))"

@@ -24,7 +24,7 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   - a Mac with macOS 13 or later (an Apple chip or Intel);
   - an iPhone or iPad with iOS / iPadOS 17 or later;
   - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
-  - a Linux PC (x86-64) or a Steam Deck;
+  - a Linux PC (x86-64 or 64-bit ARM) or a Steam Deck;
   - a Nintendo Switch that runs homebrew.
 - An internet connection and about 3 GB of free space.
 
@@ -43,7 +43,7 @@ below is the release's number (for example `0.3`; releases before 0.3 named them
 | Mac | `reHoMM4-v<version>-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
-| Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` |
+| Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-bit ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 
 Not sure which Mac you have:  → **About This Mac**; "Chip: Apple M…" is an Apple chip,
@@ -114,8 +114,9 @@ and sticks run 32-bit Android and cannot install it.
 
 ### Linux
 
-An x86-64 PC with glibc 2.36 or later (Debian 12, Ubuntu 22.10, Fedora 37, SteamOS 3 and newer),
-Vulkan graphics drivers, X11 or Wayland (through Xwayland).
+An x86-64 or 64-bit ARM (arm64) PC with glibc 2.36 or later (Debian 12, Ubuntu 22.10, Fedora 37,
+SteamOS 3 and newer), Vulkan graphics drivers, X11 or Wayland (through Xwayland). On ARM, take
+`…-linux-arm64.tar.gz` instead of `…-linux-x86_64.tar.gz` below.
 
 1. Unpack the archive where the game should live, for example `~/Games`:
    ```sh
@@ -349,6 +350,7 @@ game and prepares its code, then for each platform `platforms/deps.sh <platform>
 | `platforms/build.sh ios [TEAM_ID]` | `HeroesIV-ios.ipa` |
 | `platforms/build.sh android` | `HeroesIV-android_arm64.apk` |
 | `platforms/build.sh linux` | `HeroesIV-linux-x86_64.tar.gz` |
+| `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
 | `platforms/build.sh macos-arm64` | `Heroes IV.app` and `HeroesIV-macos-arm64.dmg` |
 | `platforms/build.sh macos-x86_64` | `Heroes IV.app` and `HeroesIV-macos-x86_64.dmg` (Intel) |
 | `platforms/build.sh switch` | `HeroesIV.nro` |
@@ -417,7 +419,7 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
   - Мак з macOS 13 або новішою (процесор Apple або Intel);
   - iPhone або iPad з iOS / iPadOS 17 або новішою;
   - телефон, планшет чи телевізор на Android (64-бітний, Android 10 або новіший; на телевізорі — з геймпадом);
-  - ПК з Linux (x86-64) або Steam Deck;
+  - ПК з Linux (x86-64 чи 64-бітний ARM) або Steam Deck;
   - Nintendo Switch, на якому запускається homebrew.
 - Інтернет і близько 3 ГБ вільного місця.
 
@@ -435,7 +437,7 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 | Мак | `reHoMM4-v<version>-macos-arm64.dmg` (процесор Apple, M1 або новіший) або `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
-| ПК з Linux, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` |
+| ПК з Linux, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-бітний ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 
 Який у вас Мак:  → **Про цей Mac**; «Чип: Apple M…» — процесор Apple, «Процесор: … Intel» — Intel.
@@ -506,8 +508,9 @@ Vulkan: багато ТВ-приставок і стіків працюють н
 
 #### Linux
 
-ПК x86-64 з glibc 2.36 або новішою (Debian 12, Ubuntu 22.10, Fedora 37, SteamOS 3 і новіші),
-драйвери з Vulkan, X11 або Wayland (через Xwayland).
+ПК x86-64 чи 64-бітний ARM (arm64) з glibc 2.36 або новішою (Debian 12, Ubuntu 22.10, Fedora 37,
+SteamOS 3 і новіші), драйвери з Vulkan, X11 або Wayland (через Xwayland). На ARM беріть
+`…-linux-arm64.tar.gz` замість `…-linux-x86_64.tar.gz` нижче.
 
 1. Розпакуйте архів туди, де житиме гра, наприклад у `~/Games`:
    ```sh
@@ -740,6 +743,7 @@ SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У р�
 | `platforms/build.sh ios [TEAM_ID]` | `HeroesIV-ios.ipa` |
 | `platforms/build.sh android` | `HeroesIV-android_arm64.apk` |
 | `platforms/build.sh linux` | `HeroesIV-linux-x86_64.tar.gz` |
+| `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
 | `platforms/build.sh macos-arm64` | `Heroes IV.app` і `HeroesIV-macos-arm64.dmg` |
 | `platforms/build.sh macos-x86_64` | `Heroes IV.app` і `HeroesIV-macos-x86_64.dmg` (Intel) |
 | `platforms/build.sh switch` | `HeroesIV.nro` |

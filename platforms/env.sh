@@ -1,11 +1,12 @@
 #!/bin/bash
-# Sourced by the mobile scripts: `source platforms/env.sh <ios|android|linux>` (linux: x86-64, the
-# Steam Deck; cross-built against platforms/linux/sysroot.py's Debian sysroot). Sets TARGET, MOBILE_CACHE,
+# Sourced by the mobile scripts: `source platforms/env.sh <ios|android|linux|linux-arm64>` (linux:
+# x86-64, the Steam Deck; linux-arm64: 64-bit ARM; both cross-built against platforms/linux/sysroot.py's
+# Debian sysroot). Sets TARGET, MOBILE_CACHE,
 # PREFIX (the cross-built libraries), JOBS, CMAKE_TARGET_ARGS (toolchain flags for any CMake project)
 # and FFMPEG_TARGET_ARGS (ffmpeg's configure).
 TARGET="${1:-}"
-case "$TARGET" in ios|android|linux|macos-arm64|macos-x86_64|switch) ;;
-  *) echo "usage: $0 ios|android|linux|macos-arm64|macos-x86_64|switch" >&2; exit 2 ;; esac
+case "$TARGET" in ios|android|linux|linux-arm64|macos-arm64|macos-x86_64|switch) ;;
+  *) echo "usage: $0 ios|android|linux|linux-arm64|macos-arm64|macos-x86_64|switch" >&2; exit 2 ;; esac
 ROOT="${ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # Homebrew first: an older cmake (MacPorts) cannot read the x86recomp presets.
 [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -63,7 +64,15 @@ elif [[ $TARGET == switch ]]; then
   FFMPEG_TARGET_ARGS=(--enable-cross-compile --target-os=none --arch=aarch64 --cross-prefix="$SW"
     --disable-pic --disable-runtime-cpudetect --disable-pthreads --disable-asm
     --extra-cflags="$SWFLAGS" --extra-ldflags="-specs=$DEVKITPRO/libnx/switch.specs -L$DEVKITPRO/libnx/lib")
-elif [[ $TARGET == linux ]]; then
+elif [[ $TARGET == linux* ]]; then
+  # x86-64 (linux): the Steam Deck's Zen 2 and any x86-64 from 2013 on (AVX2); arm64: ARMv8-A.
+  if [[ $TARGET == linux-arm64 ]]; then
+    export H4_LINUX_TRIPLE=aarch64-linux-gnu H4_LINUX_CPU=aarch64 H4_LINUX_DEB=arm64 H4_LINUX_MARCH=armv8-a
+    LINUX_FFMPEG_ARCH=(--arch=aarch64)
+  else
+    export H4_LINUX_TRIPLE=x86_64-linux-gnu H4_LINUX_CPU=x86_64 H4_LINUX_DEB=amd64 H4_LINUX_MARCH=x86-64-v3
+    LINUX_FFMPEG_ARCH=(--arch=x86_64 --disable-x86asm)
+  fi
   export H4_LINUX_SYSROOT="$MOBILE_CACHE/sysroot" H4_LINUX_PREFIX="$PREFIX"
   export H4_LINUX_LLVM="${H4_LINUX_LLVM:-$(brew --prefix llvm 2>/dev/null)}"
   ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
@@ -71,15 +80,15 @@ elif [[ $TARGET == linux ]]; then
   [[ -x "$H4_LINUX_LLVM/bin/clang" ]] || { echo "no Homebrew llvm (brew install llvm)" >&2; exit 2; }
   [[ -x "$H4_LINUX_LLD" ]] || { echo "no ld.lld (the Android NDK's, or set H4_LINUX_LLD)" >&2; exit 2; }
   [[ -f "$H4_LINUX_SYSROOT/.complete" ]] ||
-    python3 -I "$ROOT/platforms/linux/sysroot.py" "$H4_LINUX_SYSROOT" >/dev/null || exit 1
+    python3 -I "$ROOT/platforms/linux/sysroot.py" "$H4_LINUX_SYSROOT" "$H4_LINUX_DEB" >/dev/null || exit 1
   CMAKE_TARGET_ARGS=(-DCMAKE_TOOLCHAIN_FILE="$ROOT/platforms/linux/toolchain.cmake"
     -DCMAKE_PREFIX_PATH="$PREFIX")
-  LCC="$H4_LINUX_LLVM/bin/clang --target=x86_64-linux-gnu --sysroot=$H4_LINUX_SYSROOT"
-  FFMPEG_TARGET_ARGS=(--enable-cross-compile --target-os=linux --arch=x86_64 --disable-x86asm
-    --cc="$LCC" --cxx="$H4_LINUX_LLVM/bin/clang++ --target=x86_64-linux-gnu --sysroot=$H4_LINUX_SYSROOT"
+  LCC="$H4_LINUX_LLVM/bin/clang --target=$H4_LINUX_TRIPLE --sysroot=$H4_LINUX_SYSROOT"
+  FFMPEG_TARGET_ARGS=(--enable-cross-compile --target-os=linux "${LINUX_FFMPEG_ARCH[@]}"
+    --cc="$LCC" --cxx="$H4_LINUX_LLVM/bin/clang++ --target=$H4_LINUX_TRIPLE --sysroot=$H4_LINUX_SYSROOT"
     --ld="$LCC --ld-path=$H4_LINUX_LLD" --nm="$H4_LINUX_LLVM/bin/llvm-nm" --ar="$H4_LINUX_LLVM/bin/llvm-ar"
     --ranlib="$H4_LINUX_LLVM/bin/llvm-ranlib" --strip="$H4_LINUX_LLVM/bin/llvm-strip"
-    --extra-cflags="-march=x86-64-v3" --host-cc=/usr/bin/clang)
+    --extra-cflags="-march=$H4_LINUX_MARCH" --host-cc=/usr/bin/clang)
 else
   if [[ -z "${ANDROID_NDK:-}" ]]; then
     ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"

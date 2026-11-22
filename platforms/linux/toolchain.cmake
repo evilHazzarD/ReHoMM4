@@ -1,9 +1,10 @@
-# Cross-building for Linux x86-64 (Steam Deck) on a Mac: Homebrew's clang aimed at the Debian
+# Cross-building for Linux x86-64 (Steam Deck) or arm64 on a Mac (H4_LINUX_TRIPLE, _CPU, _MARCH:
+# platforms/env.sh): Homebrew's clang aimed at the Debian
 # sysroot (platforms/linux/sysroot.py), linked by the Android NDK's ld.lld (Homebrew's lld is a
 # separate formula; the NDK's is the same linker). platforms/env.sh linux passes the paths.
 set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR x86_64)
-set(_t x86_64-linux-gnu)
+set(CMAKE_SYSTEM_PROCESSOR "$ENV{H4_LINUX_CPU}")
+set(_t "$ENV{H4_LINUX_TRIPLE}")
 set(CMAKE_SYSROOT "$ENV{H4_LINUX_SYSROOT}")
 set(CMAKE_C_COMPILER "$ENV{H4_LINUX_LLVM}/bin/clang")
 set(CMAKE_CXX_COMPILER "$ENV{H4_LINUX_LLVM}/bin/clang++")
@@ -20,9 +21,9 @@ set(_ld "--ld-path=$ENV{H4_LINUX_LLD}")
 set(CMAKE_EXE_LINKER_FLAGS_INIT "${_ld}")
 set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_ld}")
 set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_ld}")
-# The Steam Deck's CPU (Zen 2) and any x86-64 from 2013 on: x86-64-v3 (AVX2).
-set(CMAKE_C_FLAGS_INIT "-march=x86-64-v3")
-set(CMAKE_CXX_FLAGS_INIT "-march=x86-64-v3")
+# x86-64-v3 (AVX2: the Steam Deck's Zen 2, any x86-64 from 2013 on), or armv8-a.
+set(CMAKE_C_FLAGS_INIT "-march=$ENV{H4_LINUX_MARCH}")
+set(CMAKE_CXX_FLAGS_INIT "-march=$ENV{H4_LINUX_MARCH}")
 set(CMAKE_FIND_ROOT_PATH "$ENV{H4_LINUX_PREFIX}")
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)

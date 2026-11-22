@@ -11,7 +11,7 @@ The Switch app runs, other-language GOG installers, smoother play on phones, and
 | Mac, macOS 13+ | `reHoMM4-v0.3-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v0.3-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad, iOS / iPadOS 17+ | `reHoMM4-v0.3-ios.ipa` (install with AltStore or Sideloadly) |
 | Android 10+, 64-bit | `reHoMM4-v0.3-android_arm64.apk` |
-| Linux, Steam Deck | `reHoMM4-v0.3-linux-x86_64.tar.gz` |
+| Linux, Steam Deck | `reHoMM4-v0.3-linux-x86_64.tar.gz` (x86-64) or `reHoMM4-v0.3-linux-arm64.tar.gz` (64-bit ARM) |
 | Switch (homebrew) | `reHoMM4-v0.3-switch.nro` |
 
 **New**
@@ -20,6 +20,7 @@ The Switch app runs, other-language GOG installers, smoother play on phones, and
 - **Switch**: the game is copied to the card as an installed folder (`switch/ReHoMM4/game`); the app no longer unpacks installers there, and says where to copy the game when it is missing.
 - **60 frames a second at most** by default, on 120 Hz screens too: less battery and heat, the same motion.
 - **Close button** (✕) in the installer on the Mac and Linux.
+- **Linux on 64-bit ARM** (arm64): a build of its own, `reHoMM4-v0.3-linux-arm64.tar.gz`.
 - The release is tagged `v0.3` and its files are named `reHoMM4-v0.3-…` (were `HeroesIV-0.2-…`); the update check in the apps finds both.
 
 **Changed**
@@ -35,7 +36,7 @@ The Switch app runs, other-language GOG installers, smoother play on phones, and
 
 **Known limits**
 - The Mac app is not signed: the first time, right-click it → **Open** → **Open**.
-- The Switch app has been tested only in the Astris emulator, not on a real console. The Intel Mac app has been tested only under Rosetta.
+- The Switch app has been tested only in the Astris emulator, not on a real console. The Intel Mac app has been tested only under Rosetta. The Linux arm64 app has not been tested on an ARM machine yet.
 
 How to install and run: [README](https://github.com/evilHazzarD/ReHoMM4#readme).
 
@@ -49,6 +50,7 @@ How to install and run: [README](https://github.com/evilHazzarD/ReHoMM4#readme).
 - **Switch**: гра копіюється на картку встановленою текою (`switch/ReHoMM4/game`); інсталятори там більше не розпаковуються, а без гри програма пише, куди її скопіювати.
 - **Не більше 60 кадрів на секунду** типово, і на екранах 120 Гц: менше витрат батареї й нагріву, рух той самий.
 - **Кнопка закриття** (✕) в інсталяторі на Маці й Linux.
+- **Linux на 64-бітному ARM** (arm64): окрема збірка, `reHoMM4-v0.3-linux-arm64.tar.gz`.
 - Тег релізу — `v0.3`, файли звуться `reHoMM4-v0.3-…` (було `HeroesIV-0.2-…`); перевірка оновлень у програмах знаходить обидва формати.
 
 **Змінено**
@@ -64,7 +66,7 @@ How to install and run: [README](https://github.com/evilHazzarD/ReHoMM4#readme).
 
 **Обмеження**
 - Програма для Мака не підписана: першого разу — правою кнопкою → **«Відкрити»** → **«Відкрити»**.
-- Програму для Switch перевірено лише в емуляторі Astris, на справжній консолі — ще ні. Програму для Мака з Intel перевірено лише через Rosetta.
+- Програму для Switch перевірено лише в емуляторі Astris, на справжній консолі — ще ні. Програму для Мака з Intel перевірено лише через Rosetta. Програму для Linux arm64 ще не перевірено на ARM-комп'ютері.
 
 Як встановити й запустити: [README](https://github.com/evilHazzarD/ReHoMM4#українською).
 

@@ -56,6 +56,7 @@ TARGETS=(
   "ios          HeroesIV-ios.ipa               reHoMM4-v$V-ios.ipa"
   "android      HeroesIV-android_arm64.apk     reHoMM4-v$V-android_arm64.apk"
   "linux        HeroesIV-linux-x86_64.tar.gz   reHoMM4-v$V-linux-x86_64.tar.gz"
+  "linux-arm64  HeroesIV-linux-arm64.tar.gz    reHoMM4-v$V-linux-arm64.tar.gz"
   "switch       HeroesIV.nro                   reHoMM4-v$V-switch.nro"
 )
 for t in "${TARGETS[@]}"; do
@@ -98,7 +99,9 @@ cert="$("$apksigner" verify --print-certs "$OUT/reHoMM4-v$V-android_arm64.apk" |
   die "the APK is not signed with the release key (got ${cert:-nothing}): see platforms/android/app/build.gradle"
 echo "apk: signed with the release key"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-mkdir -p "$T/linux"; tar -xzf "$OUT/reHoMM4-v$V-linux-x86_64.tar.gz" -C "$T/linux"
+mkdir -p "$T/linux" "$T/linux-arm64"
+tar -xzf "$OUT/reHoMM4-v$V-linux-x86_64.tar.gz" -C "$T/linux"
+tar -xzf "$OUT/reHoMM4-v$V-linux-arm64.tar.gz" -C "$T/linux-arm64"
 for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk; do
   case "$f" in
     *.dmg) bash tools/release/release_check.sh "$f" 2>/dev/null ;;
@@ -106,9 +109,10 @@ for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk; do
   esac
 done
 bash tools/release/release_check.sh "$T/linux" | sed "s#$T/linux#linux tar.gz#"
-python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$T/linux" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} |
+bash tools/release/release_check.sh "$T/linux-arm64" | sed "s#$T/linux-arm64#linux-arm64 tar.gz#"
+python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} |
   grep -E '^(FAIL|publish_check)' | sed "s#$T/##"
-python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$T/linux" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} >/dev/null ||
+python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} >/dev/null ||
   die "publish_check failed (above)"
 
 say "Release $V: $OUT"

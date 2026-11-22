@@ -1,9 +1,9 @@
-"""A Linux x86-64 sysroot from Debian 12 (bookworm) packages, for cross-building the Linux (Steam
-Deck) version on a Mac (platforms/env.sh linux). glibc 2.36: the binary runs on SteamOS 3 and on
+"""A Linux sysroot (x86-64, or arm64) from Debian 12 (bookworm) packages, for cross-building the
+Linux (Steam Deck) version on a Mac (platforms/env.sh linux / linux-arm64). glibc 2.36: the binary runs on SteamOS 3 and on
 distributions from 2022 on. Headers and libraries only: SDL3 loads X11, PulseAudio, PipeWire,
 ALSA and udev at run time from the system, so only their headers matter here.
 
-    python3 -I platforms/linux/sysroot.py <out dir>
+    python3 -I platforms/linux/sysroot.py <out dir> [amd64|arm64]
 """
 import io
 import lzma
@@ -21,7 +21,7 @@ PACKAGES = [
     # C/C++ toolchain parts clang links against
     'libc6', 'libc6-dev', 'linux-libc-dev', 'libgcc-12-dev', 'libgcc-s1', 'libstdc++-12-dev',
     'libstdc++6', 'zlib1g', 'zlib1g-dev', 'libasan8', 'libitm1', 'libquadmath0', 'libtsan2',
-    'libubsan1', 'liblsan0', 'libatomic1', 'libgomp1',
+    'libubsan1', 'liblsan0', 'libatomic1', 'libgomp1',  # (libquadmath0: x86 only, OPTIONAL)
     # SDL3's video (X11: Steam Deck's Game Mode runs games on gamescope's Xwayland)
     'libx11-dev', 'libx11-6', 'x11proto-dev', 'libxext-dev', 'libxext6', 'libxrandr-dev',
     'libxrender-dev', 'libxi-dev', 'libxfixes-dev', 'libxcursor-dev', 'libxss-dev', 'libxcb1-dev',
@@ -36,8 +36,12 @@ PACKAGES = [
 ]
 
 
-def packages_index():
-    url = f'{MIRROR}/dists/{DIST}/main/binary-amd64/Packages.xz'
+# Not built for every architecture: left out where Debian has none.
+OPTIONAL = {'libquadmath0'}
+
+
+def packages_index(arch):
+    url = f'{MIRROR}/dists/{DIST}/main/binary-{arch}/Packages.xz'
     data = lzma.decompress(urllib.request.urlopen(url, timeout=120).read()).decode('utf-8', 'replace')
     index = {}
     for block in data.split('\n\n'):
@@ -86,18 +90,20 @@ def fix_links(out):
     # them in the sysroot when it is given (--sysroot), as clang does.
 
 
-def main(out):
+def main(out, arch='amd64'):
     os.makedirs(out, exist_ok=True)
     for d in ('lib', 'lib64', 'bin', 'sbin'):  # merged /usr
         p = os.path.join(out, d)
         if not os.path.lexists(p):
             os.makedirs(os.path.join(out, 'usr', d), exist_ok=True)
             os.symlink(os.path.join('usr', d), p)
-    index = packages_index()
+    index = packages_index(arch)
     with tempfile.TemporaryDirectory() as t:
         for name in PACKAGES:
             if name not in index:
-                sys.exit(f'{name}: not in {DIST}')
+                if name in OPTIONAL:
+                    continue
+                sys.exit(f'{name}: not in {DIST} ({arch})')
             deb = os.path.join(t, os.path.basename(index[name]))
             with urllib.request.urlopen(f'{MIRROR}/{index[name]}', timeout=300) as r, open(deb, 'wb') as f:
                 shutil.copyfileobj(r, f)
@@ -109,4 +115,4 @@ def main(out):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else 'amd64')

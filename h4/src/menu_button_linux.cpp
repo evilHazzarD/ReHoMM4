@@ -589,6 +589,13 @@ void MakeList() {
 
 #if defined(H4_LINUX_APP)
 // "0.10" > "0.9" ("v" in front ignored).
+// This build's file in a release (its architecture's).
+#if defined(__aarch64__)
+const std::string kTarSuffix = "-linux-arm64.tar.gz";
+#else
+const std::string kTarSuffix = "-linux-x86_64.tar.gz";
+#endif
+
 bool Newer(std::string a, std::string b) {
   auto nums = [](std::string s) {
     if (!s.empty() && s[0] == 'v') s.erase(0, 1);
@@ -629,8 +636,8 @@ void CheckForUpdates() {
     std::string url;
     for (size_t i = 0; i < rel["assets"].size(); i++)
       if (const std::string n = rel["assets"][i]["name"].text();  // reHoMM4-v<version>-linux-… (0.2: HeroesIV-<version>-…)
-          (n.rfind("reHoMM4-", 0) == 0 || n.rfind("HeroesIV-", 0) == 0) && n.size() > 20 &&
-          n.substr(n.size() - 20) == "-linux-x86_64.tar.gz")
+          (n.rfind("reHoMM4-", 0) == 0 || n.rfind("HeroesIV-", 0) == 0) && n.size() > kTarSuffix.size() &&
+          n.compare(n.size() - kTarSuffix.size(), kTarSuffix.size(), kTarSuffix) == 0)
         url = rel["assets"][i]["browser_download_url"].text();
     std::fprintf(stderr, "h4: update check: %s on GitHub, this is %s\n", tag.c_str(), H4_VERSION_STRING);
     std::lock_guard<std::mutex> l(g_mu);
@@ -656,7 +663,7 @@ void DownloadUpdate() {
     // The release's own name for it (never over a file there: "<name> 2.tar.gz"...).
     std::string base = url.substr(url.rfind('/') + 1);
     if (base.size() > 7 && base.compare(base.size() - 7, 7, ".tar.gz") == 0) base.resize(base.size() - 7);
-    if (base.empty()) base = "reHoMM4-" + tag + "-linux-x86_64";
+    if (base.empty()) base = "reHoMM4-" + tag + kTarSuffix.substr(0, kTarSuffix.size() - 7);
     std::string path = dir + "/" + base + ".tar.gz";
     for (int i = 2; access(path.c_str(), F_OK) == 0; i++) path = dir + "/" + base + " " + std::to_string(i) + ".tar.gz";
     bool ok = h4::install::HttpGet(url, "", &status, &body, &error) && status == 200 && !body.empty();

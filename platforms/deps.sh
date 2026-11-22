@@ -7,6 +7,7 @@
 #   platforms/deps.sh ios        iPhone/iPad, arm64, iOS 17+
 #   platforms/deps.sh android    arm64-v8a, API 29+ (Vulkan 1.1), NDK from ANDROID_NDK or the newest in the SDK
 #   platforms/deps.sh linux      x86-64 (Steam Deck), glibc 2.36+, cross-built against a Debian sysroot
+#   platforms/deps.sh linux-arm64  the same for 64-bit ARM
 #   platforms/deps.sh macos-arm64    the Mac app, Apple Silicon, macOS 13+
 #   platforms/deps.sh macos-x86_64   the Mac app, Intel, macOS 13+
 #   platforms/deps.sh switch     Nintendo Switch homebrew (devkitPro's SDL3 branch, no SDL_GPU)
@@ -79,7 +80,7 @@ if ! done_or_force "$PREFIX/lib/cmake/SDL3/SDL3Config.cmake"; then
   # iOS: static (an app's frameworks need their own bundle); Android: libSDL3.so, which SDLActivity loads.
   if [[ $TARGET == ios || $TARGET == macos-* || $TARGET == switch ]]; then sdl_shared=(-DSDL_SHARED=OFF -DSDL_STATIC=ON)
   else sdl_shared=(-DSDL_SHARED=ON -DSDL_STATIC=OFF); fi
-  if [[ $TARGET == linux ]]; then
+  if [[ $TARGET == linux* ]]; then
     # X11 (Game Mode's gamescope runs games on Xwayland; the desktop has Xwayland too), Vulkan,
     # PipeWire/PulseAudio/ALSA and udev, all loaded at run time; no Wayland (its scanner is a
     # build-time tool for the target) or KMS/DRM.
@@ -87,9 +88,9 @@ if ! done_or_force "$PREFIX/lib/cmake/SDL3/SDL3Config.cmake"; then
       -DSDL_PIPEWIRE=ON -DSDL_ALSA=ON -DSDL_JACK=OFF -DSDL_SNDIO=OFF -DSDL_LIBUDEV=ON -DSDL_DBUS=ON
       -DSDL_IBUS=OFF -DSDL_HIDAPI_LIBUSB=OFF -DSDL_X11_XTEST=OFF -DSDL_DEPS_SHARED=ON)
   fi
-  ( if [[ $TARGET == linux ]]; then  # the sysroot's .pc files (SDL's PipeWire/PulseAudio checks)
+  ( if [[ $TARGET == linux* ]]; then  # the sysroot's .pc files (SDL's PipeWire/PulseAudio checks)
       S="$H4_LINUX_SYSROOT"; export PKG_CONFIG_SYSROOT_DIR="$S"
-      export PKG_CONFIG_LIBDIR="$S/usr/lib/x86_64-linux-gnu/pkgconfig:$S/usr/share/pkgconfig:$S/usr/lib/pkgconfig"
+      export PKG_CONFIG_LIBDIR="$S/usr/lib/$H4_LINUX_TRIPLE/pkgconfig:$S/usr/share/pkgconfig:$S/usr/lib/pkgconfig"
     fi
     cmake_dep sdl3 "$SDL_SRC" "${sdl_shared[@]}" -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
     -DSDL_TEST_LIBRARY=OFF )
@@ -141,7 +142,7 @@ if ! done_or_force "$PREFIX/lib/libavcodec.a"; then
   # flags, leaving bare "CoreVideo" on the link line. One token each.
   sed -i '' -E 's/-framework ([A-Za-z]+)/-Wl,-framework,\1/g' "$PREFIX"/lib/pkgconfig/*.pc
   # Linux: libatomic inside the binary (not every system has libatomic.so.1).
-  [[ $TARGET == linux ]] && sed -i '' -E 's/-latomic/-l:libatomic.a/g' "$PREFIX"/lib/pkgconfig/*.pc
+  [[ $TARGET == linux* ]] && sed -i '' -E 's/-latomic/-l:libatomic.a/g' "$PREFIX"/lib/pkgconfig/*.pc
   rm -rf "$BLD/ffmpeg"
 fi
 echo "ffmpeg: ok"
@@ -167,7 +168,7 @@ if ! done_or_force "$PREFIX/lib/librecomp_innoextract.a"; then
     -DXZ_SANDBOX=no -DXZ_THREADS=$([[ $TARGET == switch ]] && echo no || echo posix) -DBUILD_TESTING=OFF \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
   bz=()
-  if [[ $TARGET == android || $TARGET == linux ]]; then  # no libbz2 in the NDK or the sysroot
+  if [[ $TARGET == android || $TARGET == linux* ]]; then  # no libbz2 in the NDK or the sysroot
     fetch_sha "https://sourceware.org/pub/bzip2/bzip2-$BZIP2_V.tar.gz" "$BZIP2_SHA"
     [[ -d "$SRC/bzip2-$BZIP2_V" ]] || tar -xzf "$SRC/bzip2-$BZIP2_V.tar.gz" -C "$SRC"
     bz=(-DBZIP2_SRC="$SRC/bzip2-$BZIP2_V")

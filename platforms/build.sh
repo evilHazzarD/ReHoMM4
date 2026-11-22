@@ -6,6 +6,7 @@
 #                                       (+ the Xcode project h4_recomp.xcodeproj next to it)
 #   platforms/build.sh android         ->  .cache/outputs/android/dist/HeroesIV-android_arm64.apk
 #   platforms/build.sh linux           ->  .cache/outputs/linux/dist/HeroesIV-linux-x86_64.tar.gz (Steam Deck)
+#   platforms/build.sh linux-arm64     ->  .cache/outputs/linux-arm64/dist/HeroesIV-linux-arm64.tar.gz
 #   platforms/build.sh switch          ->  .cache/outputs/switch/dist/HeroesIV.nro (Switch homebrew)
 #   platforms/build.sh macos-arm64     ->  .cache/outputs/macos-arm64/dist/Heroes IV.app (+ HeroesIV-macos-arm64.dmg)
 #   platforms/build.sh macos-x86_64    ->  .cache/outputs/macos-x86_64/dist/Heroes IV.app (+ HeroesIV-macos-x86_64.dmg, Intel Macs)
@@ -96,13 +97,13 @@ if [[ $TARGET == switch ]]; then
   python3 -I "$ROOT/platforms/notices.py" switch "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null
   bash "$ROOT/platforms/switch/package.sh" "$B"
 fi
-if [[ $TARGET == linux || $TARGET == macos-* ]]; then
+if [[ $TARGET == linux* || $TARGET == macos-* ]]; then
   cmake -S "$ROOT/h4" -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo "${CMAKE_TARGET_ARGS[@]}" \
     "${FETCH[@]}" "${HOSTTOOLS[@]}" "${LANG_ARGS[@]}" -DH4_DESKTOP_APP=ON -DRECOMP_STATIC_APP=ON \
     >"$B.configure.log" 2>&1 || { tail -40 "$B.configure.log"; exit 1; }
   { cmake --build "$B" --target h4 -j"$JOBS" 2>&1 | grep -E 'error|FAILED|Linking' || true; } | head -40
   [[ -f "$B/heroes4" ]] || die "heroes4 was not built (log above)"
-  python3 -I "$ROOT/platforms/notices.py" "${TARGET%-*}" "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null
-  if [[ $TARGET == linux ]]; then bash "$ROOT/platforms/linux/package.sh" "$B"
+  python3 -I "$ROOT/platforms/notices.py" "${TARGET%%-*}" "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null
+  if [[ $TARGET == linux* ]]; then bash "$ROOT/platforms/linux/package.sh" "$B" "$TARGET"
   else bash "$ROOT/platforms/macos/package.sh" "$B" "$TARGET"; fi
 fi
