@@ -29,6 +29,7 @@ The Switch app runs, other-language GOG installers, smoother play on phones, and
 
 **Fixed**
 - The game could crash on its first start right after installing (Mac).
+- Linux (X11): the game hung when fullscreen was turned off in the settings.
 - Switch: crashes at the start and while installing, a black screen, and a picture too wide for the screen.
 - Smoother frames on Android phones and on the Switch.
 
@@ -57,6 +58,7 @@ How to install and run: [README](https://github.com/evilHazzarD/ReHoMM4#readme).
 
 **Виправлено**
 - Гра могла падати при першому запуску одразу після встановлення (Мак).
+- Linux (X11): гра зависала, коли в налаштуваннях вимикали повноекранний режим.
 - Switch: падіння на старті й під час встановлення, чорний екран і зображення, ширше за екран.
 - Плавніші кадри на телефонах з Android і на Switch.
 
