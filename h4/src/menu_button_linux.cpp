@@ -756,7 +756,12 @@ void ShowLanguageButton(bool shown, int x, int y, int /*left: iOS only*/) {
         g_state = kNote;
         g_note_until = now + 6000;
       } else if (what == kRowFull) {
-        h4::SetFullscreen(!h4::Fullscreen());  // at once; the list stays
+        // At once; the list stays. Not under g_mu: X11's SDL_SetWindowSize pumps the events while
+        // it waits for the window, and OnEvent (an event watch) takes g_mu: the game hung.
+        const bool full = !h4::Fullscreen();
+        l.unlock();
+        h4::SetFullscreen(full);
+        l.lock();
         MakeList();
       } else if (what == kRowSkip) {
         h4::SetSkipIntro(!h4::SkipIntro());  // the box flips; the list stays
