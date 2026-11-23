@@ -14,12 +14,12 @@ Random maps, Switch 2, the game in a web browser, a new icon, and fixes.
 | Linux, Steam Deck | `reHoMM4-v0.4-linux-x86_64.tar.gz` (x86-64) or `reHoMM4-v0.4-linux-arm64.tar.gz` (64-bit ARM) |
 | Switch (homebrew) | `reHoMM4-v0.4-switch.nro` |
 | Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.4-switch2.nro` |
-| Web browser (desktop, 64-bit Chrome, Edge, Firefox, Safari) | no file: built from source and served (README: In a browser) |
+| Web browser (computer, phone or tablet; 64-bit Chrome, Edge, Firefox, Safari) | no file: built from source and served (README: In a browser) |
 
 **New**
 - **Random maps**: New Game → Scenario → **Random map**. Choose the template, the map size, the number of players (each human or computer, with faction, team and starting hero), water, underground, monsters, obelisks, treasures and the seed; most can be **Random**. The hero's card shows the starting hero's skills, statistics, army and biography. A random map in the list can be edited and made again.
 - **32 templates**: Classic and 31 more, our own layouts of the kinds popular in Heroes 3 (Ring, Spider, Mirror, Allies, Three on three, Labyrinth, Checkerboard, …). They are text files in `Maps/RandomMaps/Templates`: change them or add your own (`example.txt` explains the format).
-- **In a web browser**: the game compiled to WebAssembly runs in a desktop browser. It installs from GOG's installer files or an installed game's folder into the browser's storage; no public site yet: build it with `web/build.sh` and serve it (README: In a browser).
+- **In a web browser**: the game compiled to WebAssembly runs in a browser on a computer, phone or tablet. It installs from GOG's installer files or an installed game's folder into the browser's storage; no public site yet: build it with `web/build.sh` and serve it (README: In a browser).
 - **A new icon** on every platform.
 - **Switch 2**: its own build, `reHoMM4-v0.4-switch2.nro`, for kaiHEN's homebrew menu (README: Nintendo Switch 2).
 - **Black side panels** can be chosen in the settings (from the next start).

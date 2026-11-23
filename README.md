@@ -26,8 +26,8 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
   - a Linux PC (x86-64 or 64-bit ARM) or a Steam Deck;
   - a Nintendo Switch that runs homebrew (Atmosphère), or a Switch 2 that runs homebrew (kaiHEN);
-  - or a desktop web browser (64-bit Chrome, Edge, Firefox or Safari), on a site that hosts the
-    browser version ([In a browser](#in-a-browser)).
+  - or a web browser on a computer, phone or tablet (64-bit Chrome, Edge, Firefox or Safari), on a
+    site that hosts the browser version ([In a browser](#in-a-browser)).
 - An internet connection and about 3 GB of free space.
 
 ## Install
@@ -204,13 +204,14 @@ Switch. The Switch 2 app has not been tested on a console yet: reports are welco
 
 ### In a browser
 
-The same game, compiled to WebAssembly, runs in a desktop browser. There is no public site for it
+The same game, compiled to WebAssembly, runs in a browser, on a computer, phone or tablet. There is no public site for it
 yet and no file in the releases: build it from source and serve it, on your computer or on a site
 of your own.
 
-What it needs: a 64-bit desktop Chrome or Edge 112+, Firefox 121+ or Safari 18.2+, about 3 GB of
-free memory, and about 1.5 GB of storage for the site. Phones and tablets are not supported (too
-little memory for a page); use the apps there.
+What it needs: a 64-bit Chrome or Edge 112+, Firefox 121+ or Safari 18.2+ (on an iPhone or iPad:
+iOS / iPadOS 18.2+; on Android: Chrome), about 3 GB of free memory, and about 1.5 GB of storage
+for the site. On phones and tablets the screen is touched as in the apps, and the page shows a
+keyboard where the game wants text; with too little memory the browser closes the page.
 
 1. Build it (on a Mac, with the game installed for building: [Building from source](#building-from-source)):
    ```
@@ -483,8 +484,8 @@ Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузе�
   - телефон, планшет чи телевізор на Android (64-бітний, Android 10 або новіший; на телевізорі — з геймпадом);
   - ПК з Linux (x86-64 чи 64-бітний ARM) або Steam Deck;
   - Nintendo Switch, на якому запускається homebrew (Atmosphère), або Switch 2 з homebrew (kaiHEN);
-  - або браузер на комп'ютері (64-бітні Chrome, Edge, Firefox чи Safari), на сайті з версією для
-    браузера ([У браузері](#у-браузері)).
+  - або браузер на комп'ютері, телефоні чи планшеті (64-бітні Chrome, Edge, Firefox чи Safari), на
+    сайті з версією для браузера ([У браузері](#у-браузері)).
 - Інтернет і близько 3 ГБ вільного місця.
 
 ### Встановлення
@@ -659,13 +660,14 @@ Switch 2 на консолі ще не перевірено: відгуки — 
 
 #### У браузері
 
-Та сама гра, скомпільована у WebAssembly, працює в браузері на комп'ютері. Публічного сайту з нею
+Та сама гра, скомпільована у WebAssembly, працює в браузері на комп'ютері, телефоні чи планшеті. Публічного сайту з нею
 поки немає, і в релізах файлу для неї немає: зберіть її з коду й запустіть на своєму комп'ютері
 або на власному сайті.
 
-Що потрібно: 64-бітні Chrome чи Edge 112+, Firefox 121+ або Safari 18.2+ на комп'ютері, ~3 ГБ
-вільної пам'яті й ~1,5 ГБ місця для сайту. Телефони й планшети не підтримуються (замало пам'яті
-для сторінки): там є програми.
+Що потрібно: 64-бітні Chrome чи Edge 112+, Firefox 121+ або Safari 18.2+ (на iPhone чи iPad —
+iOS / iPadOS 18.2+; на Android — Chrome), ~3 ГБ вільної пам'яті й ~1,5 ГБ місця для сайту. На
+телефонах і планшетах — дотик, як у програмах, а де гра чекає тексту, сторінка показує клавіатуру;
+якщо пам'яті замало, браузер закриває сторінку.
 
 1. Зберіть (на Маці, з грою, встановленою для збирання: [Збирання з коду](#збирання-з-коду)):
    ```
