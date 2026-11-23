@@ -1,7 +1,7 @@
 #!/bin/bash
 # Packs the Mac build (platforms/build.sh macos-arm64|macos-x86_64) into ReHoMM4.app and a DMG:
 #
-#   ReHoMM4.app/Contents/MacOS/heroes4           the game (with the in-app installer)
+#   ReHoMM4.app/Contents/MacOS/ReHoMM4           the game (with the in-app installer)
 #   ReHoMM4.app/Contents/Resources/wings, <code>.h4p  the side panels and the translations built in
 #   ReHoMM4.app/Contents/Resources/AppIcon.icns   the shield icon (assets/icon)
 #   ReHoMM4.app/Contents/Resources/THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py)
@@ -17,7 +17,7 @@ B="$1"
 OUT="$MOBILE_CACHE/dist"
 APP="$OUT/ReHoMM4.app"
 rm -rf "$OUT"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-strip -S -o "$APP/Contents/MacOS/heroes4" "$B/heroes4"
+strip -S -o "$APP/Contents/MacOS/ReHoMM4" "$B/heroes4"
 [[ -d "$MOBILE_CACHE/res/wings" ]] && cp -R "$MOBILE_CACHE/res/wings" "$APP/Contents/Resources/wings"
 for p in "$MOBILE_CACHE"/res/*.h4p; do [[ -f "$p" ]] || continue; cp "$p" "$APP/Contents/Resources/"; done  # the translations in the app
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$APP/Contents/Resources/THIRD_PARTY_NOTICES.txt"
@@ -30,7 +30,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleName</key><string>Heroes IV</string>
   <key>CFBundleDisplayName</key><string>Heroes IV</string>
   <key>CFBundleIdentifier</key><string>games.hazzard.heroes4</string>
-  <key>CFBundleExecutable</key><string>heroes4</string>
+  <key>CFBundleExecutable</key><string>ReHoMM4</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$H4_VERSION</string>
   <key>CFBundleVersion</key><string>$H4_BUILD</string>

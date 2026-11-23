@@ -1,11 +1,11 @@
 #!/bin/bash
 # Packs the Switch build (platforms/build.sh switch) into a homebrew .nro:
 #
-#   HeroesIV.nro        heroes4.elf (stripped) + its romfs: wings/, ui/ (the language button's
+#   ReHoMM4.nro        heroes4.elf (stripped) + its romfs: wings/, ui/ (the language button's
 #                       pictures), the translations built in (<code>.h4p), THIRD_PARTY_NOTICES.txt; the shield icon (assets/icon).
 #   THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py), beside it too
 #
-# On the Switch (Atmosphere): copy it to sdmc:/switch/ReHoMM4/HeroesIV.nro, an installed game
+# On the Switch (Atmosphere): copy it to sdmc:/switch/ReHoMM4/ReHoMM4.nro, an installed game
 # (the folder with heroes4.exe) to sdmc:/switch/ReHoMM4/game, and start it from the homebrew menu in title takeover (hold R
 # while starting a game: the album applet has too little memory for the game).
 #
@@ -28,10 +28,10 @@ swift "$ROOT/platforms/linux/render_ui.swift" "$RF/ui" "${H4_VERSION:-}"
 ICON="$MOBILE_CACHE/icon.jpg"
 bash "$ROOT/assets/icon/icon.sh" switch "$ICON" >/dev/null
 "$T/nacptool" --create "Heroes IV" "ReHoMM4" "$H4_VERSION" "$MOBILE_CACHE/heroes4.nacp" >/dev/null
-"$T/elf2nro" "$MOBILE_CACHE/heroes4.stripped.elf" "$OUT/HeroesIV.nro" --icon="$ICON" \
+"$T/elf2nro" "$MOBILE_CACHE/heroes4.stripped.elf" "$OUT/ReHoMM4.nro" --icon="$ICON" \
   --nacp="$MOBILE_CACHE/heroes4.nacp" --romfsdir="$RF" >/dev/null
 if [[ $TARGET == switch2 ]]; then
-  python3 -I - "$OUT/HeroesIV.nro" <<'PY'
+  python3 -I - "$OUT/ReHoMM4.nro" <<'PY'
 import struct
 import sys
 
@@ -43,4 +43,4 @@ if header[16:20] != b'NRO0' or switch2_record not in header:
 PY
 fi
 rm -f "$MOBILE_CACHE/heroes4.stripped.elf"
-echo "$TARGET: $OUT/HeroesIV.nro ($(du -sh "$OUT/HeroesIV.nro" | cut -f1))"
+echo "$TARGET: $OUT/ReHoMM4.nro ($(du -sh "$OUT/ReHoMM4.nro" | cut -f1))"

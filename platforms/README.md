@@ -32,7 +32,7 @@ platforms/build.sh windows-x86_64     # -> .cache/outputs/windows-x86_64/dist/He
 ```
 
 The Windows build is cross-compiled on the Mac with Homebrew's MinGW-w64 (`brew install mingw-w64`).
-It is a portable folder containing `Heroes IV.exe` and `SDL3.dll`; it uses an existing GOG game
+It is a portable folder containing `ReHoMM4.exe` and `SDL3.dll`; it uses an existing GOG game
 installation passed with `--game-dir` (or `H4_GAME_DIR`).
 
 `tools/build.sh` also builds the Mac DMG; for the mobile builds only its first steps are needed
@@ -60,12 +60,12 @@ JPEG). Some launchers keep an old icon until they are restarted.
 
 ```sh
 xcrun devicectl list devices
-xcrun devicectl device install app --device <id> ".cache/outputs/ios/build/Release-iphoneos/Heroes IV.app"
+xcrun devicectl device install app --device <id> ".cache/outputs/ios/build/Release-iphoneos/ReHoMM4.app"
 ```
 
 First start: Settings > General > VPN & Device Management > trust your Apple ID.
 
-`HeroesIV-ios.ipa` (`Payload/Heroes IV.app`, unsigned without a team ID) is the same app for
+`HeroesIV-ios.ipa` (`Payload/ReHoMM4.app`, unsigned without a team ID) is the same app for
 sideloading tools that sign it with your own Apple ID (AltStore, Sideloadly).
 
 **Android**
@@ -451,7 +451,7 @@ to apply the one picked.
 
 ## Nintendo Switch (homebrew)
 
-`platforms/build.sh switch` makes `.cache/outputs/switch/dist/HeroesIV.nro`, for a Switch running
+`platforms/build.sh switch` makes `.cache/outputs/switch/dist/ReHoMM4.nro`, for a Switch running
 Atmosphère's homebrew menu. It needs devkitPro (`/opt/devkitpro`: the installer from
 github.com/devkitPro/pacman, then `dkp-pacman -S switch-dev switch-mesa switch-libdrm_nouveau
 switch-zlib switch-bzip2 switch-liblzma switch-curl switch-mbedtls`); `platforms/deps.sh switch`
@@ -464,7 +464,7 @@ it in the homebrew menu; the album applet has too little memory); no signals (no
 faults, no watchdog); file views are copies. Input: the touch screen as on the phones, and the Joy-Cons as a gamepad
 ([Controls](#controls)).
 
-On the SD card: `sdmc:/switch/ReHoMM4/HeroesIV.nro` and, beside it, the GOG installer files
+On the SD card: `sdmc:/switch/ReHoMM4/ReHoMM4.nro` and, beside it, the GOG installer files
 (`setup_heroes_of_might_and_magic_4_complete_...exe` and `-1.bin`): the installer finds them there
 (no file picker or GOG sign-in on the Switch); the game goes to `.../ReHoMM4/game`, saves to
 `.../player`. The wings, the language button's pictures and (when built in) the translation are
@@ -475,5 +475,5 @@ in the .nro's romfs.
 Install [ounce-devkit](https://github.com/ouncebrew/ounce-devkit) into the devkitPro installation,
 then run `bash platforms/build.sh switch2`. This builds the app and its project dependencies
 in `.cache/outputs/switch2/` with libounce and OunceVK. The packaging step checks for the
-Switch 2 startup record in `.cache/outputs/switch2/dist/HeroesIV.nro`.
+Switch 2 startup record in `.cache/outputs/switch2/dist/ReHoMM4.nro`.
 

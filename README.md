@@ -126,7 +126,7 @@ SteamOS 3 and newer), Vulkan graphics drivers, X11 or Wayland (through Xwayland)
    ```
 2. Start it:
    ```sh
-   ~/Games/ReHoMM4/heroes4
+   ~/Games/ReHoMM4/ReHoMM4
    ```
 3. Optional: add it to the desktop's application menu:
    ```sh
@@ -143,7 +143,7 @@ SteamOS 3 and newer), Vulkan graphics drivers, X11 or Wayland (through Xwayland)
 3. In **Dolphin** (the file manager) open **Downloads**, right-click the archive → **Extract** →
    **Extract archive to…** → pick e.g. `/home/deck/Games`.
 4. Add it to Steam: open **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
-   **Browse…** → `/home/deck/Games/ReHoMM4/heroes4` → **Add Selected Programs**.
+   **Browse…** → `/home/deck/Games/ReHoMM4/ReHoMM4` → **Add Selected Programs**.
 5. Start it once here in Desktop Mode: the first start installs the game (the GOG sign-in opens in
    the browser), easier with the desktop's keyboard. Then go back with **Return to Gaming Mode**:
    the game is in your library under **Non-Steam**.
@@ -160,10 +160,10 @@ copy a game installed on a computer from your GOG copy (the folder with `heroes4
 installer or GOG Galaxy makes it, or the `game` folder of ReHoMM4 on a Mac or PC).
 
 1. Put the SD card in a computer and make the folder `switch/ReHoMM4` on it.
-2. Copy into it `reHoMM4-v<version>-switch.nro`, renamed to `HeroesIV.nro`, and the installed
+2. Copy into it `reHoMM4-v<version>-switch.nro`, renamed to `ReHoMM4.nro`, and the installed
    game folder, renamed to `game`. The card then holds:
    ```
-   switch/ReHoMM4/HeroesIV.nro
+   switch/ReHoMM4/ReHoMM4.nro
    switch/ReHoMM4/game/heroes4.exe   (and the rest of the game)
    ```
 3. Put the card back and start Atmosphère.
@@ -354,7 +354,7 @@ game and prepares its code, then for each platform `platforms/deps.sh <platform>
 | `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
 | `platforms/build.sh macos-arm64` | `ReHoMM4.app` and `HeroesIV-macos-arm64.dmg` |
 | `platforms/build.sh macos-x86_64` | `ReHoMM4.app` and `HeroesIV-macos-x86_64.dmg` (Intel) |
-| `platforms/build.sh switch` | `HeroesIV.nro` |
+| `platforms/build.sh switch` | `ReHoMM4.nro` |
 
 Details: [`platforms/README.md`](platforms/README.md).
 
@@ -525,7 +525,7 @@ SteamOS 3 і новіші), драйвери з Vulkan, X11 або Wayland (че
    ```
 2. Запустіть:
    ```sh
-   ~/Games/ReHoMM4/heroes4
+   ~/Games/ReHoMM4/ReHoMM4
    ```
 3. За бажанням додайте її в меню програм:
    ```sh
@@ -542,7 +542,7 @@ SteamOS 3 і новіші), драйвери з Vulkan, X11 або Wayland (че
 3. У **Dolphin** (файловий менеджер) відкрийте **Downloads**, правою кнопкою на архіві → **Extract** →
    **Extract archive to…** → оберіть, наприклад, `/home/deck/Games`.
 4. Додайте в Steam: **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
-   **Browse…** → `/home/deck/Games/ReHoMM4/heroes4` → **Add Selected Programs**.
+   **Browse…** → `/home/deck/Games/ReHoMM4/ReHoMM4` → **Add Selected Programs**.
 5. Запустіть її раз тут, у режимі робочого столу: перший запуск встановлює гру (вхід у GOG
    відкривається в браузері), з клавіатурою робочого столу простіше. Потім **Return to Gaming Mode**:
    гра у вашій бібліотеці в розділі **Non-Steam**.
@@ -559,10 +559,10 @@ SteamOS 3 і новіші), драйвери з Vulkan, X11 або Wayland (че
 чи GOG Galaxy, або теку `game` ReHoMM4 на Mac чи ПК).
 
 1. Вставте SD-картку в комп'ютер і створіть на ній теку `switch/ReHoMM4`.
-2. Скопіюйте в неї `reHoMM4-v<version>-switch.nro`, перейменувавши на `HeroesIV.nro`, і теку
+2. Скопіюйте в неї `reHoMM4-v<version>-switch.nro`, перейменувавши на `ReHoMM4.nro`, і теку
    встановленої гри, перейменувавши на `game`. На картці:
    ```
-   switch/ReHoMM4/HeroesIV.nro
+   switch/ReHoMM4/ReHoMM4.nro
    switch/ReHoMM4/game/heroes4.exe   (і решта гри)
    ```
 3. Поверніть картку й запустіть Atmosphère.
@@ -752,7 +752,7 @@ SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У р�
 | `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
 | `platforms/build.sh macos-arm64` | `ReHoMM4.app` і `HeroesIV-macos-arm64.dmg` |
 | `platforms/build.sh macos-x86_64` | `ReHoMM4.app` і `HeroesIV-macos-x86_64.dmg` (Intel) |
-| `platforms/build.sh switch` | `HeroesIV.nro` |
+| `platforms/build.sh switch` | `ReHoMM4.nro` |
 
 Подробиці: [`platforms/README.md`](platforms/README.md).
 

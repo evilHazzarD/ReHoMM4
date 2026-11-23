@@ -7,18 +7,18 @@ reHoMM4-*macos-*.dmg:ReHoMM4.app/Contents/Resources/wings/*  # as the HeroesIV-*
 HeroesIV-*android_arm64.apk:assets/wings/*  # the same collages in the Android app
 reHoMM4-*android_arm64.apk:assets/wings/*  # as the HeroesIV-* line above: the release files' name from 0.3 on
 HeroesIV-*ios.ipa:Payload/Heroes IV.app/wings/*  # the same collages in the iOS app
-reHoMM4-*ios.ipa:Payload/Heroes IV.app/wings/*  # as the HeroesIV-* line above: the release files' name from 0.3 on
+reHoMM4-*ios.ipa:Payload/ReHoMM4.app/wings/*  # as the HeroesIV-* line above: the release files' name from 0.3 on
 */ReHoMM4/wings/*  # the same collages in the Linux app
 HeroesIV-*android_arm64.apk:lib/arm64-v8a/libmain.so  # the app itself: the runtime, SDL3 and ffmpeg in one library
 reHoMM4-*android_arm64.apk:lib/arm64-v8a/libmain.so  # as the HeroesIV-* line above: the release files' name from 0.3 on
 HeroesIV-*ios.ipa:Payload/Heroes IV.app/Heroes IV  # the app itself (static: runtime, SDL3, ffmpeg)
-reHoMM4-*ios.ipa:Payload/Heroes IV.app/Heroes IV  # as the HeroesIV-* line above: the release files' name from 0.3 on
+reHoMM4-*ios.ipa:Payload/ReHoMM4.app/ReHoMM4  # as the HeroesIV-* line above: the release files' name from 0.3 on
 HeroesIV*.nro  # the Switch app itself (static), its romfs with the collages
 reHoMM4-*.nro  # as the HeroesIV-* line above: the release files' name from 0.3 on
-*/ReHoMM4/heroes4  # the Linux app itself (static)
+*/ReHoMM4/ReHoMM4  # the Linux app itself (static)
 HeroesIV-*android_arm64.apk:res/*.png  # the app icon: the project's own shield (assets/icon), drawn at build time
 reHoMM4-*android_arm64.apk:res/*.png  # as the HeroesIV-* line above: the release files' name from 0.3 on
 HeroesIV-*ios.ipa:Payload/Heroes IV.app/AppIcon*.png  # the same icon
-reHoMM4-*ios.ipa:Payload/Heroes IV.app/AppIcon*.png  # as the HeroesIV-* line above: the release files' name from 0.3 on
-*/ReHoMM4/heroes4.png  # the same icon
+reHoMM4-*ios.ipa:Payload/ReHoMM4.app/AppIcon*.png  # as the HeroesIV-* line above: the release files' name from 0.3 on
+*/ReHoMM4/ReHoMM4.png  # the same icon
 docs/gog_files.jpg  # a screenshot of the GOG library page (which installer files to download), not game data

@@ -233,8 +233,10 @@ void Download(NSURL* url, NSString* version) {
             Say(uk ? "Завантажено" : "Downloaded",
                 std::string(uk ? "ReHoMM4 " : "ReHoMM4 ") + version.UTF8String +
                     (uk ? " у «Завантаженнях» (" : " is in Downloads (") + dest.lastPathComponent.UTF8String +
-                    (uk ? "). Закрийте гру й перетягніть Heroes IV у «Програми», замінивши стару."
-                        : "). Quit the game and drag Heroes IV into Applications, replacing the old one."));
+                    (uk ? "). Закрийте гру й перетягніть ReHoMM4 у «Програми», замінивши стару (стару Heroes IV, "
+                          "якщо є, — у Смітник)."
+                        : "). Quit the game and drag ReHoMM4 into Applications, replacing the old one (an old "
+                          "Heroes IV, if there, to the Bin)."));
           });
         }];
   timer = [NSTimer scheduledTimerWithTimeInterval:0.25

@@ -161,7 +161,7 @@ if(TARGET h4_lifted)
       set_target_properties(h4 PROPERTIES XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME AppIcon)
     endif()
     set_target_properties(h4 PROPERTIES
-      OUTPUT_NAME "Heroes IV"
+      OUTPUT_NAME "ReHoMM4"
       MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/../platforms/ios/Info.plist.in"
       MACOSX_BUNDLE_GUI_IDENTIFIER "${H4_BUNDLE_ID}"
       MACOSX_BUNDLE_BUNDLE_NAME "Heroes IV"

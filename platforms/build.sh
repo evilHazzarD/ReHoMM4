@@ -2,15 +2,15 @@
 # Builds Heroes IV for a phone or tablet from your own GOG copy (platforms/README.md).
 #
 #   platforms/build.sh ios [TEAM_ID]   ->  .cache/outputs/ios/dist/HeroesIV-ios.ipa, from
-#                                       .cache/outputs/ios/build/Release-iphoneos/Heroes IV.app
+#                                       .cache/outputs/ios/build/Release-iphoneos/ReHoMM4.app
 #                                       (+ the Xcode project h4_recomp.xcodeproj next to it)
 #   platforms/build.sh android         ->  .cache/outputs/android/dist/HeroesIV-android_arm64.apk
 #   platforms/build.sh linux-x86_64    ->  .cache/outputs/linux-x86_64/dist/HeroesIV-linux-x86_64.tar.gz
 #                                       (Steam Deck; `linux` is the same)
 #   platforms/build.sh linux-arm64     ->  .cache/outputs/linux-arm64/dist/HeroesIV-linux-arm64.tar.gz
 #   platforms/build.sh windows-x86_64  ->  .cache/outputs/windows-x86_64/dist/HeroesIV-windows-x86_64.zip
-#   platforms/build.sh switch          ->  .cache/outputs/switch/dist/HeroesIV.nro (Switch homebrew)
-#   platforms/build.sh switch2         ->  .cache/outputs/switch2/dist/HeroesIV.nro (requires ounce-devkit)
+#   platforms/build.sh switch          ->  .cache/outputs/switch/dist/ReHoMM4.nro (Switch homebrew)
+#   platforms/build.sh switch2         ->  .cache/outputs/switch2/dist/ReHoMM4.nro (requires ounce-devkit)
 #   platforms/build.sh macos-arm64     ->  .cache/outputs/macos-arm64/dist/ReHoMM4.app (+ HeroesIV-macos-arm64.dmg)
 #   platforms/build.sh macos-x86_64    ->  .cache/outputs/macos-x86_64/dist/ReHoMM4.app (+ HeroesIV-macos-x86_64.dmg, Intel Macs)
 #
@@ -69,12 +69,12 @@ if [[ $TARGET == ios ]]; then
     -destination 'generic/platform=iOS' -jobs "$JOBS" "${sign[@]}" \
     SYMROOT="$B" build >"$B.build.log" 2>&1 ||
     { grep -E 'error:|BUILD FAILED' "$B.build.log" | head -40; echo "log: $B.build.log"; exit 1; }
-  APP="$B/Release-iphoneos/Heroes IV.app"
+  APP="$B/Release-iphoneos/ReHoMM4.app"
   echo "ios: $APP ($(du -sh "$APP" | cut -f1))"
-  # The .ipa (Payload/Heroes IV.app, zipped): for sideloading (AltStore, Sideloadly re-sign it).
+  # The .ipa (Payload/ReHoMM4.app, zipped): for sideloading (AltStore, Sideloadly re-sign it).
   IPA="$MOBILE_CACHE/dist/HeroesIV-ios.ipa"
   rm -rf "$MOBILE_CACHE/dist"; mkdir -p "$MOBILE_CACHE/dist/Payload"
-  ditto "$APP" "$MOBILE_CACHE/dist/Payload/Heroes IV.app"
+  ditto "$APP" "$MOBILE_CACHE/dist/Payload/ReHoMM4.app"
   (cd "$MOBILE_CACHE/dist" && zip -qry -X "$IPA" Payload) && rm -rf "$MOBILE_CACHE/dist/Payload"
   cp "$NOTICES" "$MOBILE_CACHE/dist/THIRD_PARTY_NOTICES.txt"
   echo "ios: $IPA ($(du -h "$IPA" | cut -f1))"
