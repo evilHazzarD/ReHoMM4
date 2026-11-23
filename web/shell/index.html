@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Heroes IV (ReHoMM4 @H4_VERSION@)</title>
+<link rel="icon" href="icon.png">
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #000; color: #f3e6c4;
+               font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+  /* Touch screens: every gesture on the game is the game's (the runtime makes them its mouse,
+     right click, scrolling and zoom), none the browser's (scrolling, zooming the page, the
+     long-press menu, text selection). */
+  #canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; outline: none;
+            background: #000; image-rendering: auto; touch-action: none; user-select: none;
+            -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  html, body { overscroll-behavior: none; }
+  /* The on-screen keyboard's field: focused to bring the keyboard up, never seen (16px: iOS
+     zooms the page into smaller fields). */
+  #kbd { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0;
+         padding: 0; font-size: 16px; z-index: -1; }
+  #panel { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+           background: radial-gradient(ellipse at center, #2a1d0c 0%, #000 75%); z-index: 2; }
+  #panel.hidden { display: none; }
+  .card { max-width: 34rem; padding: 2rem 2.2rem; border: 1px solid #8a6a32; border-radius: 10px;
+          background: rgba(20, 13, 5, .92); box-shadow: 0 0 40px rgba(0,0,0,.8); }
+  h1 { margin: 0 0 .2rem; font-size: 1.6rem; color: #e5c16f; letter-spacing: .02em; }
+  .sub { margin: 0 0 1.2rem; color: #b89c64; }
+  p { margin: .6rem 0; }
+  button { font: inherit; font-weight: 600; color: #1b1205; background: #d6ab57; border: 0;
+           border-radius: 6px; padding: .65rem 1.4rem; cursor: pointer; }
+  button:hover { background: #e8c272; }
+  button.link { background: none; color: #b89c64; padding: 0; font-weight: 400; text-decoration: underline; }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 1.2rem; }
+  .bad { color: #ff9b7a; }
+  .small { font-size: .85rem; color: #9c8558; }
+  #toast { position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%); z-index: 3;
+           background: rgba(20,13,5,.94); border: 1px solid #8a6a32; border-radius: 8px;
+           padding: .6rem 1rem; display: none; max-width: 90vw; }
+  .fs { margin-left: .8rem; font-size: .9rem; color: #cbb98f; white-space: nowrap; }
+  #log { max-height: 40vh; overflow: auto; font-size: .75rem; white-space: pre-wrap; color: #cbb98f; }
+  progress { width: 100%; height: .6rem; accent-color: #d6ab57; }
+  #rotate { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center;
+            background: #000; padding: 1.5rem; text-align: center; }
+  #rotate[hidden] { display: none; }
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+<input id="kbd" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+       enterkeyhint="done" aria-hidden="true">
+
+<div id="panel"><div class="card">
+  <h1>Heroes of Might and Magic IV</h1>
+  <p class="sub">ReHoMM4 @H4_VERSION@ in your browser: the game itself, recompiled to WebAssembly.</p>
+  <div id="intro">
+    <p>You need your own <b>Heroes of Might and Magic IV: Complete</b> from GOG. The first time,
+      the game asks for GOG's offline installer
+      (<code>setup_heroes_of_might_and_magic_4_complete_…exe</code> and its <code>-1.bin</code>,
+      from your GOG library) or the folder of an installed copy, and keeps the game files in this
+      browser's own storage (about 1&nbsp;GB). Nothing is uploaded anywhere.</p>
+    <p class="small">A desktop browser with 4&nbsp;GB of memory per tab: current Chrome, Edge,
+      Firefox or Safari. The first load downloads the game's code (about 100&nbsp;MB).</p>
+  </div>
+  <p id="problem" class="bad" hidden></p>
+  <div id="loading" hidden><p id="loadtext">Loading…</p><progress id="loadbar"></progress></div>
+  <details id="logbox" hidden><summary class="small">The game's log</summary><pre id="log"></pre></details>
+  <div class="row">
+    <button id="start">Start</button>
+    <label class="fs"><input type="checkbox" id="fullscreen" checked> Full screen</label>
+    <label class="fs">Side panels
+      <select id="side-panels">
+        <option value="wings">Automatic wings</option>
+        <option value="black">Black</option>
+      </select>
+    </label>
+    <button id="reset" class="link">Delete the game files kept in this browser</button>
+  </div>
+</div></div>
+<div id="toast"></div>
+<div id="rotate" role="status" hidden>Rotate your phone sideways to play.</div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const canvas = $('canvas');
+const phone = /iPhone|iPod|Windows Phone|Android.*Mobile/i.test(navigator.userAgent) ||
+  navigator.userAgentData?.mobile === true;
+const portrait = matchMedia('(orientation: portrait)');
+const portraitBlocked = () => phone && portrait.matches;
+function updateOrientation() {
+  const blocked = portraitBlocked();
+  $('rotate').hidden = !blocked;
+  $('panel').inert = blocked;
+  canvas.inert = blocked;
+}
+portrait.addEventListener('change', updateOrientation);
+updateOrientation();
+
+// Shared memory (threads) needs cross-origin isolation. A server that does not send the headers
+// gets them from the service worker (coi-sw.js), which needs one reload to take over.
+async function isolate() {
+  if (window.crossOriginIsolated) return true;
+  if (!('serviceWorker' in navigator) || !window.isSecureContext) return false;
+  if (navigator.serviceWorker.controller) return false;  // the worker is there and did not help
+  await navigator.serviceWorker.register('coi-sw.js');
+  await navigator.serviceWorker.ready;
+  if (sessionStorage.getItem('h4-coi-reload')) return false;  // reloaded once already: no good
+  sessionStorage.setItem('h4-coi-reload', '1');
+  location.reload();
+  return new Promise(() => {});
+}
+
+function problem(text) {
+  const p = $('problem');
+  p.textContent = text;
+  p.hidden = false;
+}
+
+let toastTimer = 0;
+function toast(text, ms) {
+  const t = $('toast');
+  t.textContent = text;
+  t.style.display = text ? 'block' : 'none';
+  clearTimeout(toastTimer);
+  if (ms) toastTimer = setTimeout(() => (t.style.display = 'none'), ms);
+}
+
+async function check() {
+  const why = [];
+  if (!window.isSecureContext) why.push('The page must be served over HTTPS (or from localhost).');
+  else if (!(await isolate()))
+    why.push('This server does not allow shared memory (cross-origin isolation): serve the page with ' +
+             'web/serve.py, or with the headers Cross-Origin-Opener-Policy: same-origin and ' +
+             'Cross-Origin-Embedder-Policy: require-corp.');
+  if (typeof WebAssembly !== 'object' || !WebAssembly.validate(new Uint8Array(
+      [0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 10, 6, 1, 4, 0, 18, 0, 11])))
+    why.push('This browser has no WebAssembly tail calls: update it.');
+  if (!navigator.storage || !navigator.storage.getDirectory)
+    why.push('This browser has no origin private file system: the game cannot keep its files.');
+  if (why.length) problem(why.join(' '));
+  else sessionStorage.removeItem('h4-coi-reload');
+  $('start').disabled = why.length > 0;
+}
+
+// The game's log from its workers (web_pre.js): the console, and the last lines kept.
+const logLines = [];
+let logTimer = 0;
+function logLine(err, t) {
+  (err ? console.warn : console.log)(t);
+  logLines.push(t);
+  if (logLines.length > 400) logLines.shift();
+  if (!logTimer) logTimer = setTimeout(() => { logTimer = 0; $('log').textContent = logLines.join('\n'); }, 500);
+}
+if (typeof BroadcastChannel === 'function')
+  new BroadcastChannel('h4-log').onmessage = (e) => logLine(e.data.err, e.data.t);
+
+// What the game's threads tell the page (web_main.cpp, web_pre.js).
+let exited = false;
+function status(kind, a, b) {
+  if (kind === 'copy') toast(`Copying ${b} into the browser's storage… ${Math.floor(a * 100)}%`);
+  else if (kind === 'copy-done') toast('');
+  else if (kind === 'error') toast(a, 15000);
+  else if (kind === 'storage' && !a)
+    toast('This browser gives no storage to the page (a private window?): nothing will be kept.', 12000);
+  else if (kind === 'exit') {
+    if (exited) return;
+    exited = true;
+    // Its sound stops with it; out of full screen, back to the page.
+    if (window.h4Module && h4Module.recompAudio) h4Module.recompAudio.close().catch(() => {});
+    if (document.fullscreenElement) leaveFullscreen();
+    $('panel').classList.remove('hidden');
+    $('intro').hidden = true;
+    $('loading').hidden = true;
+    problem(a ? `The game stopped (code ${a}): its log is below.` : 'The game has ended.');
+    $('log').textContent = logLines.join('\n');
+    $('logbox').hidden = false;
+    $('logbox').open = !!a;
+    $('start').textContent = 'Start again';
+    $('start').disabled = false;
+    $('start').onclick = () => location.reload();
+  }
+}
+
+// index.html?game=<folder on this server> (web/serve.py --game: a server of your own, or
+// testing): that installed game is copied into the browser's storage once, in place of the
+// installer. The game then finds it as the app finds a "game" folder put in by hand.
+async function copyServedGame(base) {
+  const root = await navigator.storage.getDirectory();
+  const app = await root.getDirectoryHandle('ReHoMM4', { create: true });
+  try {
+    const g = await app.getDirectoryHandle('game');
+    await g.getFileHandle('heroes4.exe');
+    return;  // there already
+  } catch (e) { /* not yet */ }
+  const list = await (await fetch(base.replace(/\/?$/, '/') + 'index.json')).json();
+  const total = list.files.reduce((n, f) => n + f.size, 0);
+  // Into game.part first: an interrupted copy is never taken for an installed game.
+  try { await app.removeEntry('game.part', { recursive: true }); } catch (e) { /* none */ }
+  const part = await app.getDirectoryHandle('game.part', { create: true });
+  let done = 0;
+  for (const f of list.files) {
+    const parts = f.path.split('/');
+    let d = part;
+    for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
+    const w = await (await d.getFileHandle(parts[parts.length - 1], { create: true })).createWritable();
+    const res = await fetch(base.replace(/\/?$/, '/') + f.path.split('/').map(encodeURIComponent).join('/'));
+    if (!res.ok) throw new Error(`${f.path}: HTTP ${res.status}`);
+    const reader = res.body.getReader();
+    for (;;) {
+      const { value, done: end } = await reader.read();
+      if (end) break;
+      await w.write(value);
+      done += value.length;
+      $('loadbar').max = total;
+      $('loadbar').value = done;
+      $('loadtext').textContent = `Copying the game into this browser… ${(done / 1048576).toFixed(0)} of ${(total / 1048576).toFixed(0)} MB`;
+    }
+    await w.close();
+  }
+  // Complete: into game/ (each file moved where the browser can, else copied).
+  await copyDir(part, await app.getDirectoryHandle('game', { create: true }));
+  await app.removeEntry('game.part', { recursive: true });
+}
+
+async function copyDir(from, to) {
+  for await (const [name, h] of from.entries()) {
+    if (h.kind === 'directory') {
+      await copyDir(h, await to.getDirectoryHandle(name, { create: true }));
+    } else if (h.move) {
+      await h.move(to, name);  // Chrome, Safari, Firefox 111+: a move, not a copy
+    } else {
+      const w = await (await to.getFileHandle(name, { create: true })).createWritable();
+      await (await h.getFile()).stream().pipeTo(w);
+    }
+  }
+}
+
+// Full screen is the page's: SDL leaves it on its own whenever it hides or shows a window it does
+// not take for a full screen one (the game makes its windows hidden first), which took the page
+// out of full screen right after Start. Only the page's own leaving (Alt+Enter, the game's end)
+// and the browser's (Escape, its menu) do.
+const realExit = { std: document.exitFullscreen && document.exitFullscreen.bind(document),
+                   webkit: document.webkitExitFullscreen && document.webkitExitFullscreen.bind(document) };
+let leaving = false;
+if (realExit.std) document.exitFullscreen = () => (leaving ? realExit.std() : Promise.resolve());
+if (realExit.webkit) document.webkitExitFullscreen = () => (leaving ? realExit.webkit() : undefined);
+function leaveFullscreen() {
+  leaving = true;
+  try {
+    const p = realExit.std ? realExit.std() : (realExit.webkit && realExit.webkit(), Promise.resolve());
+    return Promise.resolve(p).catch(() => {});
+  } finally {
+    leaving = false;
+  }
+}
+
+// Full screen. The game picks its screen size once, from the page's size when it starts
+// (wide screens fill the page), so the page goes full screen before the game starts; later
+// changes keep that size and add bars. In full screen, Escape stays the game's (Chrome's keyboard
+// lock: holding Escape leaves full screen); Alt+Enter switches, as in Windows games.
+async function enterFullscreen() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || !el.requestFullscreen) return;
+  try {
+    await el.requestFullscreen({ navigationUI: 'hide' });
+  } catch (e) {
+    return;  // refused (no user gesture, or not allowed here): the game runs in the page
+  }
+  if (phone && screen.orientation?.lock) {
+    try { await screen.orientation.lock('landscape'); } catch {}
+  }
+  if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock(['Escape']).catch(() => {});
+  // Wait for the page to take its new size.
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !e.altKey) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (document.fullscreenElement) leaveFullscreen();
+  else enterFullscreen();
+}, true);
+const fsBox = $('fullscreen');
+fsBox.checked = localStorage.getItem('h4-fullscreen') !== '0';
+fsBox.onchange = () => localStorage.setItem('h4-fullscreen', fsBox.checked ? '1' : '0');
+const sidePanels = $('side-panels');
+const savedSidePanels = localStorage.getItem('h4-side-panels');
+sidePanels.value = savedSidePanels === 'black' ||
+  (savedSidePanels === null && localStorage.getItem('h4-black-side-panels') === '1')
+  ? 'black' : 'wings';
+sidePanels.onchange = () => localStorage.setItem('h4-side-panels', sidePanels.value);
+
+async function start() {
+  if (portraitBlocked()) return;
+  $('start').disabled = true;
+  // In the click itself: browsers allow full screen only in answer to the user.
+  const fs = fsBox.checked ? enterFullscreen() : Promise.resolve();
+  $('loading').hidden = false;
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  const served = new URLSearchParams(location.search).get('game');
+  if (served) {
+    try {
+      await copyServedGame(served);
+    } catch (e) {
+      console.error(e);
+      problem('The game could not be copied from this server: ' + e.message);
+      $('start').disabled = false;
+      return;
+    }
+  }
+  await fs;
+  while (portraitBlocked()) {
+    await new Promise(resolve => portrait.addEventListener('change', resolve, { once: true }));
+  }
+  $('loadtext').textContent = 'Loading the game\'s code…';
+  $('loadbar').removeAttribute('value');
+  const script = document.createElement('script');
+  script.src = 'heroes4.js';
+  script.onerror = () => problem('heroes4.js could not be loaded.');
+  script.onload = async () => {
+    try {
+      // The module, for the browser's console (debugging): h4Module.FS, ...
+      window.h4Module = await createHeroes4({
+        canvas,
+        h4Status: status,
+        h4Env: {
+          H4_SIDE_PANELS: sidePanels.value,
+          ...Object.fromEntries((new URLSearchParams(location.search).get('env') || '').split(',')
+            .filter((kv) => kv.includes('=')).map((kv) => [kv.slice(0, kv.indexOf('=')), kv.slice(kv.indexOf('=') + 1)])),
+        },
+        print: (t) => logLine(false, t),
+        printErr: (t) => logLine(true, t),
+        setStatus: (t) => {
+          const m = /\((\d+(?:\.\d+)?)\/(\d+)\)/.exec(t);
+          if (m) { $('loadbar').max = +m[2]; $('loadbar').value = +m[1]; }
+          $('loadtext').textContent = t ? t.replace(/\(.*\)/, '').trim() || 'Loading…' : 'Starting…';
+        },
+        monitorRunDependencies: () => {},
+        onRuntimeInitialized: () => {
+          $('panel').classList.add('hidden');
+          canvas.focus();
+        },
+        onAbort: (what) => status('exit', 1, what),
+        // The game quit (ExitProcess: the runtime ends the process, main() never returns).
+        onExit: (code) => status('exit', code),
+        recompScreenKeyboard: (on) => Module_screenKeyboard(on),
+      });
+    } catch (e) {
+      console.error(e);
+      $('panel').classList.remove('hidden');
+      problem('The game could not start: ' + (e && e.message ? e.message : e) +
+              (String(e).includes('memory') ? ' (the browser has not got the 4 GB of memory it needs)' : ''));
+    }
+  };
+  document.body.appendChild(script);
+}
+
+async function reset() {
+  if (!confirm('Delete the game files, saves and settings kept in this browser?')) return;
+  const root = await navigator.storage.getDirectory();
+  for await (const name of root.keys()) await root.removeEntry(name, { recursive: true });
+  toast('Deleted.', 4000);
+}
+
+// Touch screens. Safari zooms the page on a pinch even with touch-action: none on the canvas.
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+
+// The on-screen keyboard (three fingers tapped: the runtime asks for it, Module.recompScreenKeyboard).
+// What is typed into the hidden field goes to the game as key presses on the canvas, where SDL
+// listens (it takes the key from KeyboardEvent.code; the game makes its characters from the keys,
+// a US layout).
+const kbd = $('kbd');
+const shifted = { '!': '1', '@': '2', '#': '3', '$': '4', '%': '5', '^': '6', '&': '7', '*': '8', '(': '9',
+                  ')': '0', '_': '-', '+': '=', '{': '[', '}': ']', '|': '\\', ':': ';', '"': "'", '<': ',',
+                  '>': '.', '?': '/', '~': '`' };
+const codes = { '-': 'Minus', '=': 'Equal', '[': 'BracketLeft', ']': 'BracketRight', '\\': 'Backslash',
+                ';': 'Semicolon', "'": 'Quote', ',': 'Comma', '.': 'Period', '/': 'Slash', '`': 'Backquote',
+                ' ': 'Space' };
+function sendKey(code, key, shift) {
+  const fire = (type, c, k) => canvas.dispatchEvent(new KeyboardEvent(type, { code: c, key: k, shiftKey: shift,
+                                                                             bubbles: true, cancelable: true }));
+  if (shift) fire('keydown', 'ShiftLeft', 'Shift');
+  fire('keydown', code, key);
+  fire('keyup', code, key);
+  if (shift) fire('keyup', 'ShiftLeft', 'Shift');
+}
+function typeChar(ch) {
+  let base = ch, shift = false;
+  if (/[A-Z]/.test(ch)) { base = ch.toLowerCase(); shift = true; }
+  else if (shifted[ch]) { base = shifted[ch]; shift = true; }
+  const code = /[a-z]/.test(base) ? 'Key' + base.toUpperCase() : /[0-9]/.test(base) ? 'Digit' + base : codes[base];
+  if (code) sendKey(code, ch, shift);  // others (letters outside the US layout): the game has no key for them
+}
+kbd.addEventListener('beforeinput', (e) => {
+  e.preventDefault();  // the field stays empty: every change is a key
+  if (e.inputType === 'deleteContentBackward') sendKey('Backspace', 'Backspace', false);
+  else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') sendKey('Enter', 'Enter', false);
+  else if (e.data) for (const ch of e.data) typeChar(ch);
+});
+// Real keys (a hardware keyboard, or keyboards that send them: Enter, Backspace): on to the canvas.
+for (const type of ['keydown', 'keyup']) {
+  kbd.addEventListener(type, (e) => {
+    if (e.key === 'Unidentified' || e.keyCode === 229 || e.isComposing) return;  // text: beforeinput
+    if (e.key.length === 1) return;  // characters: beforeinput (shift and the layout there)
+    e.preventDefault();
+    canvas.dispatchEvent(new KeyboardEvent(type, { code: e.code, key: e.key, shiftKey: e.shiftKey,
+                                                   ctrlKey: e.ctrlKey, altKey: e.altKey, bubbles: true }));
+  });
+}
+let kbdWanted = false;
+var Module_screenKeyboard;
+Module_screenKeyboard = (on) => {
+  kbdWanted = on;
+  if (on) kbd.focus({ preventScroll: true });
+  else { kbd.blur(); canvas.focus({ preventScroll: true }); }
+};
+
+$('start').onclick = start;
+$('reset').onclick = () => reset().catch((e) => toast('Not deleted: ' + e.message, 8000));
+// A tap on the game keeps the on-screen keyboard's field focused while it is wanted (the canvas
+// taking the focus would close the keyboard at every tap).
+canvas.addEventListener('pointerdown', () => (kbdWanted ? kbd : canvas).focus({ preventScroll: true }));
+check();
+</script>
+</body>
+</html>

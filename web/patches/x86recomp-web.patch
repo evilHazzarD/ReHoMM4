@@ -1,0 +1,862 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -139,7 +139,7 @@
+                       PRIVATE recomp_gfx)  # presentation (hle/present.cpp)
+ # Nothing in a game refers to an HLE module's symbols: keep the linker
+ # from dropping them where it links --as-needed (ld64 keeps every dylib).
+-if(NOT APPLE)
++if(NOT APPLE AND NOT EMSCRIPTEN)  # wasm-ld: no shared libraries, no --as-needed
+   target_link_options(recomp_runtime INTERFACE "LINKER:--no-as-needed")
+ endif()
+ 
+--- a/src/runtime/audio/mixer.cpp
++++ b/src/runtime/audio/mixer.cpp
+@@ -8,6 +8,11 @@
+ #include <cstring>
+ 
+ #include "runtime/log.h"
++#if defined(__EMSCRIPTEN__)
++#include <emscripten/emscripten.h>
++
++#include "runtime/platform.h"
++#endif
+ 
+ namespace recomp::audio {
+ 
+@@ -139,7 +144,7 @@
+   return true;
+ }
+ 
+-void SDLCALL AudioCallback(void* ud, SDL_AudioStream* s, int additional, int) {
++[[maybe_unused]] void SDLCALL AudioCallback(void* ud, SDL_AudioStream* s, int additional, int) {
+   auto* m = static_cast<Mixer*>(ud);
+   float buf[kChunk * 2];
+   int frames = additional / int(2 * sizeof(float));
+@@ -168,6 +173,109 @@
+   return m;
+ }
+ 
++#if defined(__EMSCRIPTEN__)
++// The browser: the mix goes to an AudioWorklet through a ring in the module's
++// (shared) memory. SDL's Web Audio output is not used: it runs SDL's playback
++// and the mix on the page's thread, which the game's threads wait on for every
++// canvas and DOM call (proxied there), and the two deadlocked. Here the page's
++// thread runs no mixing and takes no lock: a pump thread mixes ahead, the
++// worklet (the browser's audio thread) reads what is there, silence when the
++// pump is late.
++namespace {
++constexpr uint32_t kRingFrames = 1u << 14;  // a power of two; 340 ms at 48 kHz
++struct WebRing {
++  std::atomic<uint32_t> write{0}, read{0};  // frames, wrapping
++  float data[kRingFrames * 2];
++};
++WebRing* g_ring = nullptr;
++}  // namespace
++
++bool Mixer::Open(int rate) {
++  if (pump_.joinable()) return true;
++  if (!g_ring) g_ring = new WebRing;  // never freed: the worklet keeps reading it
++  g_ring->write = 0;
++  g_ring->read = 0;
++  // (The macro's argument: commas only inside parentheses.)
++  const int ok = MAIN_THREAD_EM_ASM_INT({
++    return (function(rate, ring, frames) {
++      try {
++        const ctx = new AudioContext({ sampleRate: rate, latencyHint: 'interactive' });
++        Module.recompAudio = ctx;
++        // Browsers start audio only after a click or key: the first one resumes it.
++        const resume = function() { if (ctx.state !== 'running') ctx.resume(); };
++        ['pointerdown', 'keydown', 'touchend'].forEach(function(ev) {
++          document.addEventListener(ev, resume, { capture: true });
++        });
++        const src = [
++          'class H4Out extends AudioWorkletProcessor {',
++          '  constructor(o) {',
++          '    super();',
++          '    const p = o.processorOptions;',
++          '    this.idx = new Uint32Array(p.mem, p.ring, 2);',
++          '    this.data = new Float32Array(p.mem, p.ring + 8, p.frames * 2);',
++          '    this.mask = p.frames - 1;',
++          '  }',
++          '  process(inputs, outputs) {',
++          '    const l = outputs[0][0], r = outputs[0][1] || outputs[0][0], n = l.length;',
++          '    let rd = Atomics.load(this.idx, 1);',
++          '    const take = Math.min((Atomics.load(this.idx, 0) - rd) >>> 0, n);',
++          '    for (let i = 0; i < take; i++, rd++) {',
++          '      const k = (rd & this.mask) * 2;',
++          '      l[i] = this.data[k];',
++          '      r[i] = this.data[k + 1];',
++          '    }',
++          '    for (let i = take; i < n; i++) l[i] = r[i] = 0;',
++          '    Atomics.store(this.idx, 1, rd >>> 0);',
++          '    return true;',
++          '  }',
++          '}',
++          'registerProcessor("h4-out", H4Out);'].join('\n');
++        const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
++        ctx.audioWorklet.addModule(url).then(function() {
++          const node = new AudioWorkletNode(ctx, 'h4-out', {
++            numberOfInputs: 0, outputChannelCount: [2],
++            processorOptions: { mem: wasmMemory.buffer, ring: ring, frames: frames } });
++          node.connect(ctx.destination);
++          resume();
++        }).catch(function(e) { console.error('h4: audio worklet', e); });
++        return 1;
++      } catch (e) {
++        console.error('h4: no Web Audio', e);
++        return 0;
++      }
++    })($0, $1, $2);
++  }, rate, reinterpret_cast<uintptr_t>(g_ring), kRingFrames);
++  if (!ok) {
++    WarnF("audio: no Web Audio in this browser: no sound\n");
++    return false;
++  }
++  Init(rate);
++  // About 70 ms mixed ahead (the worklet takes 128 frames at a time), topped
++  // up every couple of milliseconds.
++  pump_stop_ = false;
++  pump_ = std::thread([this, rate] {
++    const uint32_t ahead = uint32_t(rate) * 70 / 1000;
++    float buf[kChunk * 2];
++    while (!pump_stop_) {
++      const uint32_t w = g_ring->write.load(std::memory_order_relaxed);
++      const uint32_t queued = w - g_ring->read.load(std::memory_order_acquire);
++      if (queued + kChunk <= ahead + kChunk / 2 && queued + kChunk <= kRingFrames) {
++        Mix(buf, kChunk);
++        for (int i = 0; i < kChunk; i++) {
++          const uint32_t k = ((w + uint32_t(i)) & (kRingFrames - 1)) * 2;
++          g_ring->data[k] = buf[2 * i];
++          g_ring->data[k + 1] = buf[2 * i + 1];
++        }
++        g_ring->write.store(w + kChunk, std::memory_order_release);
++      } else {
++        platform::SleepUntilNs(platform::MonotonicNs() + 2000000);
++      }
++    }
++  });
++  WarnF("audio: %d Hz stereo on Web Audio (AudioWorklet)\n", rate);
++  return true;
++}
++#else
+ bool Mixer::Open(int rate) {
+   if (stream_) return true;
+   if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+@@ -188,6 +296,7 @@
+         SDL_GetCurrentAudioDriver());
+   return true;
+ }
++#endif  // __EMSCRIPTEN__
+ 
+ void Mixer::OpenOffline(int rate) {
+   if (!stream_) Init(rate);
+@@ -204,6 +313,13 @@
+ }
+ 
+ void Mixer::Close() {
++#if defined(__EMSCRIPTEN__)
++  if (pump_.joinable()) {
++    pump_stop_ = true;
++    pump_.join();
++    MAIN_THREAD_EM_ASM({ if (Module.recompAudio) { Module.recompAudio.close(); Module.recompAudio = null; } });
++  }
++#endif
+   if (stream_) {
+     SDL_DestroyAudioStream(stream_);  // stops the callback first
+     stream_ = nullptr;
+--- a/src/runtime/audio/mixer.h
++++ b/src/runtime/audio/mixer.h
+@@ -17,6 +17,10 @@
+ #include <cstdint>
+ #include <memory>
+ #include <mutex>
++#if defined(__EMSCRIPTEN__)
++#include <atomic>
++#include <thread>
++#endif
+ #include <vector>
+ 
+ #include "runtime/audio/digital_reverb.h"
+@@ -147,6 +151,12 @@
+ 
+   std::mutex mu_;
+   SDL_AudioStream* stream_ = nullptr;
++#if defined(__EMSCRIPTEN__)
++  // The browser: the thread that mixes ahead into the AudioWorklet's ring
++  // (mixer.cpp, Mixer::Open).
++  std::thread pump_;
++  std::atomic<bool> pump_stop_{false};
++#endif
+   int rate_ = 0;
+   float master_ = 1.0f;
+   // LowPass coefficients (a1, a2) per 10 mB of HF cut, 0 to -10000.
+--- a/src/runtime/dispatch.cpp
++++ b/src/runtime/dispatch.cpp
+@@ -6,7 +6,7 @@
+ // fallback (CLAUDE.md).
+ 
+ #include <pthread.h>
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ #include <sys/mman.h>
+ #endif
+ #include <signal.h>
+@@ -199,7 +199,7 @@
+   }
+ }
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ void FaultHandler(int sig, siginfo_t* si, void* uc) {
+   char buf[256];
+   uintptr_t a = reinterpret_cast<uintptr_t>(si->si_addr);
+--- a/src/runtime/gfx/soft_device.cpp
++++ b/src/runtime/gfx/soft_device.cpp
+@@ -4,9 +4,18 @@
+ // to fit (FitRect, the zoom included) with the pointer and the badge
+ // (SetPresentCursor/Badge) over it. Direct3D's drawing is ignored: for
+ // DirectDraw games, whose frames the CPU makes anyway.
++//
++// In the browser (Emscripten) SDL_Renderer is not used: its software
++// renderer scaled every frame on the CPU to the canvas's size (device
++// pixels: 3200x1800 for a 1600x900 page on a 2x screen) and handed it to the
++// page with a round trip the game waited on. There the changed part of the
++// frame goes to the page as it is, without waiting (WebShow), and the page
++// scales it into the canvas with its own drawing (on the GPU), the pointer
++// and the badge over it.
+ #include <SDL3/SDL.h>
+ 
+ #include <algorithm>
++#include <atomic>
+ #include <cstdint>
+ #include <cstring>
+ #include <map>
+@@ -14,6 +23,10 @@
+ #include <vector>
+ 
+ #include "runtime/gfx/device.h"
++
++#if defined(__EMSCRIPTEN__)
++#include <emscripten/emscripten.h>
++#endif
+ 
+ namespace recomp::gfx {
+ 
+@@ -59,6 +72,11 @@
+   }
+ 
+   bool Init() {
++#if defined(__EMSCRIPTEN__)
++    WebInstall();
++    SDL_Log("gfx: soft device on the page's canvas (2D)");
++    return true;
++#endif
+     r_ = SDL_CreateRenderer(win_, nullptr);
+     if (!r_) {
+       SDL_Log("gfx: soft: no renderer: %s", SDL_GetError());
+@@ -73,7 +91,7 @@
+     h_ = h;
+     front_.Resize(w, h);
+     tex_[0].Resize(w, h);
+-    SDL_SetRenderVSync(r_, vsync ? 1 : 0);
++    if (r_) SDL_SetRenderVSync(r_, vsync ? 1 : 0);
+     // Frames are shown at most once a refresh (and at most max_show_hz_).
+     const SDL_DisplayMode* dm = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(win_));
+     double hz = dm && dm->refresh_rate > 0 ? double(dm->refresh_rate) : 60.0;
+@@ -359,6 +377,187 @@
+     Show();
+   }
+ 
++#if defined(__EMSCRIPTEN__)
++  // What one frame's showing tells the page (WebInstall's recompShow reads it
++  // as 32-bit words, in this order). Written by this thread only while busy
++  // is 0; the page sets busy back to 0 once it has taken the pixels.
++  struct WebShow {
++    std::atomic<int32_t> busy{0};
++    int32_t x = 0, y = 0, w = 0, h = 0;   // the changed part, in stage
++    int32_t fw = 0, fh = 0;               // the frame
++    int32_t ow = 0, oh = 0;               // the canvas (device pixels)
++    int32_t cl = 0, ct = 0, cr = 0, cb = 0;  // FitRect's: the frame's place (clip)
++    float zl = 0, zt = 0, zr = 0, zb = 0;    // ZoomedRect's: where the whole frame goes
++    int32_t pic[2][3] = {};               // the pointer, the badge: shown, x, y (frame pixels)
++    uint32_t stage = 0;                   // RGBA, fw x fh
++  };
++  static_assert(sizeof(WebShow) == 24 * 4, "WebShow: 24 words");
++
++  // The page's side, once (Module.recompShow, Module.recompPicture).
++  static void WebInstall() {
++    MAIN_THREAD_EM_ASM({
++      (function() {
++        if (Module.recompShow) return;
++        var g = { frame: null, fctx: null, img: null, pic: [null, null], last: 0 };
++        var canvas = function() { return Module.canvas || document.querySelector('#canvas'); };
++        var draw = function(a) {
++          var c = canvas();
++          if (!c || !g.frame) return;
++          if (c.width !== a.ow || c.height !== a.oh) {
++            // The page was resized since: the frame fitted again here (the next showing
++            // brings the game's own placement).
++            var k = Math.min(c.width / a.fw, c.height / a.fh);
++            var w = Math.round(a.fw * k), h = Math.round(a.fh * k);
++            var l = (c.width - w) >> 1, t = (c.height - h) >> 1;
++            a = Object.assign({}, a, { ow: c.width, oh: c.height, cl: l, ct: t, cr: l + w, cb: t + h,
++                                       zl: l, zt: t, zr: l + w, zb: t + h });
++          }
++          var ctx = g.ctx && g.ctxCanvas === c ? g.ctx : (g.ctx = c.getContext('2d', { alpha: false }));
++          g.ctxCanvas = c;
++          ctx.save();
++          ctx.fillStyle = '#000';
++          ctx.fillRect(0, 0, c.width, c.height);
++          ctx.beginPath();
++          ctx.rect(a.cl, a.ct, a.cr - a.cl, a.cb - a.ct);
++          ctx.clip();
++          ctx.imageSmoothingEnabled = true;
++          ctx.imageSmoothingQuality = 'high';
++          var zw = a.zr - a.zl, zh = a.zb - a.zt;
++          ctx.drawImage(g.frame, 0, 0, a.fw, a.fh, a.zl, a.zt, zw, zh);
++          ctx.imageSmoothingEnabled = false;
++          var kx = zw / a.fw, ky = zh / a.fh;
++          for (var i = 1; i >= 0; i--) {
++            var p = a.pic[i];
++            if (!p[0] || !g.pic[i]) continue;
++            ctx.drawImage(g.pic[i], a.zl + p[1] * kx, a.zt + p[2] * ky, g.pic[i].width * kx, g.pic[i].height * ky);
++          }
++          ctx.restore();
++        };
++        Module.recompShow = function(ptr) {
++          var b = ptr >>> 2, I = HEAP32, F = HEAPF32;
++          var a = { x: I[b + 1], y: I[b + 2], w: I[b + 3], h: I[b + 4], fw: I[b + 5], fh: I[b + 6],
++                    ow: I[b + 7], oh: I[b + 8], cl: I[b + 9], ct: I[b + 10], cr: I[b + 11], cb: I[b + 12],
++                    zl: F[b + 13], zt: F[b + 14], zr: F[b + 15], zb: F[b + 16],
++                    pic: [[I[b + 17], I[b + 18], I[b + 19]], [I[b + 20], I[b + 21], I[b + 22]]] };
++          var stage = HEAPU32[b + 23];
++          if (!g.frame || g.frame.width !== a.fw || g.frame.height !== a.fh) {
++            g.frame = document.createElement('canvas');
++            g.frame.width = a.fw;
++            g.frame.height = a.fh;
++            g.fctx = g.frame.getContext('2d', { alpha: false });
++            g.img = new ImageData(a.fw, a.fh);
++          }
++          if (a.w > 0 && a.h > 0) {
++            // Whole rows of the stage (it is the frame's layout), the changed columns put.
++            var from = stage + a.y * a.fw * 4;
++            g.img.data.set(HEAPU8.subarray(from, from + a.h * a.fw * 4), a.y * a.fw * 4);
++          }
++          Atomics.store(HEAP32, b, 0);  // the stage is the game's again
++          if (a.w > 0 && a.h > 0) g.fctx.putImageData(g.img, 0, 0, a.x, a.y, a.w, a.h);
++          g.last = a;
++          draw(a);
++        };
++        // A picture (the pointer, the badge): RGBA, w x h, copied.
++        Module.recompPicture = function(i, ptr, w, h) {
++          if (!w || !h) { g.pic[i] = null; return; }
++          var c = document.createElement('canvas');
++          c.width = w;
++          c.height = h;
++          var img = new ImageData(w, h);
++          img.data.set(HEAPU8.subarray(ptr >>> 0, (ptr >>> 0) + w * h * 4));
++          c.getContext('2d').putImageData(img, 0, 0);
++          g.pic[i] = c;
++        };
++        // The canvas is cleared when the page's size changes it (SDL sets its size): drawn again.
++        window.addEventListener('resize', function() {
++          requestAnimationFrame(function() { if (g.last) draw(g.last); });
++        });
++      })();
++    });
++  }
++
++  // The pointer's or badge's picture to the page when it changed; where it
++  // goes (frame pixels), or false if not shown.
++  bool WebPicture(int i, int* x, int* y) {
++    std::lock_guard<std::mutex> l(present_state::PictureMutex());
++    const present_state::PresentPicture& p = present_state::Pictures()[i];
++    if (p.gen != pic_gen_[i]) {
++      pic_gen_[i] = p.gen;
++      pic_w_[i] = pic_h_[i] = 0;
++      std::vector<uint32_t> img;
++      if (p.iw > 0 && p.ih > 0 && p.image.size() >= size_t(p.iw) * p.ih) {
++        img.resize(size_t(p.iw) * p.ih);
++        for (size_t k = 0; k < img.size(); k++) {
++          const uint32_t v = p.image[k];  // alpha below 0x80: none
++          img[k] = (v >> 24) >= 0x80 ? 0xFF000000u | ((v & 0xFF) << 16) | (v & 0xFF00) | ((v >> 16) & 0xFF) : 0;
++        }
++        pic_w_[i] = p.iw;
++        pic_h_[i] = p.ih;
++      }
++      MAIN_THREAD_EM_ASM({ Module.recompPicture($0, $1, $2, $3); }, i, img.data(), pic_w_[i], pic_h_[i]);
++    }
++    *x = p.x;
++    *y = p.y;
++    return p.shown && pic_w_[i] > 0;
++  }
++
++  void Show() {
++    if (w_ <= 0 || h_ <= 0) return;
++    WebShow& a = web_;
++    if (a.busy.load(std::memory_order_acquire)) {
++      pending_ = true;  // the page has not taken the last one yet: this one comes later
++      return;
++    }
++    int ow = 0, oh = 0;
++    SDL_GetWindowSizeInPixels(win_, &ow, &oh);
++    const Rect fr = FitRect(w_, h_, ow, oh);
++    const RectF zr = ZoomedRect(fr);
++    if (stage_.size() != size_t(w_) * h_) {
++      stage_.assign(size_t(w_) * h_, 0xFF000000u);
++      MarkAll();
++    }
++    a.x = a.y = a.w = a.h = 0;
++    if (dirty_.right > dirty_.left && dirty_.bottom > dirty_.top) {
++      // A8R8G8B8 words to the canvas's R, G, B, A bytes.
++      for (int y = dirty_.top; y < dirty_.bottom; y++) {
++        const uint32_t* s = front_.px.data() + size_t(y) * w_;
++        uint32_t* d = stage_.data() + size_t(y) * w_;
++        for (int x = dirty_.left; x < dirty_.right; x++) {
++          const uint32_t v = s[x];
++          d[x] = 0xFF000000u | ((v & 0xFF) << 16) | (v & 0xFF00) | ((v >> 16) & 0xFF);
++        }
++      }
++      a.x = dirty_.left;
++      a.y = dirty_.top;
++      a.w = dirty_.right - dirty_.left;
++      a.h = dirty_.bottom - dirty_.top;
++    }
++    dirty_ = {};
++    a.fw = w_;
++    a.fh = h_;
++    a.ow = ow;
++    a.oh = oh;
++    a.cl = fr.left;
++    a.ct = fr.top;
++    a.cr = fr.right;
++    a.cb = fr.bottom;
++    a.zl = zr.l;
++    a.zt = zr.t;
++    a.zr = zr.r;
++    a.zb = zr.b;
++    for (int i = 0; i < 2; i++) {
++      int x = 0, y = 0;
++      a.pic[i][0] = WebPicture(i, &x, &y) ? 1 : 0;
++      a.pic[i][1] = x;
++      a.pic[i][2] = y;
++    }
++    a.stage = uint32_t(reinterpret_cast<uintptr_t>(stage_.data()));
++    a.busy.store(1, std::memory_order_release);
++    MAIN_THREAD_ASYNC_EM_ASM({ Module.recompShow($0); }, &web_);
++    NotePresentation({w_, h_, ow, oh, fr});
++    shown_++;
++  }
++#else
+   void Show() {
+     if (!r_ || w_ <= 0 || h_ <= 0) return;
+     if (!frame_ || frame_w_ != w_ || frame_h_ != h_) {
+@@ -398,6 +597,7 @@
+     NotePresentation({w_, h_, ow, oh, fr});
+     shown_++;
+   }
++#endif  // __EMSCRIPTEN__
+ 
+   SDL_Window* win_;
+   SDL_Renderer* r_ = nullptr;
+@@ -417,6 +617,10 @@
+   uint64_t pic_gen_[2] = {0, 0};
+   int pic_w_[2] = {0, 0}, pic_h_[2] = {0, 0};
+   uint64_t shown_ = 0;
++#if defined(__EMSCRIPTEN__)
++  WebShow web_;
++  std::vector<uint32_t> stage_;  // the frame as the page takes it (RGBA)
++#endif
+   // Deferred showing (PresentFront, ShowPending) and the changed region.
+   bool pending_ = false;
+   int max_show_hz_ = 0;
+--- a/src/runtime/guest_memory.cpp
++++ b/src/runtime/guest_memory.cpp
+@@ -1,5 +1,6 @@
+ #include "runtime/guest_memory.h"
+ 
++#include <algorithm>
+ #include <cstdio>
+ #include <cstdlib>
+ #include <cstring>
+@@ -10,15 +11,21 @@
+ #include <switch.h>
+ extern "C" char* fake_heap_start;  // libnx: the C heap
+ extern "C" char* fake_heap_end;
+-#endif
+-
+-#if defined(__SWITCH__)
++#elif defined(__EMSCRIPTEN__)
++#include <emscripten/heap.h>
++#include <unistd.h>
++#endif
++
++#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ // The Switch (homebrew): no mmap/mprotect, and no way for an applet to map
+ // memory page by page into a reserved range. The arena is one block of the
+ // heap, committed whole: 2 GiB (a 32-bit guest that is not large-address-
+ // aware lives below that), so the app needs the memory of title takeover
+ // (a game's, about 3.2 GiB; the album applet's 440 MiB is too little).
+ // Guest protection is bookkeeping either way; host pages stay accessible.
++// The browser (wasm32) is the same: no mmap or page protection, one linear
++// memory of at most 4 GiB, of which the arena takes the 2 GiB from the
++// break (the module is linked with ALLOW_MEMORY_GROWTH, MAXIMUM_MEMORY=4GB).
+ namespace recomp {
+ 
+ bool GuestMemory::Reserve(unsigned bits) {
+@@ -32,6 +39,9 @@
+   // heap growth is a 32-bit signed size), so two 1 GiB steps, which are contiguous; malloc
+   // goes on above them.
+   void* p = nullptr;
++#if defined(__EMSCRIPTEN__)
++  const uintptr_t heap_end_before = emscripten_get_heap_size();
++#endif
+   {
+     const uintptr_t brk = reinterpret_cast<uintptr_t>(sbrk(0));
+     const intptr_t pad = intptr_t((0x10000 - (brk & 0xFFFF)) & 0xFFFF);
+@@ -44,6 +54,15 @@
+         (reinterpret_cast<uintptr_t>(lo) & 0xFFFF) == 0)
+       p = lo;
+   }
++#if defined(__EMSCRIPTEN__)
++  if (!p) {
++    std::fprintf(stderr,
++                 "GuestMemory: cannot allocate the 2 GiB arena: the browser gave %zu MiB of "
++                 "memory (a 64-bit browser with 4 GiB per tab is needed)\n",
++                 emscripten_get_heap_size() >> 20);
++    return false;
++  }
++#else
+   if (!p) {
+     // What the system gave the process, and the C heap (libnx: all of it, at start).
+     u64 total = 0, used = 0;
+@@ -57,14 +76,26 @@
+                  (unsigned long long)((fake_heap_end - fake_heap_start) >> 20));
+     return false;
+   }
++#endif
++#if defined(__EMSCRIPTEN__)
++  // Memory the heap grows into is zero; only what lay below the old heap end
++  // can hold an earlier allocation's bytes. Zeroing all 2 GiB would make the
++  // browser commit every page of it.
++  {
++    const uintptr_t lo = reinterpret_cast<uintptr_t>(p);
++    if (heap_end_before > lo)
++      std::memset(p, 0, size_t(std::min<uintptr_t>(heap_end_before - lo, size)));
++  }
++#else
+   std::memset(p, 0, size_t(size));
++#endif
+   base_ = static_cast<uint8_t*>(p);
+   size_ = size;
+   pages_.assign(size / kPageSize, 0);
+   return true;
+ }
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ void GuestMemory::HostRange(gaddr va, uint64_t size, uint64_t* start, uint64_t* end) const {
+   *start = uint64_t(va) & ~uint64_t(kPageSize - 1);
+   *end = (uint64_t(va) + size + kPageSize - 1) & ~uint64_t(kPageSize - 1);
+@@ -99,7 +130,7 @@
+ 
+ namespace recomp {
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ namespace {
+ 
+ // Preferred host placement keeps base() stable across runs, which makes
+@@ -115,7 +146,7 @@
+ }  // namespace
+ #endif
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ bool GuestMemory::Reserve(unsigned bits) {
+   host_page_ = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+   if (host_page_ < kPageSize || host_page_ % kPageSize) {
+@@ -164,7 +195,7 @@
+   *end = (uint64_t(va) + size + mask) & ~mask;
+ }
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ bool GuestMemory::HostPageInUse(uint64_t host_off) const {
+   for (uint64_t g = host_off / kPageSize, n = host_page_ / kPageSize; n--; g++)
+     if (pages_[g] & kCommitted) return true;
+@@ -172,7 +203,7 @@
+ }
+ #endif
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ bool GuestMemory::Commit(gaddr va, uint64_t size, Prot prot) {
+   if (!size) return true;
+   if (!InRange(va, size)) return false;
+@@ -202,7 +233,7 @@
+   return true;
+ }
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ void GuestMemory::Decommit(gaddr va, uint64_t size, bool zero) {
+   if (!size || !InRange(va, size)) return;
+   uint64_t first = va / kPageSize, last = (uint64_t(va) + size - 1) / kPageSize;
+--- a/src/runtime/hle/kernel32_sync.cpp
++++ b/src/runtime/hle/kernel32_sync.cpp
+@@ -12,7 +12,7 @@
+ // synchronises opens a GuestSyncPoint, which makes the call a full
+ // barrier as on Windows (see kernel32_state.h).
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ #include <sys/mman.h>
+ #endif
+ #include <sys/stat.h>
+@@ -709,7 +709,7 @@
+     return 0;
+   }
+   bool write = (access & 0x2) && m->writable;  // FILE_MAP_WRITE
+-#if defined(__SWITCH__)
++#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+   // No mmap: the view is a copy of the file read in (writes to it do not
+   // reach the file).
+   g_proc->mem.Commit(base, size, write ? Prot::RW : Prot::R);
+--- a/src/runtime/hle/user32_window.cpp
++++ b/src/runtime/hle/user32_window.cpp
+@@ -38,6 +38,20 @@
+ #include "runtime/hle/win32.h"
+ #include "runtime/log.h"
+ #include "runtime/watchdog.h"
++
++#if defined(__EMSCRIPTEN__)
++#include <emscripten/emscripten.h>
++#include <emscripten/html5.h>
++
++// In the browser the window is the page's canvas, sized by the page (its CSS box; SDL follows
++// it): the game's own sizes and fullscreen modes are not given to it. A mode SDL took sized the
++// canvas apart from its box, and the frame and the pointer were drawn stretched, the pointer
++// away from the mouse. The game still gets its screen: present fits the frame in the canvas.
++#define SDL_SetWindowSize(w, x, y) ((void)(w), (void)(x), (void)(y), true)
++#define SDL_SetWindowPosition(w, x, y) ((void)(w), (void)(x), (void)(y), true)
++#define SDL_SetWindowFullscreen(w, on) ((void)(w), (void)(on), true)
++#define SDL_SetWindowFullscreenMode(w, m) ((void)(w), (void)(m), true)
++#endif
+ 
+ namespace recomp {
+ 
+@@ -949,6 +963,17 @@
+     // A phone or tablet held upright: the games are landscape (their window
+     // turns the device), so the desktop is the landscape one.
+     float mw = float(m->w), mh = float(m->h);
++#if defined(__EMSCRIPTEN__)
++    // In the browser the screen is the page (the canvas's box, which fills it), not the
++    // monitor: games that size their screen by the desktop's then fill the page.
++    {
++      double cw = 0, ch = 0;
++      if (emscripten_get_element_css_size("#canvas", &cw, &ch) == EMSCRIPTEN_RESULT_SUCCESS && cw > 0 && ch > 0) {
++        mw = float(cw);
++        mh = float(ch);
++      }
++    }
++#endif
+ #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
+     if (mw < mh) std::swap(mw, mh);
+ #endif
+@@ -1425,6 +1450,12 @@
+   if (!w) return;
+   if (SDL_TextInputActive(w)) SDL_StopTextInput(w);
+   else SDL_StartTextInput(w);
++#if defined(__EMSCRIPTEN__)
++  // SDL has no on-screen keyboard in the browser: the page shows one (Module.recompScreenKeyboard)
++  // and sends what is typed as keys.
++  MAIN_THREAD_ASYNC_EM_ASM({ if (Module.recompScreenKeyboard) Module.recompScreenKeyboard(!!$0); },
++                           SDL_TextInputActive(w) ? 1 : 0);
++#endif
+ }
+ 
+ void Handle(const SDL_TouchFingerEvent& f, Uint32 type) {
+--- a/src/runtime/lazy_mem.cpp
++++ b/src/runtime/lazy_mem.cpp
+@@ -1,6 +1,6 @@
+ #include "runtime/lazy_mem.h"
+ 
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ #include <sys/mman.h>
+ #endif
+ 
+@@ -44,7 +44,7 @@
+ 
+ void Region::SetAccess(gaddr lo, gaddr hi, bool accessible) {
+   if (hi <= lo) return;
+-#if defined(__SWITCH__)
++#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+   // No page protection or fault handler there: pages stay accessible, and a
+   // LazyImage fills its rect at Begin instead of on first touch.
+   (void)accessible;
+@@ -190,7 +190,7 @@
+   faults_ = 0;
+   for (uint8_t& s : state_) s &= uint8_t(~kPulled);
+   CloseAll();
+-#if defined(__SWITCH__)
++#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+   Fill(va_ + rect_p0_ * page_, va_ + rect_p1_ * page_);  // what a touch would pull, all now
+ #endif
+ }
+--- a/src/runtime/platform.cpp
++++ b/src/runtime/platform.cpp
+@@ -14,7 +14,7 @@
+ #include <signal.h>
+ #include <string.h>
+ #include <time.h>
+-#if !defined(__SWITCH__)
++#if !defined(__SWITCH__) && !defined(__EMSCRIPTEN__)
+ #include <ucontext.h>
+ #endif
+ 
+@@ -24,6 +24,12 @@
+ #include <mach/mach_time.h>
+ #include <mach/thread_policy.h>
+ #include <pthread.h>
++#elif defined(__EMSCRIPTEN__)
++#include <emscripten/emscripten.h>
++#include <unistd.h>
++
++#include <cstdio>
++#include <cstdlib>
+ #elif !defined(__SWITCH__)
+ #include <sys/prctl.h>
+ #endif
+@@ -38,7 +44,7 @@
+ #include <unwind.h>
+ 
+ #include <cstdio>
+-#else
++#elif !defined(__EMSCRIPTEN__)
+ #include <execinfo.h>
+ #endif
+ 
+@@ -51,7 +57,17 @@
+ 
+ namespace recomp::platform {
+ 
+-#if defined(RECOMP_ASM_STACK_SWITCH)
++#if defined(__EMSCRIPTEN__)
++// The browser: no stack switching (WebAssembly has no access to its own
++// stack). The guest main thread is not the page's main thread anyway (the
++// module is built with PROXY_TO_PTHREAD: main() runs on a worker whose stack
++// size the link sets), so fn() runs where it is.
++void RunOnStack(void* stack, size_t size, void (*fn)()) {
++  (void)stack;
++  (void)size;
++  fn();
++}
++#elif defined(RECOMP_ASM_STACK_SWITCH)
+ namespace {
+ // Calls fn() with sp = top (16-byte aligned) and returns on the caller's
+ // stack. The frame record (x29, x30) stays on the caller's stack and x29
+@@ -118,7 +134,7 @@
+ 
+ FaultContext ReadFaultContext(const void* uc) {
+   FaultContext f;
+-#if defined(__SWITCH__)
++#if defined(__SWITCH__) || defined(__EMSCRIPTEN__)
+   (void)uc;  // no signals there
+   return f;
+ #else
+@@ -211,7 +227,7 @@
+ }
+ 
+ void SleepUntilNs(uint64_t t) {
+-#if defined(__SWITCH__)
++#if defined(__SWITCH__) || defined(__EMSCRIPTEN__)
+   for (uint64_t now; (now = MonotonicNs()) < t;) {
+     timespec d{time_t((t - now) / 1000000000u), long((t - now) % 1000000000u)};
+     nanosleep(&d, nullptr);
+@@ -234,7 +250,7 @@
+ #endif
+ 
+ bool RedirectToCall(void* uc, void (*fn)()) {
+-#if defined(__SWITCH__)
++#if defined(__SWITCH__) || defined(__EMSCRIPTEN__)
+   (void)uc;
+   (void)fn;
+   return false;
+@@ -257,7 +273,22 @@
+ #endif
+ }
+ 
+-#if defined(__ANDROID__) || defined(__SWITCH__)
++#if defined(__EMSCRIPTEN__)
++// No return addresses to collect: the browser's own stack trace (function
++// names from the wasm name section) is printed instead, in one piece.
++int Backtrace(void** frames, int max) {
++  (void)frames;
++  (void)max;
++  return 0;
++}
++void BacktraceSymbolsFd(void* const* frames, int n, int fd) {
++  (void)frames;
++  (void)n;
++  char buf[16384];
++  const int len = emscripten_get_callstack(EM_LOG_C_STACK | EM_LOG_NO_PATHS, buf, sizeof buf);
++  if (len > 0) (void)!write(fd, buf, size_t(len < int(sizeof buf) ? len : sizeof buf - 1));
++}
++#elif defined(__ANDROID__) || defined(__SWITCH__)
+ namespace {
+ struct UnwindState {
+   void** frames;
+--- a/src/runtime/process.cpp
++++ b/src/runtime/process.cpp
+@@ -2,7 +2,7 @@
+ // host threads that run guest code.
+ 
+ #include <pthread.h>
+-#if !defined(__SWITCH__)
++#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ #include <sys/mman.h>
+ #endif
+ #include <sys/stat.h>
+@@ -47,7 +47,14 @@
+ // Host stack for each guest thread. Guest call depth maps 1:1 onto host
+ // call depth, and lifted frames are larger than the originals, so be
+ // generous; the memory is only touched as needed.
++#if defined(__EMSCRIPTEN__)
++// The browser: this is only the shadow stack in linear memory (locals whose
++// address is taken), allocated whole from the same 4 GiB as the arena; the
++// frames themselves are on the engine's own stack.
++constexpr size_t kHostStack = 16u << 20;
++#else
+ constexpr size_t kHostStack = 256u << 20;
++#endif
+ 
+ constexpr uint32_t kTlsArraySlots = 64;
+ 
+@@ -345,7 +352,7 @@
+ }  // namespace
+ 
+ static uint32_t RunOnMainThread(Thread* t, gaddr entry) {
+-#if defined(__SWITCH__)
++#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+   void* stack = std::aligned_alloc(0x1000, kHostStack);
+   if (!stack) FatalF("cannot allocate the main guest stack");
+ #else
+@@ -356,7 +363,7 @@
+   g_main_thread = t;
+   g_main_entry = entry;
+   platform::RunOnStack(stack, kHostStack, GuestMainTrampoline);
+-#if defined(__SWITCH__)
++#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+   std::free(stack);
+ #else
+   munmap(stack, kHostStack);
+--- a/src/runtime/watchdog.cpp
++++ b/src/runtime/watchdog.cpp
+@@ -1,4 +1,4 @@
+-#if defined(__SWITCH__)
++#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ // The Switch: no signals to sample or dump other threads with; no watchdog.
+ #include "runtime/watchdog.h"
+ namespace recomp {
