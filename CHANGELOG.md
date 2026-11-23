@@ -22,10 +22,12 @@ Random maps, a new icon, and fixes.
 
 **Changed**
 - The Linux archives unpack into a `ReHoMM4` folder, and the Mac app is `ReHoMM4.app` (was `Heroes IV`). On the Mac, move the old **Heroes IV** from Applications to the Bin after installing; saves and settings are kept.
+- The app's file is `ReHoMM4` everywhere: `ReHoMM4/ReHoMM4` on Linux and the Steam Deck (re-add it to Steam), `ReHoMM4.nro` on the Switch (in `switch/ReHoMM4/`), `ReHoMM4.app` on iPhone and iPad.
 - The installer scrolls when it is taller than the screen (a phone on its side).
 
 **Fixed**
 - Android: a black screen after signing in to GOG (the download went on behind it).
+- Android, iPhone, iPad: the random map buttons showed only after a touch.
 - Android: the launcher's mask no longer cuts the icon's edge.
 
 **Known limits**
