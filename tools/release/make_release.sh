@@ -106,6 +106,7 @@ tar -xzf "$OUT/reHoMM4-v$V-linux-arm64.tar.gz" -C "$T/linux-arm64"
 for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-windows-x86_64.zip; do
   case "$f" in
     *.dmg) bash tools/release/release_check.sh "$f" 2>/dev/null ;;
+    *-windows-x86_64.zip) bash tools/release/release_check.sh "$f" | sed "s#$OUT/##" ;;  # (its name: the exe allowed)
     *) cp "$f" "$T/a.zip"; bash tools/release/release_check.sh "$T/a.zip" | sed "s#$T/a.zip#${f##*/}#"; rm "$T/a.zip" ;;
   esac
 done
