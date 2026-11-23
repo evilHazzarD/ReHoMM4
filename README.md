@@ -326,10 +326,10 @@ of 31 more (rings, spiders, mirrors, team maps, labyrinths…). A template made 
 players or map sizes sets them when picked. Then the map size, the players (each human or
 computer, with faction, team and starting hero; the hero's card shows the skills, army and
 biography), water, underground, monsters, obelisks, treasures and the seed. Most can be
-**Random**. **Create** makes the map and selects it in the list of scenarios.
+**Random**. **OK** makes the map; it is at the top of the list of scenarios.
 
-A random map in the list can be edited (its settings come back) and made again in its place, or
-deleted. Each map keeps its full settings in its description, so the same seed and settings make
+With a random map selected in the list, **Edit random map** brings its settings back and
+**Update map** makes it again in its place; **Remove random map** deletes it. Each map keeps its full settings in its description, so the same seed and settings make
 the same map on every device. Templates are text files in `Maps/RandomMaps/Templates` (beside the
 game files): change them or add your own; `example.txt` explains the format.
 
@@ -793,16 +793,16 @@ Linux — `~/.local/share/ReHoMM4` (файли гри й збереження).
 
 ### Випадкові карти
 
-Нова гра → **Scenario** → **Random map** (кнопка під списком сценаріїв) відкриває генератор. Угорі
+Нова гра → «Сценарій» → **Випадкова карта** (кнопка під списком сценаріїв) відкриває генератор. Угорі
 оберіть **шаблон** — розташування зон і доріг карти: Classic або один з 31 інших (кільця, павуки,
 дзеркала, командні карти, лабіринти…). Шаблон для іншої кількості гравців чи розміру карти сам їх
 виставляє. Далі — розмір карти, гравці (кожен — людина чи комп'ютер, із фракцією, командою й
 стартовим героєм; картка героя показує навички, армію й біографію), вода, підземелля, монстри,
-обеліски, скарби й зерно (seed). Майже все може бути **Random**. **Create** створює карту й обирає
-її в списку сценаріїв.
+оракули, скарби й зерно. Майже все може бути **Випадково**. **Гаразд** створює карту; вона
+з'являється вгорі списку сценаріїв.
 
-Випадкову карту зі списку можна змінити (її налаштування повертаються) і створити заново на тому ж
-місці або видалити. Кожна карта зберігає всі свої налаштування в описі, тож те саме зерно й
+Коли в списку обрано випадкову карту, **Редагувати випадкову карту** повертає її налаштування, а
+**Оновити карту** створює її заново на тому ж місці; **Видалити випадкову карту** її видаляє. Кожна карта зберігає всі свої налаштування в описі, тож те саме зерно й
 налаштування дають ту саму карту на кожному пристрої. Шаблони — текстові файли в
 `Maps/RandomMaps/Templates` (поруч із файлами гри): змінюйте їх чи додавайте свої; формат пояснено
 в `example.txt`.
