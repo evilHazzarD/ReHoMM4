@@ -59,6 +59,7 @@ TARGETS=(
   "linux-x86_64 HeroesIV-linux-x86_64.tar.gz   reHoMM4-v$V-linux-x86_64.tar.gz"
   "linux-arm64  HeroesIV-linux-arm64.tar.gz    reHoMM4-v$V-linux-arm64.tar.gz"
   "switch       ReHoMM4.nro                    reHoMM4-v$V-switch.nro"
+  "switch2      ReHoMM4.nro                    reHoMM4-v$V-switch2.nro"
 )
 for t in "${TARGETS[@]}"; do
   read -r target built file <<< "$t"

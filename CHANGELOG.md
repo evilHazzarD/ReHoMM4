@@ -13,11 +13,13 @@ Random maps, a new icon, and fixes.
 | Android 10+, 64-bit | `reHoMM4-v0.4-android_arm64.apk` |
 | Linux, Steam Deck | `reHoMM4-v0.4-linux-x86_64.tar.gz` (x86-64) or `reHoMM4-v0.4-linux-arm64.tar.gz` (64-bit ARM) |
 | Switch (homebrew) | `reHoMM4-v0.4-switch.nro` |
+| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.4-switch2.nro` |
 
 **New**
 - **Random maps**: New Game → Scenario → **Random map**. Choose the template, the map size, the number of players (each human or computer, with faction, team and starting hero), water, underground, monsters, obelisks, treasures and the seed; most can be **Random**. The hero's card shows the starting hero's skills, statistics, army and biography. A random map in the list can be edited and made again.
 - **32 templates**: Classic and 31 more, our own layouts of the kinds popular in Heroes 3 (Ring, Spider, Mirror, Allies, Three on three, Labyrinth, Checkerboard, …). They are text files in `Maps/RandomMaps/Templates`: change them or add your own (`example.txt` explains the format).
 - **A new icon** on every platform.
+- **Switch 2**: its own build, `reHoMM4-v0.4-switch2.nro`, for kaiHEN's homebrew menu (README: Nintendo Switch 2).
 - **Black side panels** can be chosen in the settings (from the next start).
 
 **Changed**
@@ -33,6 +35,7 @@ Random maps, a new icon, and fixes.
 **Known limits**
 - The Mac app is not signed: the first time, right-click it → **Open** → **Open**.
 - The Switch app has been tested only in the Astris emulator, not on a real console.
+- The Switch 2 app has not been tested on a console.
 
 ## 0.3
 

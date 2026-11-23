@@ -1,6 +1,6 @@
 # ReHoMM4: Heroes of Might and Magic IV, native
 
-Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android (including Android TV), Linux, Steam Deck, and Nintendo Switch. Runs directly on hardware—no Wine, emulators, or VMs.
+Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android (including Android TV), Linux, Steam Deck, Nintendo Switch and Switch 2, and in a web browser. Runs directly on hardware—no Wine, emulators, or VMs.
 
 [Українською — нижче](#українською)
 
@@ -25,7 +25,9 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   - an iPhone or iPad with iOS / iPadOS 17 or later;
   - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
   - a Linux PC (x86-64 or 64-bit ARM) or a Steam Deck;
-  - a Nintendo Switch that runs homebrew.
+  - a Nintendo Switch that runs homebrew (Atmosphère), or a Switch 2 that runs homebrew (kaiHEN);
+  - or a desktop web browser (64-bit Chrome, Edge, Firefox or Safari), on a site that hosts the
+    browser version ([In a browser](#in-a-browser)).
 - An internet connection and about 3 GB of free space.
 
 ## Install
@@ -45,6 +47,8 @@ below is the release's number (for example `0.3`; releases before 0.3 named them
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
 | Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-bit ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
+| Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (from 0.4; not the Switch one) |
+| Web browser | nothing to download: built from source and put on a site ([In a browser](#in-a-browser)) |
 
 Not sure which Mac you have:  → **About This Mac**; "Chip: Apple M…" is an Apple chip,
 "Processor: … Intel" is Intel.
@@ -174,6 +178,55 @@ Without `switch/ReHoMM4/game` the app shows where to copy it. A game in another 
 too, with the `heroes4.exe` of the English GOG version put in its place ("An installed game" below).
 Controls: the touch screen as on phones, and the Joy-Cons as a gamepad ([Controls](#controls)).
 The Switch app has been tested only in the Astris emulator, not on a real console yet.
+
+### Nintendo Switch 2
+
+Needs a Switch 2 that runs homebrew with [kaiHEN](https://github.com/ouncebrew/kaihen) (its
+homebrew menu, hbmenu) and a microSD card with about 2 GB free. Download
+`reHoMM4-v<version>-switch2.nro`: the Switch 2 needs its own build (made with
+[ounce-devkit](https://github.com/ouncebrew/ounce-devkit)); `…-switch.nro` is for the first
+Switch only. As on the Switch, the game is copied from a computer (no GOG sign-in on the console).
+
+1. Put the SD card in a computer and make the folder `switch/ReHoMM4` on it.
+2. Copy into it `reHoMM4-v<version>-switch2.nro`, renamed to `ReHoMM4.nro`, and the installed
+   game folder, renamed to `game`:
+   ```
+   switch/ReHoMM4/ReHoMM4.nro
+   switch/ReHoMM4/game/heroes4.exe   (and the rest of the game)
+   ```
+3. Put the card back and start kaiHEN (with the tool you use for it).
+4. Hold **R** while starting a game from the home screen. The first time, kaiHEN runs that game
+   normally and prepares itself; from the next time it opens the homebrew menu. Pick **Heroes IV**.
+
+The game runs at the console's screen resolution (the TV's in the dock). Controls as on the
+Switch. The Switch 2 app has not been tested on a console yet: reports are welcome in the
+[issues](https://github.com/evilHazzarD/ReHoMM4/issues).
+
+### In a browser
+
+The same game, compiled to WebAssembly, runs in a desktop browser. There is no public site for it
+yet and no file in the releases: build it from source and serve it, on your computer or on a site
+of your own.
+
+What it needs: a 64-bit desktop Chrome or Edge 112+, Firefox 121+ or Safari 18.2+, about 3 GB of
+free memory, and about 1.5 GB of storage for the site. Phones and tablets are not supported (too
+little memory for a page); use the apps there.
+
+1. Build it (on a Mac, with the game installed for building: [Building from source](#building-from-source)):
+   ```
+   web/build.sh           # -> .cache/outputs/web/dist
+   python3 web/serve.py   # http://localhost:8080
+   ```
+   Elsewhere, any HTTPS server can serve `.cache/outputs/web/dist` (`web/README.md`, "Hosting").
+2. Open the page. Choose **Full screen** and **Skip the intro** if you like, the side panels and the
+   language, then press **Start**.
+3. The first time the installer opens, as in the apps. Pick both files of GOG's offline installer
+   (`setup_heroes_of_might_and_magic_4_complete_….exe` and its `-1.bin`, from your GOG library), or
+   the folder of a game installed on this computer. "Sign in to GOG" is not offered in a browser.
+
+The game (about 1 GB), saves and settings stay in this browser's storage, for this site only;
+nothing is uploaded. **Delete the game files kept in this browser** on the page removes them;
+clearing the site's data in the browser removes the saves too. **Start again** restarts the game.
 
 ### First start: the game files
 
@@ -355,6 +408,8 @@ game and prepares its code, then for each platform `platforms/deps.sh <platform>
 | `platforms/build.sh macos-arm64` | `ReHoMM4.app` and `HeroesIV-macos-arm64.dmg` |
 | `platforms/build.sh macos-x86_64` | `ReHoMM4.app` and `HeroesIV-macos-x86_64.dmg` (Intel) |
 | `platforms/build.sh switch` | `ReHoMM4.nro` |
+| `platforms/build.sh switch2` | `ReHoMM4.nro` (Switch 2, needs ounce-devkit) |
+| `web/build.sh` | the site, `.cache/outputs/web/dist` |
 
 Details: [`platforms/README.md`](platforms/README.md).
 
@@ -401,7 +456,7 @@ Ubisoft or GOG.
 ## Українською
 
 «Герої меча і магії IV» з обома доповненнями як рідна програма для Мака, iPhone та iPad, Android (зокрема Android TV),
-Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і віртуальних машин: гра працює на
+Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузері. Без Wine, емуляторів і віртуальних машин: гра працює на
 пристрої напряму.
 
 Якщо вам подобається, можна підтримати автора (також кнопка ☕ у головному меню гри):
@@ -425,7 +480,9 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
   - iPhone або iPad з iOS / iPadOS 17 або новішою;
   - телефон, планшет чи телевізор на Android (64-бітний, Android 10 або новіший; на телевізорі — з геймпадом);
   - ПК з Linux (x86-64 чи 64-бітний ARM) або Steam Deck;
-  - Nintendo Switch, на якому запускається homebrew.
+  - Nintendo Switch, на якому запускається homebrew (Atmosphère), або Switch 2 з homebrew (kaiHEN);
+  - або браузер на комп'ютері (64-бітні Chrome, Edge, Firefox чи Safari), на сайті з версією для
+    браузера ([У браузері](#у-браузері)).
 - Інтернет і близько 3 ГБ вільного місця.
 
 ### Встановлення
@@ -444,6 +501,8 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
 | ПК з Linux, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-бітний ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
+| Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (з 0.4; не той, що для Switch) |
+| Браузер | нічого не завантажувати: збирається з коду й викладається на сайт ([У браузері](#у-браузері)) |
 
 Який у вас Мак:  → **Про цей Mac**; «Чип: Apple M…» — процесор Apple, «Процесор: … Intel» — Intel.
 
@@ -573,6 +632,54 @@ SteamOS 3 і новіші), драйвери з Vulkan, X11 або Wayland (че
 замінити в ній `heroes4.exe` на файл з англійської версії GOG («Встановлена гра» нижче).
 Керування: сенсорний екран як на телефонах і Joy-Con як геймпад ([Керування](#керування)). Програму
 для Switch перевірено лише в емуляторі Astris, на справжній консолі — ще ні.
+
+#### Nintendo Switch 2
+
+Потрібна Switch 2, на якій запускається homebrew через [kaiHEN](https://github.com/ouncebrew/kaihen)
+(його homebrew-меню, hbmenu), і microSD з ~2 ГБ вільного місця. Завантажте
+`reHoMM4-v<version>-switch2.nro`: для Switch 2 потрібна окрема збірка (зроблена з
+[ounce-devkit](https://github.com/ouncebrew/ounce-devkit)); `…-switch.nro` — лише для першої
+Switch. Як і на Switch, гру копіюють з комп'ютера (входу в GOG на консолі немає).
+
+1. Вставте SD-картку в комп'ютер і створіть на ній теку `switch/ReHoMM4`.
+2. Скопіюйте в неї `reHoMM4-v<version>-switch2.nro`, перейменувавши на `ReHoMM4.nro`, і теку
+   встановленої гри, перейменувавши на `game`:
+   ```
+   switch/ReHoMM4/ReHoMM4.nro
+   switch/ReHoMM4/game/heroes4.exe   (і решта гри)
+   ```
+3. Поверніть картку й запустіть kaiHEN (тим інструментом, яким ви його запускаєте).
+4. Тримайте **R**, запускаючи гру з головного екрана. Першого разу kaiHEN запускає цю гру як
+   звичайно й готується; з наступного разу відкривається homebrew-меню. Оберіть **Heroes IV**.
+
+Гра йде в роздільності екрана консолі (у доку — телевізора). Керування як на Switch. Програму для
+Switch 2 на консолі ще не перевірено: відгуки — в [issues](https://github.com/evilHazzarD/ReHoMM4/issues).
+
+#### У браузері
+
+Та сама гра, скомпільована у WebAssembly, працює в браузері на комп'ютері. Публічного сайту з нею
+поки немає, і в релізах файлу для неї немає: зберіть її з коду й запустіть на своєму комп'ютері
+або на власному сайті.
+
+Що потрібно: 64-бітні Chrome чи Edge 112+, Firefox 121+ або Safari 18.2+ на комп'ютері, ~3 ГБ
+вільної пам'яті й ~1,5 ГБ місця для сайту. Телефони й планшети не підтримуються (замало пам'яті
+для сторінки): там є програми.
+
+1. Зберіть (на Маці, з грою, встановленою для збирання: [Збирання з коду](#збирання-з-коду)):
+   ```
+   web/build.sh           # -> .cache/outputs/web/dist
+   python3 web/serve.py   # http://localhost:8080
+   ```
+   Деінде `.cache/outputs/web/dist` може віддавати будь-який HTTPS-сервер (`web/README.md`, «Hosting»).
+2. Відкрийте сторінку. За бажанням увімкніть **Full screen** і **Skip the intro**, оберіть бічні
+   панелі й мову, натисніть **Start**.
+3. Першого разу відкривається інсталятор, як у програмах. Оберіть обидва файли офлайн-інсталятора
+   GOG (`setup_heroes_of_might_and_magic_4_complete_….exe` і його `-1.bin`, з вашої бібліотеки
+   GOG) або теку гри, встановленої на цьому комп'ютері. Входу в GOG у браузері немає.
+
+Гра (~1 ГБ), збереження й налаштування лишаються в сховищі цього браузера, лише для цього сайту;
+нічого не вивантажується. Кнопка **Delete the game files kept in this browser** на сторінці їх
+видаляє; очищення даних сайту в браузері видаляє й збереження. **Start again** перезапускає гру.
 
 #### Перший запуск: файли гри
 
@@ -753,6 +860,8 @@ SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У р�
 | `platforms/build.sh macos-arm64` | `ReHoMM4.app` і `HeroesIV-macos-arm64.dmg` |
 | `platforms/build.sh macos-x86_64` | `ReHoMM4.app` і `HeroesIV-macos-x86_64.dmg` (Intel) |
 | `platforms/build.sh switch` | `ReHoMM4.nro` |
+| `platforms/build.sh switch2` | `ReHoMM4.nro` (Switch 2, needs ounce-devkit) |
+| `web/build.sh` | the site, `.cache/outputs/web/dist` |
 
 Подробиці: [`platforms/README.md`](platforms/README.md).
 
