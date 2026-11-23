@@ -117,7 +117,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--port', type=int, default=8080)
     ap.add_argument('--bind', default='127.0.0.1')
-    ap.add_argument('--dir', default=os.path.join(ROOT, '.cache', 'outputs', 'web', 'dist'))
+    # The release's web zip has this script beside the site: that folder, else the build's.
+    here = os.path.dirname(os.path.abspath(__file__))
+    site = here if os.path.isfile(os.path.join(here, 'index.html')) else os.path.join(ROOT, '.cache', 'outputs', 'web', 'dist')
+    ap.add_argument('--dir', default=site)
     ap.add_argument('--tls', nargs=2, metavar=('CERT', 'KEY'), help='HTTPS with this certificate and key')
     ap.add_argument('--game', help='an installed game folder, for index.html?game=game-files')
     a = ap.parse_args()

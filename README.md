@@ -28,8 +28,8 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
   - a Linux PC (x86-64 or 64-bit ARM) or a Steam Deck;
   - a Nintendo Switch that runs homebrew (Atmosphère), or a Switch 2 that runs homebrew (kaiHEN);
-  - or a web browser on a computer, phone or tablet (64-bit Chrome, Edge, Firefox or Safari), on a
-    site that hosts the browser version ([In a browser](#in-a-browser)).
+  - or a web browser on a computer, phone or tablet (64-bit Chrome, Edge, Firefox or Safari)
+    ([In a browser](#in-a-browser)).
 - An internet connection and about 3 GB of free space.
 
 ## Install
@@ -50,7 +50,7 @@ below is the release's number (for example `0.3`; releases before 0.3 named them
 | Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-bit ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 | Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (from 0.4; not the Switch one) |
-| Web browser | nothing to download: built from source and put on a site ([In a browser](#in-a-browser)) |
+| Web browser (computer, phone, tablet) | `reHoMM4-v<version>-web.zip` (from 0.4: the site, to serve; [In a browser](#in-a-browser)) |
 
 Not sure which Mac you have:  → **About This Mac**; "Chip: Apple M…" is an Apple chip,
 "Processor: … Intel" is Intel.
@@ -206,21 +206,23 @@ Switch. The Switch 2 app has not been tested on a console yet: reports are welco
 
 ### In a browser
 
-The same game, compiled to WebAssembly, runs in a browser, on a computer, phone or tablet. There is no public site for it
-yet and no file in the releases: build it from source and serve it, on your computer or on a site
-of your own.
+The same game, compiled to WebAssembly, runs in a browser, on a computer, phone or tablet. There is
+no public site for it yet: the release has the site as a file, `reHoMM4-v<version>-web.zip`, to
+run on your computer or put on a web server of your own.
 
 What it needs: a 64-bit Chrome or Edge 112+, Firefox 121+ or Safari 18.2+ (on an iPhone or iPad:
 iOS / iPadOS 18.2+; on Android: Chrome), about 3 GB of free memory, and about 1.5 GB of storage
 for the site. On phones and tablets the screen is touched as in the apps, and the page shows a
 keyboard where the game wants text; with too little memory the browser closes the page.
 
-1. Build it (on a Mac, with the game installed for building: [Building from source](#building-from-source)):
+1. Download `reHoMM4-v<version>-web.zip` and unzip it. On a computer with
+   [Python 3](https://www.python.org/downloads/), in the `ReHoMM4` folder run
    ```
-   web/build.sh           # -> .cache/outputs/web/dist
-   python3 web/serve.py   # http://localhost:8080
+   python3 serve.py
    ```
-   Elsewhere, any HTTPS server can serve `.cache/outputs/web/dist` (`web/README.md`, "Hosting").
+   and open http://localhost:8080. For phones and tablets put the `ReHoMM4` folder on an HTTPS
+   web server (its `README.txt` says what the server must send). Or build the site from source:
+   `web/build.sh`, then `python3 web/serve.py` ([Building from source](#building-from-source)).
 2. Open the page. Choose **Full screen** and **Skip the intro** if you like, the side panels and the
    language, then press **Start**.
 3. The first time the installer opens, as in the apps. Pick both files of GOG's offline installer
@@ -230,6 +232,10 @@ keyboard where the game wants text; with too little memory the browser closes th
 The game (about 1 GB), saves and settings stay in this browser's storage, for this site only;
 nothing is uploaded. **Delete the game files kept in this browser** on the page removes them;
 clearing the site's data in the browser removes the saves too. **Start again** restarts the game.
+
+The release's site is in English. For a translation, make a folder `translations` in `ReHoMM4` and
+put in it `languages.json` and the language's `.h4p` from the
+[ReHoMM4-translations releases](https://github.com/evilHazzarD/ReHoMM4-translations/releases).
 
 ### First start: the game files
 
@@ -503,8 +509,8 @@ Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузе�
   - телефон, планшет чи телевізор на Android (64-бітний, Android 10 або новіший; на телевізорі — з геймпадом);
   - ПК з Linux (x86-64 чи 64-бітний ARM) або Steam Deck;
   - Nintendo Switch, на якому запускається homebrew (Atmosphère), або Switch 2 з homebrew (kaiHEN);
-  - або браузер на комп'ютері, телефоні чи планшеті (64-бітні Chrome, Edge, Firefox чи Safari), на
-    сайті з версією для браузера ([У браузері](#у-браузері)).
+  - або браузер на комп'ютері, телефоні чи планшеті (64-бітні Chrome, Edge, Firefox чи Safari)
+    ([У браузері](#у-браузері)).
 - Інтернет і близько 3 ГБ вільного місця.
 
 ### Встановлення
@@ -524,7 +530,7 @@ Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузе�
 | ПК з Linux, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-бітний ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 | Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (з 0.4; не той, що для Switch) |
-| Браузер | нічого не завантажувати: збирається з коду й викладається на сайт ([У браузері](#у-браузері)) |
+| Браузер (комп'ютер, телефон, планшет) | `reHoMM4-v<version>-web.zip` (з 0.4: сайт, який треба запустити; [У браузері](#у-браузері)) |
 
 Який у вас Мак:  → **Про цей Mac**; «Чип: Apple M…» — процесор Apple, «Процесор: … Intel» — Intel.
 
@@ -679,21 +685,23 @@ Switch 2 на консолі ще не перевірено: відгуки — 
 
 #### У браузері
 
-Та сама гра, скомпільована у WebAssembly, працює в браузері на комп'ютері, телефоні чи планшеті. Публічного сайту з нею
-поки немає, і в релізах файлу для неї немає: зберіть її з коду й запустіть на своєму комп'ютері
-або на власному сайті.
+Та сама гра, скомпільована у WebAssembly, працює в браузері на комп'ютері, телефоні чи планшеті.
+Публічного сайту з нею поки немає: у релізі є сайт одним файлом, `reHoMM4-v<version>-web.zip`, щоб
+запустити його на своєму комп'ютері або викласти на власний вебсервер.
 
 Що потрібно: 64-бітні Chrome чи Edge 112+, Firefox 121+ або Safari 18.2+ (на iPhone чи iPad —
 iOS / iPadOS 18.2+; на Android — Chrome), ~3 ГБ вільної пам'яті й ~1,5 ГБ місця для сайту. На
 телефонах і планшетах — дотик, як у програмах, а де гра чекає тексту, сторінка показує клавіатуру;
 якщо пам'яті замало, браузер закриває сторінку.
 
-1. Зберіть (на Маці, з грою, встановленою для збирання: [Збирання з коду](#збирання-з-коду)):
+1. Завантажте `reHoMM4-v<version>-web.zip` і розпакуйте. На комп'ютері з
+   [Python 3](https://www.python.org/downloads/) у теці `ReHoMM4` виконайте
    ```
-   web/build.sh           # -> .cache/outputs/web/dist
-   python3 web/serve.py   # http://localhost:8080
+   python3 serve.py
    ```
-   Деінде `.cache/outputs/web/dist` може віддавати будь-який HTTPS-сервер (`web/README.md`, «Hosting»).
+   і відкрийте http://localhost:8080. Для телефонів і планшетів викладіть теку `ReHoMM4` на
+   HTTPS-вебсервер (що він має надсилати — у її `README.txt`). Або зберіть сайт з коду:
+   `web/build.sh`, потім `python3 web/serve.py` ([Збирання з коду](#збирання-з-коду)).
 2. Відкрийте сторінку. За бажанням увімкніть **Full screen** і **Skip the intro**, оберіть бічні
    панелі й мову, натисніть **Start**.
 3. Першого разу відкривається інсталятор, як у програмах. Оберіть обидва файли офлайн-інсталятора
@@ -703,6 +711,10 @@ iOS / iPadOS 18.2+; на Android — Chrome), ~3 ГБ вільної пам'ят
 Гра (~1 ГБ), збереження й налаштування лишаються в сховищі цього браузера, лише для цього сайту;
 нічого не вивантажується. Кнопка **Delete the game files kept in this browser** на сторінці їх
 видаляє; очищення даних сайту в браузері видаляє й збереження. **Start again** перезапускає гру.
+
+Сайт з релізу — англійською. Для перекладу створіть у `ReHoMM4` теку `translations` і покладіть
+у неї `languages.json` і `.h4p` потрібної мови з
+[релізів ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations/releases).
 
 #### Перший запуск: файли гри
 

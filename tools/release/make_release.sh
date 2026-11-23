@@ -75,6 +75,14 @@ for t in "${TARGETS[@]}"; do
   echo "$(du -h "$OUT/$file" | cut -f1 | tr -d ' ')  $((SECONDS - start)) s"
 done
 
+# The browser version: the site, zipped with serve.py (web/package_release.sh).
+printf '%-13s ' web
+start=$SECONDS
+bash web/build.sh >"$OUT/build-web.log" 2>&1 || { echo "FAILED"; tail -20 "$OUT/build-web.log"; die "build failed: $OUT/build-web.log"; }
+bash web/package_release.sh "$OUT/reHoMM4-v$V-web.zip" >>"$OUT/build-web.log" 2>&1 || die "web zip failed: $OUT/build-web.log"
+(cd "$OUT" && shasum -a 256 "reHoMM4-v$V-web.zip" > "reHoMM4-v$V-web.zip.sha256")
+echo "$(du -h "$OUT/reHoMM4-v$V-web.zip" | cut -f1 | tr -d ' ')  $((SECONDS - start)) s"
+
 # The wings for builds from source: only in release $H4_EXTRA_ASSETS_RELEASE, which they are
 # downloaded from (platforms/extra-assets.sh).
 source platforms/extra-assets.sh --vars
@@ -105,7 +113,7 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/linux" "$T/linux-arm64"
 tar -xzf "$OUT/reHoMM4-v$V-linux-x86_64.tar.gz" -C "$T/linux"
 tar -xzf "$OUT/reHoMM4-v$V-linux-arm64.tar.gz" -C "$T/linux-arm64"
-for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk ${WIN[@]+"${WIN[@]}"}; do
+for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-web.zip ${WIN[@]+"${WIN[@]}"}; do
   case "$f" in
     *.dmg) bash tools/release/release_check.sh "$f" 2>/dev/null ;;
     *-windows-x86_64.zip) bash tools/release/release_check.sh "$f" | sed "s#$OUT/##" ;;  # (its name: the exe allowed)
@@ -114,9 +122,9 @@ for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk ${WIN[@]+"${WIN[@]}"}; do
 done
 bash tools/release/release_check.sh "$T/linux" | sed "s#$T/linux#linux tar.gz#"
 bash tools/release/release_check.sh "$T/linux-arm64" | sed "s#$T/linux-arm64#linux-arm64 tar.gz#"
-python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk ${WIN[@]+"${WIN[@]}"} "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} |
+python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-web.zip ${WIN[@]+"${WIN[@]}"} "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} |
   grep -E '^(FAIL|publish_check)' | sed "s#$T/##"
-python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk ${WIN[@]+"${WIN[@]}"} "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} >/dev/null ||
+python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-web.zip ${WIN[@]+"${WIN[@]}"} "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} >/dev/null ||
   die "publish_check failed (above)"
 
 say "Release $V: $OUT"
