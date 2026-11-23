@@ -5,6 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#if defined(_WIN32)
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+static int setenv(const char* name, const char* value, int) { return _putenv_s(name, value); }
+#endif
 #if defined(__APPLE__)
 #include <copyfile.h>
 #endif
@@ -212,6 +218,7 @@ class Installer {
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
         if (e.type == SDL_EVENT_QUIT) quit_ = true;
+        if (Scroll(e)) continue;
         if (e.type == SDL_EVENT_MOUSE_BUTTON_UP) {
           SDL_ConvertEventToRenderCoordinates(ui_.ren, &e);
           OnPress(ui_.Hit(e.button.x, e.button.y));
@@ -262,6 +269,7 @@ class Installer {
     std::string err, code;
     if (!session_.Resume(&err)) {
       code = GogLoginCode(gog::LoginUrl());
+      FreshRenderer();
       if (code.empty()) return;  // closed the login page
     }
     Start([this, code](Task* t, std::string* error) -> bool {
@@ -284,6 +292,25 @@ class Installer {
       return true;
     }, "");
     listing_languages_ = true;
+  }
+
+  // After the login page (another activity, the main thread waiting in Java meanwhile): Android
+  // took the window's surface away, and the renderer drew into the dead one (a black screen) while
+  // the download went on. The events that came meanwhile handled, then a renderer made again
+  // (nothing of it kept: no textures).
+  void FreshRenderer() {
+#if defined(__ANDROID__)
+    SDL_PumpEvents();
+    SDL_FlushEvents(SDL_EVENT_FIRST, SDL_EVENT_LAST);
+    SDL_DestroyRenderer(ui_.ren);
+    ui_.ren = SDL_CreateRenderer(ui_.win, nullptr);
+    if (!ui_.ren) {
+      fprintf(stderr, "installer: no renderer after the login page: %s\n", SDL_GetError());
+      quit_ = true;
+      return;
+    }
+    SDL_SetRenderVSync(ui_.ren, 1);
+#endif
   }
 
   // The game in a language GOG has (gog::Session::Languages): English as it is, another one as its
@@ -653,8 +680,12 @@ class Installer {
     ui_.Color(18, 14, 10);
     SDL_RenderClear(ui_.ren);
     const float ch = ui_.Ch();
-    // Centred vertically (the content's height from the frame before; it turns with the device).
-    const float top = ui_.safe.y + std::max(ch, (ui_.safe.h - content_h_) / 2);
+    // Centred vertically (the content's height from the frame before; it turns with the device);
+    // taller than the screen (a phone on its side): from the top, scrolled.
+    if (screen_ != scrolled_screen_) scroll_ = 0, scrolled_screen_ = screen_;  // a new screen: its top
+    const float room = content_h_ + 2 * ch - ui_.safe.h;  // what does not fit
+    scroll_ = room > 0 ? std::clamp(scroll_, 0.0f, room) : 0.0f;
+    const float top = room > 0 ? ui_.safe.y + ch - scroll_ : ui_.safe.y + std::max(ch, (ui_.safe.h - content_h_) / 2);
     float y = top;
     ui_.Color(232, 190, 96);
     ui_.Centered(y, "HEROES OF MIGHT AND MAGIC IV", 1.5f);
@@ -691,6 +722,11 @@ class Installer {
           "Install the game on a computer from your GOG library (gog.com > Games > Heroes of "
           "Might and Magic IV: Complete), then copy its folder (the one with heroes4.exe) to the "
           "SD card as\n" + SdPath(files_) + "/game\nand start the game again."
+#elif defined(H4_WEB_APP)
+          "Download the Windows installer from your GOG library (gog.com > Games > Heroes of Might "
+          "and Magic IV: Complete): setup_heroes_of_might_and_magic_4_complete_...exe and its "
+          "-1.bin, then pick both. Or pick the folder of a game installed on this computer. The "
+          "game files are kept in this browser's storage; nothing is uploaded."
 #elif defined(H4_DESKTOP_APP)
           "Download the Windows installer from your GOG library (gog.com > Games > Heroes of Might "
           "and Magic IV: Complete): setup_heroes_of_might_and_magic_4_complete_...exe and its "
@@ -769,7 +805,70 @@ class Installer {
     }
 #endif
     ui_.DrawButtons();
+    if (room > 0) {  // where the view is: a thin bar at the right edge
+      const float track = ui_.h, bar = std::max(ch * 3, track * ui_.safe.h / (content_h_ + 2 * ch));
+      SDL_FRect r{ui_.w - ch * 0.6f, (track - bar) * scroll_ / room, ch * 0.4f, bar};
+      ui_.Color(120, 96, 52);
+      SDL_RenderFillRect(ui_.ren, &r);
+    }
     SDL_RenderPresent(ui_.ren);
+  }
+
+  // Scrolling a screen taller than the window: a drag (a finger's, the mouse's), the wheel, the
+  // arrow and page keys. true: the event was that (a drag's release is no button press).
+  bool Scroll(SDL_Event& e) {
+    const float ch = ui_.Ch(), page = std::max(ch * 4, ui_.safe.h - ch * 4);
+    switch (e.type) {
+      case SDL_EVENT_MOUSE_WHEEL:
+        scroll_ -= e.wheel.y * ch * 4;
+        return true;
+      case SDL_EVENT_KEY_DOWN:
+        if (e.key.key == SDLK_DOWN) scroll_ += ch * 4;
+        else if (e.key.key == SDLK_UP) scroll_ -= ch * 4;
+        else if (e.key.key == SDLK_PAGEDOWN || e.key.key == SDLK_SPACE) scroll_ += page;
+        else if (e.key.key == SDLK_PAGEUP) scroll_ -= page;
+        else return false;
+        return true;
+      case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        SDL_ConvertEventToRenderCoordinates(ui_.ren, &e);
+        dragging_ = true;
+        drag_y_ = e.button.y;
+        dragged_ = 0;
+        return true;
+      case SDL_EVENT_MOUSE_MOTION:
+        if (!dragging_) return false;
+        SDL_ConvertEventToRenderCoordinates(ui_.ren, &e);
+        scroll_ -= e.motion.y - drag_y_;
+        dragged_ += std::fabs(e.motion.y - drag_y_);
+        drag_y_ = e.motion.y;
+        return true;
+      case SDL_EVENT_MOUSE_BUTTON_UP:
+        dragging_ = false;
+        return dragged_ > ch * 1.5f;  // moved: a scroll; else the press goes on to the buttons
+      case SDL_EVENT_FINGER_DOWN:
+      case SDL_EVENT_FINGER_MOTION:
+      case SDL_EVENT_FINGER_UP: {
+        // A finger, when SDL does not make it the mouse (the runtime's SDL_HINT_TOUCH_MOUSE_EVENTS
+        // off): the same drag, and a tap presses a button. (On, its mouse events do that.)
+        if (SDL_GetHintBoolean(SDL_HINT_TOUCH_MOUSE_EVENTS, true)) return false;
+        const float fx = e.tfinger.x * ui_.w, fy = e.tfinger.y * ui_.h;
+        if (e.type == SDL_EVENT_FINGER_DOWN) {
+          dragging_ = true;
+          drag_y_ = fy;
+          dragged_ = 0;
+        } else if (e.type == SDL_EVENT_FINGER_MOTION && dragging_) {
+          scroll_ -= fy - drag_y_;
+          dragged_ += std::fabs(fy - drag_y_);
+          drag_y_ = fy;
+        } else if (e.type == SDL_EVENT_FINGER_UP) {
+          dragging_ = false;
+          if (dragged_ <= ch * 1.5f) OnPress(ui_.Hit(fx, fy));
+        }
+        return true;
+      }
+      default:
+        return false;
+    }
   }
 
   // A bar with a block moving to and fro (working, size unknown) at y; returns the y below it.
@@ -787,6 +886,10 @@ class Installer {
   }
 
   float content_h_ = 0;
+  float scroll_ = 0;  // how far down the screen is scrolled (pixels)
+  Screen scrolled_screen_ = Screen::Menu;
+  bool dragging_ = false;
+  float drag_y_ = 0, dragged_ = 0;
 
   std::string files_, autostart_;
   Ui ui_;
