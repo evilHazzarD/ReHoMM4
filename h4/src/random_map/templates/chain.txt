@@ -1,0 +1,221 @@
+# Chain: the starts in a line, each two neighbours sharing a zone between them.
+
+name Chain
+players 2
+sizes small-medium
+
+zone p1 start x=-0.34 y=0.2
+zone p2 start x=0.34 y=-0.2
+zone link1 treasure rich town x=0 y=0
+link p1 link1 normal
+link p2 link1 normal
+
+name Chain
+players 2
+sizes large-huge
+
+zone p1 start x=-0.34 y=0.2
+zone own1 treasure size=0.8 x=-0.34 y=-0.36
+zone p2 start x=0.34 y=-0.2
+zone own2 treasure size=0.8 x=0.34 y=0.36
+zone link1 treasure rich town x=0 y=0
+link p1 own1 weak
+link p2 own2 weak
+link p1 link1 normal
+link p2 link1 normal
+
+name Chain
+players 3
+sizes small-medium
+
+zone p1 start x=-0.34 y=0.2
+zone p2 start x=0 y=-0.2
+zone p3 start x=0.34 y=0.2
+zone link1 treasure rich town x=-0.17 y=0
+zone link2 treasure x=0.17 y=0
+link p1 link1 normal
+link p2 link1 normal
+link p2 link2 normal
+link p3 link2 normal
+
+name Chain
+players 3
+sizes large-huge
+
+zone p1 start x=-0.34 y=0.2
+zone own1 treasure size=0.8 x=-0.34 y=-0.36
+zone p2 start x=0 y=-0.2
+zone own2 treasure size=0.8 x=0 y=0.36
+zone p3 start x=0.34 y=0.2
+zone own3 treasure size=0.8 x=0.34 y=-0.36
+zone link1 treasure rich town x=-0.17 y=0
+zone link2 treasure x=0.17 y=0
+link p1 own1 weak
+link p2 own2 weak
+link p3 own3 weak
+link p1 link1 normal
+link p2 link1 normal
+link p2 link2 normal
+link p3 link2 normal
+
+name Chain
+players 4
+sizes small-medium
+
+zone p1 start x=-0.34 y=0.2
+zone p2 start x=-0.113 y=-0.2
+zone p3 start x=0.113 y=0.2
+zone p4 start x=0.34 y=-0.2
+zone link1 treasure x=-0.227 y=0
+zone link2 treasure rich town x=0 y=0
+zone link3 treasure x=0.227 y=0
+link p1 link1 normal
+link p2 link1 normal
+link p2 link2 normal
+link p3 link2 normal
+link p3 link3 normal
+link p4 link3 normal
+
+name Chain
+players 4
+sizes large-huge
+
+zone p1 start x=-0.34 y=0.2
+zone own1 treasure size=0.8 x=-0.34 y=-0.36
+zone p2 start x=-0.113 y=-0.2
+zone own2 treasure size=0.8 x=-0.113 y=0.36
+zone p3 start x=0.113 y=0.2
+zone own3 treasure size=0.8 x=0.113 y=-0.36
+zone p4 start x=0.34 y=-0.2
+zone own4 treasure size=0.8 x=0.34 y=0.36
+zone link1 treasure x=-0.227 y=0
+zone link2 treasure rich town x=0 y=0
+zone link3 treasure x=0.227 y=0
+link p1 own1 weak
+link p2 own2 weak
+link p3 own3 weak
+link p4 own4 weak
+link p1 link1 normal
+link p2 link1 normal
+link p2 link2 normal
+link p3 link2 normal
+link p3 link3 normal
+link p4 link3 normal
+
+name Chain
+players 5
+sizes small-medium
+
+zone p1 start x=-0.34 y=0.2
+zone p2 start x=-0.17 y=-0.2
+zone p3 start x=0 y=0.2
+zone p4 start x=0.17 y=-0.2
+zone p5 start x=0.34 y=0.2
+zone link1 treasure x=-0.255 y=0
+zone link2 treasure rich town x=-0.085 y=0
+zone link3 treasure x=0.085 y=0
+zone link4 treasure x=0.255 y=0
+link p1 link1 normal
+link p2 link1 normal
+link p2 link2 normal
+link p3 link2 normal
+link p3 link3 normal
+link p4 link3 normal
+link p4 link4 normal
+link p5 link4 normal
+
+name Chain
+players 5
+sizes large-huge
+
+zone p1 start x=-0.34 y=0.2
+zone own1 treasure size=0.8 x=-0.34 y=-0.36
+zone p2 start x=-0.17 y=-0.2
+zone own2 treasure size=0.8 x=-0.17 y=0.36
+zone p3 start x=0 y=0.2
+zone own3 treasure size=0.8 x=0 y=-0.36
+zone p4 start x=0.17 y=-0.2
+zone own4 treasure size=0.8 x=0.17 y=0.36
+zone p5 start x=0.34 y=0.2
+zone own5 treasure size=0.8 x=0.34 y=-0.36
+zone link1 treasure x=-0.255 y=0
+zone link2 treasure rich town x=-0.085 y=0
+zone link3 treasure x=0.085 y=0
+zone link4 treasure x=0.255 y=0
+link p1 own1 weak
+link p2 own2 weak
+link p3 own3 weak
+link p4 own4 weak
+link p5 own5 weak
+link p1 link1 normal
+link p2 link1 normal
+link p2 link2 normal
+link p3 link2 normal
+link p3 link3 normal
+link p4 link3 normal
+link p4 link4 normal
+link p5 link4 normal
+
+name Chain
+players 6
+sizes small-medium
+
+zone p1 start x=-0.34 y=0.2
+zone p2 start x=-0.204 y=-0.2
+zone p3 start x=-0.068 y=0.2
+zone p4 start x=0.068 y=-0.2
+zone p5 start x=0.204 y=0.2
+zone p6 start x=0.34 y=-0.2
+zone link1 treasure x=-0.272 y=0
+zone link2 treasure x=-0.136 y=0
+zone link3 treasure rich town x=0 y=0
+zone link4 treasure x=0.136 y=0
+zone link5 treasure x=0.272 y=0
+link p1 link1 normal
+link p2 link1 normal
+link p2 link2 normal
+link p3 link2 normal
+link p3 link3 normal
+link p4 link3 normal
+link p4 link4 normal
+link p5 link4 normal
+link p5 link5 normal
+link p6 link5 normal
+
+name Chain
+players 6
+sizes large-huge
+
+zone p1 start x=-0.34 y=0.2
+zone own1 treasure size=0.8 x=-0.34 y=-0.36
+zone p2 start x=-0.204 y=-0.2
+zone own2 treasure size=0.8 x=-0.204 y=0.36
+zone p3 start x=-0.068 y=0.2
+zone own3 treasure size=0.8 x=-0.068 y=-0.36
+zone p4 start x=0.068 y=-0.2
+zone own4 treasure size=0.8 x=0.068 y=0.36
+zone p5 start x=0.204 y=0.2
+zone own5 treasure size=0.8 x=0.204 y=-0.36
+zone p6 start x=0.34 y=-0.2
+zone own6 treasure size=0.8 x=0.34 y=0.36
+zone link1 treasure x=-0.272 y=0
+zone link2 treasure x=-0.136 y=0
+zone link3 treasure rich town x=0 y=0
+zone link4 treasure x=0.136 y=0
+zone link5 treasure x=0.272 y=0
+link p1 own1 weak
+link p2 own2 weak
+link p3 own3 weak
+link p4 own4 weak
+link p5 own5 weak
+link p6 own6 weak
+link p1 link1 normal
+link p2 link1 normal
+link p2 link2 normal
+link p3 link2 normal
+link p3 link3 normal
+link p4 link3 normal
+link p4 link4 normal
+link p5 link4 normal
+link p5 link5 normal
+link p6 link5 normal

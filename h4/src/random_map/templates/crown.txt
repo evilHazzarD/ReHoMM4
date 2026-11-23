@@ -1,0 +1,205 @@
+# Crown: the starts along the bottom, a band between them, the rich points along the top.
+
+name Crown
+players 2
+sizes small-medium
+
+zone p1 start x=-0.33 y=0.3
+zone band1 treasure size=0.8 x=-0.33 y=0.02
+zone p2 start x=0.33 y=0.3
+zone band2 treasure size=0.8 x=0.33 y=0.02
+zone point1 treasure rich town x=0 y=-0.3
+link p1 band1 weak
+link p2 band2 weak
+link band1 point1 strong
+link band2 point1 strong
+link band1 band2 normal
+
+name Crown
+players 2
+sizes large-huge
+
+zone p1 start x=-0.33 y=0.3
+zone band1 treasure size=0.8 x=-0.33 y=0.02
+zone p2 start x=0.33 y=0.3
+zone band2 treasure size=0.8 x=0.33 y=0.02
+zone point1 treasure rich town x=0 y=-0.3
+link p1 band1 weak
+link p2 band2 weak
+link band1 point1 strong
+link band2 point1 strong
+link band1 band2 normal
+
+name Crown
+players 3
+sizes small-medium
+
+zone p1 start x=-0.33 y=0.3
+zone band1 treasure size=0.8 x=-0.33 y=0.02
+zone p2 start x=0 y=0.3
+zone band2 treasure size=0.8 x=0 y=0.02
+zone p3 start x=0.33 y=0.3
+zone band3 treasure size=0.8 x=0.33 y=0.02
+zone point1 treasure rich x=-0.165 y=-0.3
+zone point2 treasure rich town x=0.165 y=-0.3
+link p1 band1 weak
+link p2 band2 weak
+link p3 band3 weak
+link band1 point1 strong
+link band2 point1 strong
+link band2 point2 strong
+link band3 point2 strong
+link band1 band2 normal
+link band2 band3 normal
+
+name Crown
+players 3
+sizes large-huge
+
+zone p1 start x=-0.33 y=0.3
+zone band1 treasure size=0.8 x=-0.33 y=0.02
+zone p2 start x=0 y=0.3
+zone band2 treasure size=0.8 x=0 y=0.02
+zone p3 start x=0.33 y=0.3
+zone band3 treasure size=0.8 x=0.33 y=0.02
+zone point1 treasure rich x=-0.165 y=-0.3
+zone point2 treasure rich town x=0.165 y=-0.3
+link p1 band1 weak
+link p2 band2 weak
+link p3 band3 weak
+link band1 point1 strong
+link band2 point1 strong
+link band2 point2 strong
+link band3 point2 strong
+link band1 band2 normal
+link band2 band3 normal
+
+name Crown
+players 4
+sizes small-medium
+
+zone p1 start x=-0.33 y=0.3
+zone band1 treasure size=0.8 x=-0.33 y=0.02
+zone p2 start x=-0.11 y=0.3
+zone band2 treasure size=0.8 x=-0.11 y=0.02
+zone p3 start x=0.11 y=0.3
+zone band3 treasure size=0.8 x=0.11 y=0.02
+zone p4 start x=0.33 y=0.3
+zone band4 treasure size=0.8 x=0.33 y=0.02
+zone point1 treasure rich x=-0.22 y=-0.3
+zone point2 treasure rich town x=0 y=-0.3
+zone point3 treasure rich x=0.22 y=-0.3
+link p1 band1 weak
+link p2 band2 weak
+link p3 band3 weak
+link p4 band4 weak
+link band1 point1 strong
+link band2 point1 strong
+link band2 point2 strong
+link band3 point2 strong
+link band3 point3 strong
+link band4 point3 strong
+link band1 band2 normal
+link band2 band3 normal
+link band3 band4 normal
+
+name Crown
+players 4
+sizes large-huge
+
+zone p1 start x=-0.33 y=0.3
+zone band1 treasure size=0.8 x=-0.33 y=0.02
+zone p2 start x=-0.11 y=0.3
+zone band2 treasure size=0.8 x=-0.11 y=0.02
+zone p3 start x=0.11 y=0.3
+zone band3 treasure size=0.8 x=0.11 y=0.02
+zone p4 start x=0.33 y=0.3
+zone band4 treasure size=0.8 x=0.33 y=0.02
+zone point1 treasure rich x=-0.22 y=-0.3
+zone point2 treasure rich town x=0 y=-0.3
+zone point3 treasure rich x=0.22 y=-0.3
+link p1 band1 weak
+link p2 band2 weak
+link p3 band3 weak
+link p4 band4 weak
+link band1 point1 strong
+link band2 point1 strong
+link band2 point2 strong
+link band3 point2 strong
+link band3 point3 strong
+link band4 point3 strong
+link band1 band2 normal
+link band2 band3 normal
+link band3 band4 normal
+
+name Crown
+players 5
+sizes medium
+
+zone p1 start x=-0.33 y=0.3
+zone band1 treasure size=0.8 x=-0.33 y=0.02
+zone p2 start x=-0.165 y=0.3
+zone band2 treasure size=0.8 x=-0.165 y=0.02
+zone p3 start x=0 y=0.3
+zone band3 treasure size=0.8 x=0 y=0.02
+zone p4 start x=0.165 y=0.3
+zone band4 treasure size=0.8 x=0.165 y=0.02
+zone p5 start x=0.33 y=0.3
+zone band5 treasure size=0.8 x=0.33 y=0.02
+zone point1 treasure rich x=-0.247 y=-0.3
+zone point2 treasure rich x=-0.083 y=-0.3
+zone point3 treasure rich town x=0.083 y=-0.3
+zone point4 treasure rich x=0.247 y=-0.3
+link p1 band1 weak
+link p2 band2 weak
+link p3 band3 weak
+link p4 band4 weak
+link p5 band5 weak
+link band1 point1 strong
+link band2 point1 strong
+link band2 point2 strong
+link band3 point2 strong
+link band3 point3 strong
+link band4 point3 strong
+link band4 point4 strong
+link band5 point4 strong
+link band1 band2 normal
+link band2 band3 normal
+link band3 band4 normal
+link band4 band5 normal
+
+name Crown
+players 5
+sizes large-huge
+
+zone p1 start x=-0.33 y=0.3
+zone band1 treasure size=0.8 x=-0.33 y=0.02
+zone p2 start x=-0.165 y=0.3
+zone band2 treasure size=0.8 x=-0.165 y=0.02
+zone p3 start x=0 y=0.3
+zone band3 treasure size=0.8 x=0 y=0.02
+zone p4 start x=0.165 y=0.3
+zone band4 treasure size=0.8 x=0.165 y=0.02
+zone p5 start x=0.33 y=0.3
+zone band5 treasure size=0.8 x=0.33 y=0.02
+zone point1 treasure rich x=-0.247 y=-0.3
+zone point2 treasure rich x=-0.083 y=-0.3
+zone point3 treasure rich town x=0.083 y=-0.3
+zone point4 treasure rich x=0.247 y=-0.3
+link p1 band1 weak
+link p2 band2 weak
+link p3 band3 weak
+link p4 band4 weak
+link p5 band5 weak
+link band1 point1 strong
+link band2 point1 strong
+link band2 point2 strong
+link band3 point2 strong
+link band3 point3 strong
+link band4 point3 strong
+link band4 point4 strong
+link band5 point4 strong
+link band1 band2 normal
+link band2 band3 normal
+link band3 band4 normal
+link band4 band5 normal

@@ -1,0 +1,54 @@
+# Allies: two against two (set the teams: players 1 and 3, 2 and 4); each pair shares a
+# back zone, the middle and its town between the pairs.
+
+name Allies
+players 4
+sizes small-medium
+
+zone p1 start size=1.1 x=-0.33 y=-0.2
+zone p2 start size=1.1 x=0.33 y=0.2
+zone p3 start size=1.1 x=-0.33 y=0.2
+zone p4 start size=1.1 x=0.33 y=-0.2
+zone west treasure size=0.8 x=-0.36 y=0
+zone east treasure size=0.8 x=0.36 y=0
+zone middle treasure rich town size=1.2 x=0 y=0
+zone north treasure x=0 y=-0.3
+zone south treasure x=0 y=0.3
+link p1 west weak
+link p3 west weak
+link p2 east weak
+link p4 east weak
+link p1 north normal
+link p4 north normal
+link p3 south normal
+link p2 south normal
+link north middle strong
+link south middle strong
+
+name Allies
+players 4
+sizes large-huge
+
+zone p1 start size=1.1 x=-0.33 y=-0.2
+zone p2 start size=1.1 x=0.33 y=0.2
+zone p3 start size=1.1 x=-0.33 y=0.2
+zone p4 start size=1.1 x=0.33 y=-0.2
+zone west treasure size=0.8 x=-0.36 y=0
+zone east treasure size=0.8 x=0.36 y=0
+zone middle treasure rich town size=1.2 x=0 y=0
+zone north treasure x=0 y=-0.3
+zone south treasure x=0 y=0.3
+zone rich1 treasure rich size=0.8 x=-0.16 y=-0.36
+zone rich2 treasure rich size=0.8 x=0.16 y=0.36
+link p1 west weak
+link p3 west weak
+link p2 east weak
+link p4 east weak
+link p1 north normal
+link p4 north normal
+link p3 south normal
+link p2 south normal
+link north middle strong
+link south middle strong
+link north rich1 deadly
+link south rich2 deadly

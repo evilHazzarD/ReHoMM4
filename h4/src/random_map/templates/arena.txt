@@ -1,0 +1,181 @@
+# Arena: every start opens on one wide rich middle with a town; a quick, fighting map.
+
+name Arena
+players 2
+sizes small-medium
+
+zone arena treasure rich town size=1.6 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/2
+link p1 arena strong
+link p2 arena strong
+
+name Arena
+players 2
+sizes large-huge
+
+zone arena treasure rich town size=2.2 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone back1 treasure size=0.7 r=0.38 turn=1/4
+zone p2 start r=0.37 turn=1/2
+zone back2 treasure size=0.7 r=0.38 turn=3/4
+link p1 arena strong
+link p1 back1 weak
+link p2 arena strong
+link p2 back2 weak
+
+name Arena
+players 3
+sizes small-medium
+
+zone arena treasure rich town size=1.6 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/3
+zone p3 start r=0.37 turn=2/3
+link p1 arena strong
+link p2 arena strong
+link p3 arena strong
+
+name Arena
+players 3
+sizes large-huge
+
+zone arena treasure rich town size=2.2 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone back1 treasure size=0.7 r=0.38 turn=1/6
+zone p2 start r=0.37 turn=1/3
+zone back2 treasure size=0.7 r=0.38 turn=1/2
+zone p3 start r=0.37 turn=2/3
+zone back3 treasure size=0.7 r=0.38 turn=5/6
+link p1 arena strong
+link p1 back1 weak
+link p2 arena strong
+link p2 back2 weak
+link p3 arena strong
+link p3 back3 weak
+
+name Arena
+players 4
+sizes small-medium
+
+zone arena treasure rich town size=1.6 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/4
+zone p3 start r=0.37 turn=1/2
+zone p4 start r=0.37 turn=3/4
+link p1 arena strong
+link p2 arena strong
+link p3 arena strong
+link p4 arena strong
+
+name Arena
+players 4
+sizes large-huge
+
+zone arena treasure rich town size=2.2 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone back1 treasure size=0.7 r=0.38 turn=1/8
+zone p2 start r=0.37 turn=1/4
+zone back2 treasure size=0.7 r=0.38 turn=3/8
+zone p3 start r=0.37 turn=1/2
+zone back3 treasure size=0.7 r=0.38 turn=5/8
+zone p4 start r=0.37 turn=3/4
+zone back4 treasure size=0.7 r=0.38 turn=7/8
+link p1 arena strong
+link p1 back1 weak
+link p2 arena strong
+link p2 back2 weak
+link p3 arena strong
+link p3 back3 weak
+link p4 arena strong
+link p4 back4 weak
+
+name Arena
+players 5
+sizes small-medium
+
+zone arena treasure rich town size=1.6 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/5
+zone p3 start r=0.37 turn=2/5
+zone p4 start r=0.37 turn=3/5
+zone p5 start r=0.37 turn=4/5
+link p1 arena strong
+link p2 arena strong
+link p3 arena strong
+link p4 arena strong
+link p5 arena strong
+
+name Arena
+players 5
+sizes large-huge
+
+zone arena treasure rich town size=2.2 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone back1 treasure size=0.7 r=0.38 turn=1/10
+zone p2 start r=0.37 turn=1/5
+zone back2 treasure size=0.7 r=0.38 turn=3/10
+zone p3 start r=0.37 turn=2/5
+zone back3 treasure size=0.7 r=0.38 turn=1/2
+zone p4 start r=0.37 turn=3/5
+zone back4 treasure size=0.7 r=0.38 turn=7/10
+zone p5 start r=0.37 turn=4/5
+zone back5 treasure size=0.7 r=0.38 turn=9/10
+link p1 arena strong
+link p1 back1 weak
+link p2 arena strong
+link p2 back2 weak
+link p3 arena strong
+link p3 back3 weak
+link p4 arena strong
+link p4 back4 weak
+link p5 arena strong
+link p5 back5 weak
+
+name Arena
+players 6
+sizes small-medium
+
+zone arena treasure rich town size=1.6 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/6
+zone p3 start r=0.37 turn=1/3
+zone p4 start r=0.37 turn=1/2
+zone p5 start r=0.37 turn=2/3
+zone p6 start r=0.37 turn=5/6
+link p1 arena strong
+link p2 arena strong
+link p3 arena strong
+link p4 arena strong
+link p5 arena strong
+link p6 arena strong
+
+name Arena
+players 6
+sizes large-huge
+
+zone arena treasure rich town size=2.2 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone back1 treasure size=0.7 r=0.38 turn=1/12
+zone p2 start r=0.37 turn=1/6
+zone back2 treasure size=0.7 r=0.38 turn=1/4
+zone p3 start r=0.37 turn=1/3
+zone back3 treasure size=0.7 r=0.38 turn=5/12
+zone p4 start r=0.37 turn=1/2
+zone back4 treasure size=0.7 r=0.38 turn=7/12
+zone p5 start r=0.37 turn=2/3
+zone back5 treasure size=0.7 r=0.38 turn=3/4
+zone p6 start r=0.37 turn=5/6
+zone back6 treasure size=0.7 r=0.38 turn=11/12
+link p1 arena strong
+link p1 back1 weak
+link p2 arena strong
+link p2 back2 weak
+link p3 arena strong
+link p3 back3 weak
+link p4 arena strong
+link p4 back4 weak
+link p5 arena strong
+link p5 back5 weak
+link p6 arena strong
+link p6 back6 weak

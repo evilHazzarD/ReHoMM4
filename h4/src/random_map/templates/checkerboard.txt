@@ -1,0 +1,214 @@
+# Checkerboard: a grid of zones, the starts in its corners, the riches in its middle.
+
+name Checkerboard
+players 2
+sizes small-medium
+
+zone p1 start x=-0.35 y=-0.35
+zone square12 treasure x=0 y=-0.35
+zone square13 treasure x=0.35 y=-0.35
+zone square21 treasure x=-0.35 y=0
+zone square22 treasure rich town x=0 y=0
+zone square23 treasure x=0.35 y=0
+zone square31 treasure x=-0.35 y=0.35
+zone square32 treasure x=0 y=0.35
+zone p2 start x=0.35 y=0.35
+link p1 square12 strong
+link p1 square21 normal
+link square12 square13 normal
+link square12 square22 strong
+link square13 square23 normal
+link square21 square22 normal
+link square21 square31 strong
+link square22 square23 strong
+link square22 square32 normal
+link square23 p2 strong
+link square31 square32 strong
+link square32 p2 normal
+
+name Checkerboard
+players 2
+sizes large-huge
+
+zone p1 start x=-0.35 y=-0.35
+zone square12 treasure x=-0.117 y=-0.35
+zone square13 treasure x=0.117 y=-0.35
+zone square14 treasure x=0.35 y=-0.35
+zone square21 treasure x=-0.35 y=-0.117
+zone square22 treasure rich x=-0.117 y=-0.117
+zone square23 treasure rich x=0.117 y=-0.117
+zone square24 treasure x=0.35 y=-0.117
+zone square31 treasure x=-0.35 y=0.117
+zone square32 treasure rich x=-0.117 y=0.117
+zone square33 treasure rich town x=0.117 y=0.117
+zone square34 treasure x=0.35 y=0.117
+zone square41 treasure x=-0.35 y=0.35
+zone square42 treasure x=-0.117 y=0.35
+zone square43 treasure x=0.117 y=0.35
+zone p2 start x=0.35 y=0.35
+link p1 square12 strong
+link p1 square21 normal
+link square12 square13 normal
+link square12 square22 strong
+link square13 square14 strong
+link square13 square23 normal
+link square14 square24 strong
+link square21 square22 normal
+link square21 square31 strong
+link square22 square23 strong
+link square22 square32 normal
+link square23 square24 normal
+link square23 square33 strong
+link square24 square34 normal
+link square31 square32 strong
+link square31 square41 normal
+link square32 square33 normal
+link square32 square42 strong
+link square33 square34 strong
+link square33 square43 normal
+link square34 p2 strong
+link square41 square42 normal
+link square42 square43 strong
+link square43 p2 normal
+
+name Checkerboard
+players 3
+sizes small-medium
+
+zone p1 start x=-0.35 y=-0.35
+zone square12 treasure x=0 y=-0.35
+zone p3 start x=0.35 y=-0.35
+zone square21 treasure x=-0.35 y=0
+zone square22 treasure rich town x=0 y=0
+zone square23 treasure x=0.35 y=0
+zone square31 treasure x=-0.35 y=0.35
+zone square32 treasure x=0 y=0.35
+zone p2 start x=0.35 y=0.35
+link p1 square12 strong
+link p1 square21 normal
+link square12 p3 normal
+link square12 square22 strong
+link p3 square23 normal
+link square21 square22 normal
+link square21 square31 strong
+link square22 square23 strong
+link square22 square32 normal
+link square23 p2 strong
+link square31 square32 strong
+link square32 p2 normal
+
+name Checkerboard
+players 3
+sizes large-huge
+
+zone p1 start x=-0.35 y=-0.35
+zone square12 treasure x=-0.117 y=-0.35
+zone square13 treasure x=0.117 y=-0.35
+zone p3 start x=0.35 y=-0.35
+zone square21 treasure x=-0.35 y=-0.117
+zone square22 treasure rich x=-0.117 y=-0.117
+zone square23 treasure rich x=0.117 y=-0.117
+zone square24 treasure x=0.35 y=-0.117
+zone square31 treasure x=-0.35 y=0.117
+zone square32 treasure rich x=-0.117 y=0.117
+zone square33 treasure rich town x=0.117 y=0.117
+zone square34 treasure x=0.35 y=0.117
+zone square41 treasure x=-0.35 y=0.35
+zone square42 treasure x=-0.117 y=0.35
+zone square43 treasure x=0.117 y=0.35
+zone p2 start x=0.35 y=0.35
+link p1 square12 strong
+link p1 square21 normal
+link square12 square13 normal
+link square12 square22 strong
+link square13 p3 strong
+link square13 square23 normal
+link p3 square24 strong
+link square21 square22 normal
+link square21 square31 strong
+link square22 square23 strong
+link square22 square32 normal
+link square23 square24 normal
+link square23 square33 strong
+link square24 square34 normal
+link square31 square32 strong
+link square31 square41 normal
+link square32 square33 normal
+link square32 square42 strong
+link square33 square34 strong
+link square33 square43 normal
+link square34 p2 strong
+link square41 square42 normal
+link square42 square43 strong
+link square43 p2 normal
+
+name Checkerboard
+players 4
+sizes small-medium
+
+zone p1 start x=-0.35 y=-0.35
+zone square12 treasure x=0 y=-0.35
+zone p3 start x=0.35 y=-0.35
+zone square21 treasure x=-0.35 y=0
+zone square22 treasure rich town x=0 y=0
+zone square23 treasure x=0.35 y=0
+zone p4 start x=-0.35 y=0.35
+zone square32 treasure x=0 y=0.35
+zone p2 start x=0.35 y=0.35
+link p1 square12 strong
+link p1 square21 normal
+link square12 p3 normal
+link square12 square22 strong
+link p3 square23 normal
+link square21 square22 normal
+link square21 p4 strong
+link square22 square23 strong
+link square22 square32 normal
+link square23 p2 strong
+link p4 square32 strong
+link square32 p2 normal
+
+name Checkerboard
+players 4
+sizes large-huge
+
+zone p1 start x=-0.35 y=-0.35
+zone square12 treasure x=-0.117 y=-0.35
+zone square13 treasure x=0.117 y=-0.35
+zone p3 start x=0.35 y=-0.35
+zone square21 treasure x=-0.35 y=-0.117
+zone square22 treasure rich x=-0.117 y=-0.117
+zone square23 treasure rich x=0.117 y=-0.117
+zone square24 treasure x=0.35 y=-0.117
+zone square31 treasure x=-0.35 y=0.117
+zone square32 treasure rich x=-0.117 y=0.117
+zone square33 treasure rich town x=0.117 y=0.117
+zone square34 treasure x=0.35 y=0.117
+zone p4 start x=-0.35 y=0.35
+zone square42 treasure x=-0.117 y=0.35
+zone square43 treasure x=0.117 y=0.35
+zone p2 start x=0.35 y=0.35
+link p1 square12 strong
+link p1 square21 normal
+link square12 square13 normal
+link square12 square22 strong
+link square13 p3 strong
+link square13 square23 normal
+link p3 square24 strong
+link square21 square22 normal
+link square21 square31 strong
+link square22 square23 strong
+link square22 square32 normal
+link square23 square24 normal
+link square23 square33 strong
+link square24 square34 normal
+link square31 square32 strong
+link square31 p4 normal
+link square32 square33 normal
+link square32 square42 strong
+link square33 square34 strong
+link square33 square43 normal
+link square34 p2 strong
+link p4 square42 normal
+link square42 square43 strong
+link square43 p2 normal

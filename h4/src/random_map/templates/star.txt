@@ -1,0 +1,280 @@
+# Star: the starts on a star's points, an inner ring of zones between them (and on large
+# maps a rich middle).
+
+name Star
+players 3
+sizes small-medium
+
+zone p1 start size=1.1 r=0.38 turn=0
+zone p2 start size=1.1 r=0.38 turn=1/3
+zone p3 start size=1.1 r=0.38 turn=2/3
+zone inner1 treasure rich r=0.2 turn=1/6
+zone inner2 treasure rich r=0.2 turn=1/2
+zone inner3 treasure rich r=0.2 turn=5/6
+link p1 inner1 normal
+link p1 inner3 normal
+link inner1 inner2 strong
+link p2 inner2 normal
+link p2 inner1 normal
+link inner2 inner3 strong
+link p3 inner3 normal
+link p3 inner2 normal
+link inner3 inner1 strong
+
+name Star
+players 3
+sizes large-huge
+
+zone p1 start size=1.1 r=0.38 turn=0
+zone p2 start size=1.1 r=0.38 turn=1/3
+zone p3 start size=1.1 r=0.38 turn=2/3
+zone inner1 treasure rich r=0.2 turn=1/6
+zone inner2 treasure rich r=0.2 turn=1/2
+zone inner3 treasure rich r=0.2 turn=5/6
+zone tip1 treasure size=0.8 r=0.38 turn=1/6
+zone tip2 treasure size=0.8 r=0.38 turn=1/2
+zone tip3 treasure size=0.8 r=0.38 turn=5/6
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 inner1 normal
+link p1 inner3 normal
+link inner1 inner2 strong
+link tip1 inner1 strong
+link p2 inner2 normal
+link p2 inner1 normal
+link inner2 inner3 strong
+link tip2 inner2 strong
+link p3 inner3 normal
+link p3 inner2 normal
+link inner3 inner1 strong
+link tip3 inner3 strong
+link inner1 middle deadly
+link inner2 middle deadly
+link inner3 middle deadly
+
+name Star
+players 4
+sizes small-medium
+
+zone p1 start size=1.1 r=0.38 turn=0
+zone p2 start size=1.1 r=0.38 turn=1/4
+zone p3 start size=1.1 r=0.38 turn=1/2
+zone p4 start size=1.1 r=0.38 turn=3/4
+zone inner1 treasure r=0.2 turn=1/8
+zone inner2 treasure rich r=0.2 turn=3/8
+zone inner3 treasure r=0.2 turn=5/8
+zone inner4 treasure rich r=0.2 turn=7/8
+link p1 inner1 normal
+link p1 inner4 normal
+link inner1 inner2 strong
+link p2 inner2 normal
+link p2 inner1 normal
+link inner2 inner3 strong
+link p3 inner3 normal
+link p3 inner2 normal
+link inner3 inner4 strong
+link p4 inner4 normal
+link p4 inner3 normal
+link inner4 inner1 strong
+
+name Star
+players 4
+sizes large-huge
+
+zone p1 start size=1.1 r=0.38 turn=0
+zone p2 start size=1.1 r=0.38 turn=1/4
+zone p3 start size=1.1 r=0.38 turn=1/2
+zone p4 start size=1.1 r=0.38 turn=3/4
+zone inner1 treasure r=0.2 turn=1/8
+zone inner2 treasure rich r=0.2 turn=3/8
+zone inner3 treasure r=0.2 turn=5/8
+zone inner4 treasure rich r=0.2 turn=7/8
+zone tip1 treasure size=0.8 r=0.38 turn=1/8
+zone tip2 treasure size=0.8 r=0.38 turn=3/8
+zone tip3 treasure size=0.8 r=0.38 turn=5/8
+zone tip4 treasure size=0.8 r=0.38 turn=7/8
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 inner1 normal
+link p1 inner4 normal
+link inner1 inner2 strong
+link tip1 inner1 strong
+link p2 inner2 normal
+link p2 inner1 normal
+link inner2 inner3 strong
+link tip2 inner2 strong
+link p3 inner3 normal
+link p3 inner2 normal
+link inner3 inner4 strong
+link tip3 inner3 strong
+link p4 inner4 normal
+link p4 inner3 normal
+link inner4 inner1 strong
+link tip4 inner4 strong
+link inner1 middle deadly
+link inner2 middle deadly
+link inner3 middle deadly
+link inner4 middle deadly
+
+name Star
+players 5
+sizes small-medium
+
+zone p1 start size=1.1 r=0.38 turn=0
+zone p2 start size=1.1 r=0.38 turn=1/5
+zone p3 start size=1.1 r=0.38 turn=2/5
+zone p4 start size=1.1 r=0.38 turn=3/5
+zone p5 start size=1.1 r=0.38 turn=4/5
+zone inner1 treasure r=0.2 turn=1/10
+zone inner2 treasure rich r=0.2 turn=3/10
+zone inner3 treasure r=0.2 turn=1/2
+zone inner4 treasure rich r=0.2 turn=7/10
+zone inner5 treasure r=0.2 turn=9/10
+link p1 inner1 normal
+link p1 inner5 normal
+link inner1 inner2 strong
+link p2 inner2 normal
+link p2 inner1 normal
+link inner2 inner3 strong
+link p3 inner3 normal
+link p3 inner2 normal
+link inner3 inner4 strong
+link p4 inner4 normal
+link p4 inner3 normal
+link inner4 inner5 strong
+link p5 inner5 normal
+link p5 inner4 normal
+link inner5 inner1 strong
+
+name Star
+players 5
+sizes large-huge
+
+zone p1 start size=1.1 r=0.38 turn=0
+zone p2 start size=1.1 r=0.38 turn=1/5
+zone p3 start size=1.1 r=0.38 turn=2/5
+zone p4 start size=1.1 r=0.38 turn=3/5
+zone p5 start size=1.1 r=0.38 turn=4/5
+zone inner1 treasure r=0.2 turn=1/10
+zone inner2 treasure rich r=0.2 turn=3/10
+zone inner3 treasure r=0.2 turn=1/2
+zone inner4 treasure rich r=0.2 turn=7/10
+zone inner5 treasure r=0.2 turn=9/10
+zone tip1 treasure size=0.8 r=0.38 turn=1/10
+zone tip2 treasure size=0.8 r=0.38 turn=3/10
+zone tip3 treasure size=0.8 r=0.38 turn=1/2
+zone tip4 treasure size=0.8 r=0.38 turn=7/10
+zone tip5 treasure size=0.8 r=0.38 turn=9/10
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 inner1 normal
+link p1 inner5 normal
+link inner1 inner2 strong
+link tip1 inner1 strong
+link p2 inner2 normal
+link p2 inner1 normal
+link inner2 inner3 strong
+link tip2 inner2 strong
+link p3 inner3 normal
+link p3 inner2 normal
+link inner3 inner4 strong
+link tip3 inner3 strong
+link p4 inner4 normal
+link p4 inner3 normal
+link inner4 inner5 strong
+link tip4 inner4 strong
+link p5 inner5 normal
+link p5 inner4 normal
+link inner5 inner1 strong
+link tip5 inner5 strong
+link inner1 middle deadly
+link inner2 middle deadly
+link inner3 middle deadly
+link inner4 middle deadly
+link inner5 middle deadly
+
+name Star
+players 6
+sizes small-medium
+
+zone p1 start size=1.1 r=0.38 turn=0
+zone p2 start size=1.1 r=0.38 turn=1/6
+zone p3 start size=1.1 r=0.38 turn=1/3
+zone p4 start size=1.1 r=0.38 turn=1/2
+zone p5 start size=1.1 r=0.38 turn=2/3
+zone p6 start size=1.1 r=0.38 turn=5/6
+zone inner1 treasure r=0.2 turn=1/12
+zone inner2 treasure rich r=0.2 turn=1/4
+zone inner3 treasure r=0.2 turn=5/12
+zone inner4 treasure rich r=0.2 turn=7/12
+zone inner5 treasure r=0.2 turn=3/4
+zone inner6 treasure rich r=0.2 turn=11/12
+link p1 inner1 normal
+link p1 inner6 normal
+link inner1 inner2 strong
+link p2 inner2 normal
+link p2 inner1 normal
+link inner2 inner3 strong
+link p3 inner3 normal
+link p3 inner2 normal
+link inner3 inner4 strong
+link p4 inner4 normal
+link p4 inner3 normal
+link inner4 inner5 strong
+link p5 inner5 normal
+link p5 inner4 normal
+link inner5 inner6 strong
+link p6 inner6 normal
+link p6 inner5 normal
+link inner6 inner1 strong
+
+name Star
+players 6
+sizes large-huge
+
+zone p1 start size=1.1 r=0.38 turn=0
+zone p2 start size=1.1 r=0.38 turn=1/6
+zone p3 start size=1.1 r=0.38 turn=1/3
+zone p4 start size=1.1 r=0.38 turn=1/2
+zone p5 start size=1.1 r=0.38 turn=2/3
+zone p6 start size=1.1 r=0.38 turn=5/6
+zone inner1 treasure r=0.2 turn=1/12
+zone inner2 treasure rich r=0.2 turn=1/4
+zone inner3 treasure r=0.2 turn=5/12
+zone inner4 treasure rich r=0.2 turn=7/12
+zone inner5 treasure r=0.2 turn=3/4
+zone inner6 treasure rich r=0.2 turn=11/12
+zone tip1 treasure size=0.8 r=0.38 turn=1/12
+zone tip2 treasure size=0.8 r=0.38 turn=1/4
+zone tip3 treasure size=0.8 r=0.38 turn=5/12
+zone tip4 treasure size=0.8 r=0.38 turn=7/12
+zone tip5 treasure size=0.8 r=0.38 turn=3/4
+zone tip6 treasure size=0.8 r=0.38 turn=11/12
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 inner1 normal
+link p1 inner6 normal
+link inner1 inner2 strong
+link tip1 inner1 strong
+link p2 inner2 normal
+link p2 inner1 normal
+link inner2 inner3 strong
+link tip2 inner2 strong
+link p3 inner3 normal
+link p3 inner2 normal
+link inner3 inner4 strong
+link tip3 inner3 strong
+link p4 inner4 normal
+link p4 inner3 normal
+link inner4 inner5 strong
+link tip4 inner4 strong
+link p5 inner5 normal
+link p5 inner4 normal
+link inner5 inner6 strong
+link tip5 inner5 strong
+link p6 inner6 normal
+link p6 inner5 normal
+link inner6 inner1 strong
+link tip6 inner6 strong
+link inner1 middle deadly
+link inner2 middle deadly
+link inner3 middle deadly
+link inner4 middle deadly
+link inner5 middle deadly
+link inner6 middle deadly

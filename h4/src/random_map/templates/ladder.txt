@@ -1,0 +1,50 @@
+# Ladder: two players, two parallel lines of zones between them with guarded rungs across.
+
+name Ladder
+players 2
+sizes small-medium
+
+zone p1 start size=1.2 x=-0.38 y=0
+zone p2 start size=1.2 x=0.38 y=0
+zone n1 treasure x=-0.24 y=-0.2
+zone n2 treasure rich x=0 y=-0.2
+zone n3 treasure x=0.24 y=-0.2
+zone s1 treasure x=-0.24 y=0.2
+zone s2 treasure rich x=0 y=0.2
+zone s3 treasure x=0.24 y=0.2
+link p1 n1 weak
+link n1 n2 normal
+link n2 n3 normal
+link n3 p2 weak
+link p1 s1 weak
+link s1 s2 normal
+link s2 s3 normal
+link s3 p2 weak
+link n2 s2 strong
+
+name Ladder
+players 2
+sizes large-huge
+
+zone p1 start size=1.2 x=-0.38 y=0
+zone p2 start size=1.2 x=0.38 y=0
+zone n1 treasure x=-0.24 y=-0.2
+zone n2 treasure rich x=-0.08 y=-0.2
+zone n3 treasure rich x=0.08 y=-0.2
+zone n4 treasure x=0.24 y=-0.2
+zone s1 treasure x=-0.24 y=0.2
+zone s2 treasure rich x=-0.08 y=0.2
+zone s3 treasure rich x=0.08 y=0.2
+zone s4 treasure x=0.24 y=0.2
+link p1 n1 weak
+link n1 n2 normal
+link n2 n3 normal
+link n3 n4 normal
+link n4 p2 weak
+link p1 s1 weak
+link s1 s2 normal
+link s2 s3 normal
+link s3 s4 normal
+link s4 p2 weak
+link n2 s2 strong
+link n4 s4 strong

@@ -1,0 +1,62 @@
+# Three on three: six players, two teams (set them: players 1, 3, 5 and 2, 4, 6), each
+# team's starts in a row on its side, the fronts between.
+
+name Three on three
+players 6
+sizes small-medium
+
+zone p1 start x=-0.34 y=-0.3
+zone p2 start x=0.34 y=0.3
+zone p3 start x=-0.34 y=0
+zone p4 start x=0.34 y=0
+zone p5 start x=-0.34 y=0.3
+zone p6 start x=0.34 y=-0.3
+zone west treasure size=0.6 x=-0.36 y=0.15
+zone east treasure size=0.6 x=0.36 y=-0.15
+zone front1 treasure x=0 y=-0.3
+zone front2 treasure rich town x=0 y=0
+zone front3 treasure x=0 y=0.3
+link p3 west weak
+link p5 west weak
+link p4 east weak
+link p6 east weak
+link p1 front1 strong
+link p6 front1 strong
+link p3 front2 strong
+link p4 front2 strong
+link p5 front3 strong
+link p2 front3 strong
+link front1 front2 normal
+link front2 front3 normal
+link p1 p3 weak
+link p6 p4 weak
+
+name Three on three
+players 6
+sizes large-huge
+
+zone p1 start x=-0.34 y=-0.3
+zone p2 start x=0.34 y=0.3
+zone p3 start x=-0.34 y=0
+zone p4 start x=0.34 y=0
+zone p5 start x=-0.34 y=0.3
+zone p6 start x=0.34 y=-0.3
+zone west treasure size=0.6 x=-0.36 y=0.15
+zone east treasure size=0.6 x=0.36 y=-0.15
+zone front1 treasure x=0 y=-0.3
+zone front2 treasure rich town x=0 y=0
+zone front3 treasure x=0 y=0.3
+link p3 west weak
+link p5 west weak
+link p4 east weak
+link p6 east weak
+link p1 front1 strong
+link p6 front1 strong
+link p3 front2 strong
+link p4 front2 strong
+link p5 front3 strong
+link p2 front3 strong
+link front1 front2 normal
+link front2 front3 normal
+link p1 p3 weak
+link p6 p4 weak

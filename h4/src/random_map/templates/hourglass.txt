@@ -1,0 +1,58 @@
+# Hourglass: two players; each half's zones meet at its gate, the gates at one narrow rich
+# middle with a town, deadly guarded.
+
+name Hourglass
+players 2
+sizes small-medium
+
+zone neck treasure rich town size=0.8 x=0 y=0
+zone p1 start size=1.3 x=-0.33 y=0
+zone bulb1a treasure x=-0.2 y=-0.28
+zone bulb1b treasure x=-0.2 y=0.28
+zone gate1 treasure size=0.8 x=-0.14 y=0
+zone p2 start size=1.3 x=0.33 y=0
+zone bulb2a treasure x=0.2 y=-0.28
+zone bulb2b treasure x=0.2 y=0.28
+zone gate2 treasure size=0.8 x=0.14 y=0
+link p1 bulb1a weak
+link p1 bulb1b weak
+link bulb1a gate1 normal
+link bulb1b gate1 normal
+link gate1 neck deadly
+link p2 bulb2a weak
+link p2 bulb2b weak
+link bulb2a gate2 normal
+link bulb2b gate2 normal
+link gate2 neck deadly
+
+name Hourglass
+players 2
+sizes large-huge
+
+zone neck treasure rich town size=0.8 x=0 y=0
+zone p1 start size=1.3 x=-0.33 y=0
+zone bulb1a treasure x=-0.2 y=-0.28
+zone bulb1b treasure x=-0.2 y=0.28
+zone gate1 treasure size=0.8 x=-0.14 y=0
+zone bulb1c treasure rich size=0.8 x=-0.36 y=-0.38
+zone bulb1d treasure rich size=0.8 x=-0.36 y=0.38
+zone p2 start size=1.3 x=0.33 y=0
+zone bulb2a treasure x=0.2 y=-0.28
+zone bulb2b treasure x=0.2 y=0.28
+zone gate2 treasure size=0.8 x=0.14 y=0
+zone bulb2c treasure rich size=0.8 x=0.36 y=-0.38
+zone bulb2d treasure rich size=0.8 x=0.36 y=0.38
+link p1 bulb1a weak
+link p1 bulb1b weak
+link bulb1a gate1 normal
+link bulb1b gate1 normal
+link gate1 neck deadly
+link bulb1a bulb1c strong
+link bulb1b bulb1d strong
+link p2 bulb2a weak
+link p2 bulb2b weak
+link bulb2a gate2 normal
+link bulb2b gate2 normal
+link gate2 neck deadly
+link bulb2a bulb2c strong
+link bulb2b bulb2d strong

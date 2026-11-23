@@ -1,0 +1,299 @@
+# Gauntlet: each start's way to the prize in the middle, zone after zone guarded more each time.
+
+name Gauntlet
+players 2
+sizes small-medium
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure rich r=0.26 turn=0
+zone p2 start r=0.38 turn=1/2
+zone trial2a treasure rich r=0.26 turn=1/2
+link p1 trial1a normal
+link trial1a prize deadly
+link p2 trial2a normal
+link trial2a prize deadly
+link trial1a trial2a strong
+
+name Gauntlet
+players 2
+sizes large-huge
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure r=0.29 turn=0
+zone trial1b treasure rich r=0.2 turn=1/8
+zone p2 start r=0.38 turn=1/2
+zone trial2a treasure r=0.29 turn=1/2
+zone trial2b treasure rich r=0.2 turn=5/8
+link p1 trial1a normal
+link trial1a trial1b strong
+link trial1b prize deadly
+link p2 trial2a normal
+link trial2a trial2b strong
+link trial2b prize deadly
+link trial1a trial2a strong
+
+name Gauntlet
+players 3
+sizes small-medium
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure rich r=0.26 turn=0
+zone p2 start r=0.38 turn=1/3
+zone trial2a treasure rich r=0.26 turn=1/3
+zone p3 start r=0.38 turn=2/3
+zone trial3a treasure rich r=0.26 turn=2/3
+link p1 trial1a normal
+link trial1a prize deadly
+link p2 trial2a normal
+link trial2a prize deadly
+link p3 trial3a normal
+link trial3a prize deadly
+link trial1a trial2a strong
+link trial2a trial3a strong
+link trial3a trial1a strong
+
+name Gauntlet
+players 3
+sizes large-huge
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure r=0.29 turn=0
+zone trial1b treasure rich r=0.2 turn=1/12
+zone p2 start r=0.38 turn=1/3
+zone trial2a treasure r=0.29 turn=1/3
+zone trial2b treasure rich r=0.2 turn=5/12
+zone p3 start r=0.38 turn=2/3
+zone trial3a treasure r=0.29 turn=2/3
+zone trial3b treasure rich r=0.2 turn=3/4
+link p1 trial1a normal
+link trial1a trial1b strong
+link trial1b prize deadly
+link p2 trial2a normal
+link trial2a trial2b strong
+link trial2b prize deadly
+link p3 trial3a normal
+link trial3a trial3b strong
+link trial3b prize deadly
+link trial1a trial2a strong
+link trial2a trial3a strong
+link trial3a trial1a strong
+
+name Gauntlet
+players 4
+sizes small-medium
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure rich r=0.26 turn=0
+zone p2 start r=0.38 turn=1/4
+zone trial2a treasure rich r=0.26 turn=1/4
+zone p3 start r=0.38 turn=1/2
+zone trial3a treasure rich r=0.26 turn=1/2
+zone p4 start r=0.38 turn=3/4
+zone trial4a treasure rich r=0.26 turn=3/4
+link p1 trial1a normal
+link trial1a prize deadly
+link p2 trial2a normal
+link trial2a prize deadly
+link p3 trial3a normal
+link trial3a prize deadly
+link p4 trial4a normal
+link trial4a prize deadly
+link trial1a trial2a strong
+link trial2a trial3a strong
+link trial3a trial4a strong
+link trial4a trial1a strong
+
+name Gauntlet
+players 4
+sizes large-huge
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure r=0.29 turn=0
+zone trial1b treasure rich r=0.2 turn=1/16
+zone p2 start r=0.38 turn=1/4
+zone trial2a treasure r=0.29 turn=1/4
+zone trial2b treasure rich r=0.2 turn=5/16
+zone p3 start r=0.38 turn=1/2
+zone trial3a treasure r=0.29 turn=1/2
+zone trial3b treasure rich r=0.2 turn=9/16
+zone p4 start r=0.38 turn=3/4
+zone trial4a treasure r=0.29 turn=3/4
+zone trial4b treasure rich r=0.2 turn=13/16
+link p1 trial1a normal
+link trial1a trial1b strong
+link trial1b prize deadly
+link p2 trial2a normal
+link trial2a trial2b strong
+link trial2b prize deadly
+link p3 trial3a normal
+link trial3a trial3b strong
+link trial3b prize deadly
+link p4 trial4a normal
+link trial4a trial4b strong
+link trial4b prize deadly
+link trial1a trial2a strong
+link trial2a trial3a strong
+link trial3a trial4a strong
+link trial4a trial1a strong
+
+name Gauntlet
+players 5
+sizes small-medium
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure rich r=0.26 turn=0
+zone p2 start r=0.38 turn=1/5
+zone trial2a treasure rich r=0.26 turn=1/5
+zone p3 start r=0.38 turn=2/5
+zone trial3a treasure rich r=0.26 turn=2/5
+zone p4 start r=0.38 turn=3/5
+zone trial4a treasure rich r=0.26 turn=3/5
+zone p5 start r=0.38 turn=4/5
+zone trial5a treasure rich r=0.26 turn=4/5
+link p1 trial1a normal
+link trial1a prize deadly
+link p2 trial2a normal
+link trial2a prize deadly
+link p3 trial3a normal
+link trial3a prize deadly
+link p4 trial4a normal
+link trial4a prize deadly
+link p5 trial5a normal
+link trial5a prize deadly
+link trial1a trial2a strong
+link trial2a trial3a strong
+link trial3a trial4a strong
+link trial4a trial5a strong
+link trial5a trial1a strong
+
+name Gauntlet
+players 5
+sizes large-huge
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure r=0.29 turn=0
+zone trial1b treasure rich r=0.2 turn=1/20
+zone p2 start r=0.38 turn=1/5
+zone trial2a treasure r=0.29 turn=1/5
+zone trial2b treasure rich r=0.2 turn=1/4
+zone p3 start r=0.38 turn=2/5
+zone trial3a treasure r=0.29 turn=2/5
+zone trial3b treasure rich r=0.2 turn=9/20
+zone p4 start r=0.38 turn=3/5
+zone trial4a treasure r=0.29 turn=3/5
+zone trial4b treasure rich r=0.2 turn=13/20
+zone p5 start r=0.38 turn=4/5
+zone trial5a treasure r=0.29 turn=4/5
+zone trial5b treasure rich r=0.2 turn=17/20
+link p1 trial1a normal
+link trial1a trial1b strong
+link trial1b prize deadly
+link p2 trial2a normal
+link trial2a trial2b strong
+link trial2b prize deadly
+link p3 trial3a normal
+link trial3a trial3b strong
+link trial3b prize deadly
+link p4 trial4a normal
+link trial4a trial4b strong
+link trial4b prize deadly
+link p5 trial5a normal
+link trial5a trial5b strong
+link trial5b prize deadly
+link trial1a trial2a strong
+link trial2a trial3a strong
+link trial3a trial4a strong
+link trial4a trial5a strong
+link trial5a trial1a strong
+
+name Gauntlet
+players 6
+sizes small-medium
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure rich r=0.26 turn=0
+zone p2 start r=0.38 turn=1/6
+zone trial2a treasure rich r=0.26 turn=1/6
+zone p3 start r=0.38 turn=1/3
+zone trial3a treasure rich r=0.26 turn=1/3
+zone p4 start r=0.38 turn=1/2
+zone trial4a treasure rich r=0.26 turn=1/2
+zone p5 start r=0.38 turn=2/3
+zone trial5a treasure rich r=0.26 turn=2/3
+zone p6 start r=0.38 turn=5/6
+zone trial6a treasure rich r=0.26 turn=5/6
+link p1 trial1a normal
+link trial1a prize deadly
+link p2 trial2a normal
+link trial2a prize deadly
+link p3 trial3a normal
+link trial3a prize deadly
+link p4 trial4a normal
+link trial4a prize deadly
+link p5 trial5a normal
+link trial5a prize deadly
+link p6 trial6a normal
+link trial6a prize deadly
+link trial1a trial2a strong
+link trial2a trial3a strong
+link trial3a trial4a strong
+link trial4a trial5a strong
+link trial5a trial6a strong
+link trial6a trial1a strong
+
+name Gauntlet
+players 6
+sizes large-huge
+
+zone prize treasure rich town size=0.8 r=0 turn=0
+zone p1 start r=0.38 turn=0
+zone trial1a treasure r=0.29 turn=0
+zone trial1b treasure rich r=0.2 turn=1/24
+zone p2 start r=0.38 turn=1/6
+zone trial2a treasure r=0.29 turn=1/6
+zone trial2b treasure rich r=0.2 turn=5/24
+zone p3 start r=0.38 turn=1/3
+zone trial3a treasure r=0.29 turn=1/3
+zone trial3b treasure rich r=0.2 turn=3/8
+zone p4 start r=0.38 turn=1/2
+zone trial4a treasure r=0.29 turn=1/2
+zone trial4b treasure rich r=0.2 turn=13/24
+zone p5 start r=0.38 turn=2/3
+zone trial5a treasure r=0.29 turn=2/3
+zone trial5b treasure rich r=0.2 turn=17/24
+zone p6 start r=0.38 turn=5/6
+zone trial6a treasure r=0.29 turn=5/6
+zone trial6b treasure rich r=0.2 turn=7/8
+link p1 trial1a normal
+link trial1a trial1b strong
+link trial1b prize deadly
+link p2 trial2a normal
+link trial2a trial2b strong
+link trial2b prize deadly
+link p3 trial3a normal
+link trial3a trial3b strong
+link trial3b prize deadly
+link p4 trial4a normal
+link trial4a trial4b strong
+link trial4b prize deadly
+link p5 trial5a normal
+link trial5a trial5b strong
+link trial5b prize deadly
+link p6 trial6a normal
+link trial6a trial6b strong
+link trial6b prize deadly
+link trial1a trial2a strong
+link trial2a trial3a strong
+link trial3a trial4a strong
+link trial4a trial5a strong
+link trial5a trial6a strong
+link trial6a trial1a strong

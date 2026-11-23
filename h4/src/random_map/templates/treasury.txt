@@ -1,0 +1,301 @@
+# Treasury: small rich vaults round the middle, each deadly guarded.
+
+name Treasury
+players 2
+sizes small-medium
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/2
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/4
+zone vault2 treasure rich size=0.5 r=0.27 turn=3/4
+link p1 middle normal
+link p2 middle normal
+link middle vault1 deadly
+link middle vault2 deadly
+
+name Treasury
+players 2
+sizes large-huge
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/2
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/8
+zone vault2 treasure rich size=0.5 r=0.27 turn=3/8
+zone vault3 treasure rich size=0.5 r=0.27 turn=5/8
+zone vault4 treasure rich size=0.5 r=0.27 turn=7/8
+link p1 middle normal
+link p2 middle normal
+link middle vault1 deadly
+link p1 vault1 strong
+link middle vault2 deadly
+link p1 vault2 strong
+link middle vault3 deadly
+link p2 vault3 strong
+link middle vault4 deadly
+link p2 vault4 strong
+
+name Treasury
+players 3
+sizes small-medium
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/3
+zone p3 start r=0.37 turn=2/3
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/6
+zone vault2 treasure rich size=0.5 r=0.27 turn=1/2
+zone vault3 treasure rich size=0.5 r=0.27 turn=5/6
+link p1 middle normal
+link p2 middle normal
+link p3 middle normal
+link middle vault1 deadly
+link middle vault2 deadly
+link middle vault3 deadly
+
+name Treasury
+players 3
+sizes large-huge
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/3
+zone p3 start r=0.37 turn=2/3
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/12
+zone vault2 treasure rich size=0.5 r=0.27 turn=1/4
+zone vault3 treasure rich size=0.5 r=0.27 turn=5/12
+zone vault4 treasure rich size=0.5 r=0.27 turn=7/12
+zone vault5 treasure rich size=0.5 r=0.27 turn=3/4
+zone vault6 treasure rich size=0.5 r=0.27 turn=11/12
+link p1 middle normal
+link p2 middle normal
+link p3 middle normal
+link middle vault1 deadly
+link p1 vault1 strong
+link middle vault2 deadly
+link p1 vault2 strong
+link middle vault3 deadly
+link p2 vault3 strong
+link middle vault4 deadly
+link p2 vault4 strong
+link middle vault5 deadly
+link p3 vault5 strong
+link middle vault6 deadly
+link p3 vault6 strong
+
+name Treasury
+players 4
+sizes small-medium
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/4
+zone p3 start r=0.37 turn=1/2
+zone p4 start r=0.37 turn=3/4
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/8
+zone vault2 treasure rich size=0.5 r=0.27 turn=3/8
+zone vault3 treasure rich size=0.5 r=0.27 turn=5/8
+zone vault4 treasure rich size=0.5 r=0.27 turn=7/8
+link p1 middle normal
+link p2 middle normal
+link p3 middle normal
+link p4 middle normal
+link middle vault1 deadly
+link middle vault2 deadly
+link middle vault3 deadly
+link middle vault4 deadly
+
+name Treasury
+players 4
+sizes large-huge
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/4
+zone p3 start r=0.37 turn=1/2
+zone p4 start r=0.37 turn=3/4
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/16
+zone vault2 treasure rich size=0.5 r=0.27 turn=3/16
+zone vault3 treasure rich size=0.5 r=0.27 turn=5/16
+zone vault4 treasure rich size=0.5 r=0.27 turn=7/16
+zone vault5 treasure rich size=0.5 r=0.27 turn=9/16
+zone vault6 treasure rich size=0.5 r=0.27 turn=11/16
+zone vault7 treasure rich size=0.5 r=0.27 turn=13/16
+zone vault8 treasure rich size=0.5 r=0.27 turn=15/16
+link p1 middle normal
+link p2 middle normal
+link p3 middle normal
+link p4 middle normal
+link middle vault1 deadly
+link p1 vault1 strong
+link middle vault2 deadly
+link p1 vault2 strong
+link middle vault3 deadly
+link p2 vault3 strong
+link middle vault4 deadly
+link p2 vault4 strong
+link middle vault5 deadly
+link p3 vault5 strong
+link middle vault6 deadly
+link p3 vault6 strong
+link middle vault7 deadly
+link p4 vault7 strong
+link middle vault8 deadly
+link p4 vault8 strong
+
+name Treasury
+players 5
+sizes small-medium
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/5
+zone p3 start r=0.37 turn=2/5
+zone p4 start r=0.37 turn=3/5
+zone p5 start r=0.37 turn=4/5
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/10
+zone vault2 treasure rich size=0.5 r=0.27 turn=3/10
+zone vault3 treasure rich size=0.5 r=0.27 turn=1/2
+zone vault4 treasure rich size=0.5 r=0.27 turn=7/10
+zone vault5 treasure rich size=0.5 r=0.27 turn=9/10
+link p1 middle normal
+link p2 middle normal
+link p3 middle normal
+link p4 middle normal
+link p5 middle normal
+link middle vault1 deadly
+link middle vault2 deadly
+link middle vault3 deadly
+link middle vault4 deadly
+link middle vault5 deadly
+
+name Treasury
+players 5
+sizes large-huge
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/5
+zone p3 start r=0.37 turn=2/5
+zone p4 start r=0.37 turn=3/5
+zone p5 start r=0.37 turn=4/5
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/20
+zone vault2 treasure rich size=0.5 r=0.27 turn=3/20
+zone vault3 treasure rich size=0.5 r=0.27 turn=1/4
+zone vault4 treasure rich size=0.5 r=0.27 turn=7/20
+zone vault5 treasure rich size=0.5 r=0.27 turn=9/20
+zone vault6 treasure rich size=0.5 r=0.27 turn=11/20
+zone vault7 treasure rich size=0.5 r=0.27 turn=13/20
+zone vault8 treasure rich size=0.5 r=0.27 turn=3/4
+zone vault9 treasure rich size=0.5 r=0.27 turn=17/20
+zone vault10 treasure rich size=0.5 r=0.27 turn=19/20
+link p1 middle normal
+link p2 middle normal
+link p3 middle normal
+link p4 middle normal
+link p5 middle normal
+link middle vault1 deadly
+link p1 vault1 strong
+link middle vault2 deadly
+link p1 vault2 strong
+link middle vault3 deadly
+link p2 vault3 strong
+link middle vault4 deadly
+link p2 vault4 strong
+link middle vault5 deadly
+link p3 vault5 strong
+link middle vault6 deadly
+link p3 vault6 strong
+link middle vault7 deadly
+link p4 vault7 strong
+link middle vault8 deadly
+link p4 vault8 strong
+link middle vault9 deadly
+link p5 vault9 strong
+link middle vault10 deadly
+link p5 vault10 strong
+
+name Treasury
+players 6
+sizes small-medium
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/6
+zone p3 start r=0.37 turn=1/3
+zone p4 start r=0.37 turn=1/2
+zone p5 start r=0.37 turn=2/3
+zone p6 start r=0.37 turn=5/6
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/12
+zone vault2 treasure rich size=0.5 r=0.27 turn=1/4
+zone vault3 treasure rich size=0.5 r=0.27 turn=5/12
+zone vault4 treasure rich size=0.5 r=0.27 turn=7/12
+zone vault5 treasure rich size=0.5 r=0.27 turn=3/4
+zone vault6 treasure rich size=0.5 r=0.27 turn=11/12
+link p1 middle normal
+link p2 middle normal
+link p3 middle normal
+link p4 middle normal
+link p5 middle normal
+link p6 middle normal
+link middle vault1 deadly
+link middle vault2 deadly
+link middle vault3 deadly
+link middle vault4 deadly
+link middle vault5 deadly
+link middle vault6 deadly
+
+name Treasury
+players 6
+sizes large-huge
+
+zone middle treasure town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone p2 start r=0.37 turn=1/6
+zone p3 start r=0.37 turn=1/3
+zone p4 start r=0.37 turn=1/2
+zone p5 start r=0.37 turn=2/3
+zone p6 start r=0.37 turn=5/6
+zone vault1 treasure rich size=0.5 r=0.27 turn=1/24
+zone vault2 treasure rich size=0.5 r=0.27 turn=1/8
+zone vault3 treasure rich size=0.5 r=0.27 turn=5/24
+zone vault4 treasure rich size=0.5 r=0.27 turn=7/24
+zone vault5 treasure rich size=0.5 r=0.27 turn=3/8
+zone vault6 treasure rich size=0.5 r=0.27 turn=11/24
+zone vault7 treasure rich size=0.5 r=0.27 turn=13/24
+zone vault8 treasure rich size=0.5 r=0.27 turn=5/8
+zone vault9 treasure rich size=0.5 r=0.27 turn=17/24
+zone vault10 treasure rich size=0.5 r=0.27 turn=19/24
+zone vault11 treasure rich size=0.5 r=0.27 turn=7/8
+zone vault12 treasure rich size=0.5 r=0.27 turn=23/24
+link p1 middle normal
+link p2 middle normal
+link p3 middle normal
+link p4 middle normal
+link p5 middle normal
+link p6 middle normal
+link middle vault1 deadly
+link p1 vault1 strong
+link middle vault2 deadly
+link p1 vault2 strong
+link middle vault3 deadly
+link p2 vault3 strong
+link middle vault4 deadly
+link p2 vault4 strong
+link middle vault5 deadly
+link p3 vault5 strong
+link middle vault6 deadly
+link p3 vault6 strong
+link middle vault7 deadly
+link p4 vault7 strong
+link middle vault8 deadly
+link p4 vault8 strong
+link middle vault9 deadly
+link p5 vault9 strong
+link middle vault10 deadly
+link p5 vault10 strong
+link middle vault11 deadly
+link p6 vault11 strong
+link middle vault12 deadly
+link p6 vault12 strong

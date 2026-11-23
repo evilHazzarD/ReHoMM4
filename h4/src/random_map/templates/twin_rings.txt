@@ -1,0 +1,49 @@
+# Twin rings: two players, each in a ring of own zones; the rings touch at two rich gates.
+
+name Twin rings
+players 2
+sizes small-medium
+
+zone p1 start size=1.2 x=-0.34 y=0
+zone north1 treasure x=-0.22 y=-0.26
+zone south1 treasure x=-0.22 y=0.26
+zone p2 start size=1.2 x=0.34 y=0
+zone north2 treasure x=0.22 y=-0.26
+zone south2 treasure x=0.22 y=0.26
+zone gate_north treasure rich size=0.8 x=0 y=-0.3
+zone gate_south treasure rich town size=0.8 x=0 y=0.3
+link p1 north1 weak
+link p1 south1 weak
+link p2 north2 weak
+link p2 south2 weak
+link north1 gate_north strong
+link south1 gate_south strong
+link north2 gate_north strong
+link south2 gate_south strong
+
+name Twin rings
+players 2
+sizes large-huge
+
+zone p1 start size=1.2 x=-0.34 y=0
+zone north1 treasure x=-0.22 y=-0.26
+zone south1 treasure x=-0.22 y=0.26
+zone inner1 treasure rich size=0.8 x=-0.16 y=0
+zone p2 start size=1.2 x=0.34 y=0
+zone north2 treasure x=0.22 y=-0.26
+zone south2 treasure x=0.22 y=0.26
+zone inner2 treasure rich size=0.8 x=0.16 y=0
+zone gate_north treasure rich size=0.8 x=0 y=-0.3
+zone gate_south treasure rich town size=0.8 x=0 y=0.3
+link p1 north1 weak
+link p1 south1 weak
+link north1 inner1 normal
+link south1 inner1 normal
+link p2 north2 weak
+link p2 south2 weak
+link north2 inner2 normal
+link south2 inner2 normal
+link north1 gate_north strong
+link south1 gate_south strong
+link north2 gate_north strong
+link south2 gate_south strong

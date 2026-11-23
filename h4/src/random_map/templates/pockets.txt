@@ -1,0 +1,416 @@
+# Pockets: each start with two private pockets behind it; shared zones in front, between
+# neighbours (and a rich middle for 3 players and more).
+
+name Pockets
+players 2
+sizes small-medium
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=9/10
+zone pocket1b treasure size=0.7 r=0.38 turn=1/10
+zone ring1 treasure r=0.15 turn=1/4
+zone p2 start size=1.1 r=0.3 turn=1/2
+zone pocket2a treasure size=0.7 r=0.38 turn=2/5
+zone pocket2b treasure size=0.7 r=0.38 turn=3/5
+zone ring2 treasure r=0.15 turn=3/4
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p1 ring2 normal
+
+name Pockets
+players 2
+sizes large-huge
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=9/10
+zone pocket1b treasure size=0.7 r=0.38 turn=1/10
+zone ring1 treasure rich r=0.15 turn=1/4
+zone p2 start size=1.1 r=0.3 turn=1/2
+zone pocket2a treasure size=0.7 r=0.38 turn=2/5
+zone pocket2b treasure size=0.7 r=0.38 turn=3/5
+zone ring2 treasure rich r=0.15 turn=3/4
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p1 ring2 normal
+
+name Pockets
+players 3
+sizes small-medium
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=14/15
+zone pocket1b treasure size=0.7 r=0.38 turn=1/15
+zone ring1 treasure r=0.15 turn=1/6
+zone p2 start size=1.1 r=0.3 turn=1/3
+zone pocket2a treasure size=0.7 r=0.38 turn=4/15
+zone pocket2b treasure size=0.7 r=0.38 turn=2/5
+zone ring2 treasure r=0.15 turn=1/2
+zone p3 start size=1.1 r=0.3 turn=2/3
+zone pocket3a treasure size=0.7 r=0.38 turn=3/5
+zone pocket3b treasure size=0.7 r=0.38 turn=11/15
+zone ring3 treasure r=0.15 turn=5/6
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p3 pocket3a weak
+link p3 pocket3b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p3 ring2 normal
+link p3 ring3 normal
+link p1 ring3 normal
+link ring1 middle strong
+link ring2 middle strong
+link ring3 middle strong
+
+name Pockets
+players 3
+sizes large-huge
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=14/15
+zone pocket1b treasure size=0.7 r=0.38 turn=1/15
+zone ring1 treasure rich r=0.15 turn=1/6
+zone p2 start size=1.1 r=0.3 turn=1/3
+zone pocket2a treasure size=0.7 r=0.38 turn=4/15
+zone pocket2b treasure size=0.7 r=0.38 turn=2/5
+zone ring2 treasure rich r=0.15 turn=1/2
+zone p3 start size=1.1 r=0.3 turn=2/3
+zone pocket3a treasure size=0.7 r=0.38 turn=3/5
+zone pocket3b treasure size=0.7 r=0.38 turn=11/15
+zone ring3 treasure rich r=0.15 turn=5/6
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p3 pocket3a weak
+link p3 pocket3b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p3 ring2 normal
+link p3 ring3 normal
+link p1 ring3 normal
+link ring1 middle strong
+link ring2 middle strong
+link ring3 middle strong
+
+name Pockets
+players 4
+sizes medium
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=19/20
+zone pocket1b treasure size=0.7 r=0.38 turn=1/20
+zone ring1 treasure r=0.17 turn=1/8
+zone p2 start size=1.1 r=0.3 turn=1/4
+zone pocket2a treasure size=0.7 r=0.38 turn=1/5
+zone pocket2b treasure size=0.7 r=0.38 turn=3/10
+zone ring2 treasure r=0.17 turn=3/8
+zone p3 start size=1.1 r=0.3 turn=1/2
+zone pocket3a treasure size=0.7 r=0.38 turn=9/20
+zone pocket3b treasure size=0.7 r=0.38 turn=11/20
+zone ring3 treasure r=0.17 turn=5/8
+zone p4 start size=1.1 r=0.3 turn=3/4
+zone pocket4a treasure size=0.7 r=0.38 turn=7/10
+zone pocket4b treasure size=0.7 r=0.38 turn=4/5
+zone ring4 treasure r=0.17 turn=7/8
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p3 pocket3a weak
+link p3 pocket3b weak
+link p4 pocket4a weak
+link p4 pocket4b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p3 ring2 normal
+link p3 ring3 normal
+link p4 ring3 normal
+link p4 ring4 normal
+link p1 ring4 normal
+link ring1 middle strong
+link ring2 middle strong
+link ring3 middle strong
+link ring4 middle strong
+
+name Pockets
+players 4
+sizes large-huge
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=19/20
+zone pocket1b treasure size=0.7 r=0.38 turn=1/20
+zone ring1 treasure rich r=0.17 turn=1/8
+zone p2 start size=1.1 r=0.3 turn=1/4
+zone pocket2a treasure size=0.7 r=0.38 turn=1/5
+zone pocket2b treasure size=0.7 r=0.38 turn=3/10
+zone ring2 treasure rich r=0.17 turn=3/8
+zone p3 start size=1.1 r=0.3 turn=1/2
+zone pocket3a treasure size=0.7 r=0.38 turn=9/20
+zone pocket3b treasure size=0.7 r=0.38 turn=11/20
+zone ring3 treasure rich r=0.17 turn=5/8
+zone p4 start size=1.1 r=0.3 turn=3/4
+zone pocket4a treasure size=0.7 r=0.38 turn=7/10
+zone pocket4b treasure size=0.7 r=0.38 turn=4/5
+zone ring4 treasure rich r=0.17 turn=7/8
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p3 pocket3a weak
+link p3 pocket3b weak
+link p4 pocket4a weak
+link p4 pocket4b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p3 ring2 normal
+link p3 ring3 normal
+link p4 ring3 normal
+link p4 ring4 normal
+link p1 ring4 normal
+link ring1 middle strong
+link ring2 middle strong
+link ring3 middle strong
+link ring4 middle strong
+
+name Pockets
+players 5
+sizes medium
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=24/25
+zone pocket1b treasure size=0.7 r=0.38 turn=1/25
+zone ring1 treasure r=0.17 turn=1/10
+zone p2 start size=1.1 r=0.3 turn=1/5
+zone pocket2a treasure size=0.7 r=0.38 turn=4/25
+zone pocket2b treasure size=0.7 r=0.38 turn=6/25
+zone ring2 treasure r=0.17 turn=3/10
+zone p3 start size=1.1 r=0.3 turn=2/5
+zone pocket3a treasure size=0.7 r=0.38 turn=9/25
+zone pocket3b treasure size=0.7 r=0.38 turn=11/25
+zone ring3 treasure r=0.17 turn=1/2
+zone p4 start size=1.1 r=0.3 turn=3/5
+zone pocket4a treasure size=0.7 r=0.38 turn=14/25
+zone pocket4b treasure size=0.7 r=0.38 turn=16/25
+zone ring4 treasure r=0.17 turn=7/10
+zone p5 start size=1.1 r=0.3 turn=4/5
+zone pocket5a treasure size=0.7 r=0.38 turn=19/25
+zone pocket5b treasure size=0.7 r=0.38 turn=21/25
+zone ring5 treasure r=0.17 turn=9/10
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p3 pocket3a weak
+link p3 pocket3b weak
+link p4 pocket4a weak
+link p4 pocket4b weak
+link p5 pocket5a weak
+link p5 pocket5b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p3 ring2 normal
+link p3 ring3 normal
+link p4 ring3 normal
+link p4 ring4 normal
+link p5 ring4 normal
+link p5 ring5 normal
+link p1 ring5 normal
+link ring1 middle strong
+link ring2 middle strong
+link ring3 middle strong
+link ring4 middle strong
+link ring5 middle strong
+
+name Pockets
+players 5
+sizes large-huge
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=24/25
+zone pocket1b treasure size=0.7 r=0.38 turn=1/25
+zone ring1 treasure rich r=0.17 turn=1/10
+zone p2 start size=1.1 r=0.3 turn=1/5
+zone pocket2a treasure size=0.7 r=0.38 turn=4/25
+zone pocket2b treasure size=0.7 r=0.38 turn=6/25
+zone ring2 treasure rich r=0.17 turn=3/10
+zone p3 start size=1.1 r=0.3 turn=2/5
+zone pocket3a treasure size=0.7 r=0.38 turn=9/25
+zone pocket3b treasure size=0.7 r=0.38 turn=11/25
+zone ring3 treasure rich r=0.17 turn=1/2
+zone p4 start size=1.1 r=0.3 turn=3/5
+zone pocket4a treasure size=0.7 r=0.38 turn=14/25
+zone pocket4b treasure size=0.7 r=0.38 turn=16/25
+zone ring4 treasure rich r=0.17 turn=7/10
+zone p5 start size=1.1 r=0.3 turn=4/5
+zone pocket5a treasure size=0.7 r=0.38 turn=19/25
+zone pocket5b treasure size=0.7 r=0.38 turn=21/25
+zone ring5 treasure rich r=0.17 turn=9/10
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p3 pocket3a weak
+link p3 pocket3b weak
+link p4 pocket4a weak
+link p4 pocket4b weak
+link p5 pocket5a weak
+link p5 pocket5b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p3 ring2 normal
+link p3 ring3 normal
+link p4 ring3 normal
+link p4 ring4 normal
+link p5 ring4 normal
+link p5 ring5 normal
+link p1 ring5 normal
+link ring1 middle strong
+link ring2 middle strong
+link ring3 middle strong
+link ring4 middle strong
+link ring5 middle strong
+
+name Pockets
+players 6
+sizes medium
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=29/30
+zone pocket1b treasure size=0.7 r=0.38 turn=1/30
+zone ring1 treasure r=0.17 turn=1/12
+zone p2 start size=1.1 r=0.3 turn=1/6
+zone pocket2a treasure size=0.7 r=0.38 turn=2/15
+zone pocket2b treasure size=0.7 r=0.38 turn=1/5
+zone ring2 treasure r=0.17 turn=1/4
+zone p3 start size=1.1 r=0.3 turn=1/3
+zone pocket3a treasure size=0.7 r=0.38 turn=3/10
+zone pocket3b treasure size=0.7 r=0.38 turn=11/30
+zone ring3 treasure r=0.17 turn=5/12
+zone p4 start size=1.1 r=0.3 turn=1/2
+zone pocket4a treasure size=0.7 r=0.38 turn=7/15
+zone pocket4b treasure size=0.7 r=0.38 turn=8/15
+zone ring4 treasure r=0.17 turn=7/12
+zone p5 start size=1.1 r=0.3 turn=2/3
+zone pocket5a treasure size=0.7 r=0.38 turn=19/30
+zone pocket5b treasure size=0.7 r=0.38 turn=7/10
+zone ring5 treasure r=0.17 turn=3/4
+zone p6 start size=1.1 r=0.3 turn=5/6
+zone pocket6a treasure size=0.7 r=0.38 turn=4/5
+zone pocket6b treasure size=0.7 r=0.38 turn=13/15
+zone ring6 treasure r=0.17 turn=11/12
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p3 pocket3a weak
+link p3 pocket3b weak
+link p4 pocket4a weak
+link p4 pocket4b weak
+link p5 pocket5a weak
+link p5 pocket5b weak
+link p6 pocket6a weak
+link p6 pocket6b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p3 ring2 normal
+link p3 ring3 normal
+link p4 ring3 normal
+link p4 ring4 normal
+link p5 ring4 normal
+link p5 ring5 normal
+link p6 ring5 normal
+link p6 ring6 normal
+link p1 ring6 normal
+link ring1 middle strong
+link ring2 middle strong
+link ring3 middle strong
+link ring4 middle strong
+link ring5 middle strong
+link ring6 middle strong
+
+name Pockets
+players 6
+sizes large-huge
+
+zone p1 start size=1.1 r=0.3 turn=0
+zone pocket1a treasure size=0.7 r=0.38 turn=29/30
+zone pocket1b treasure size=0.7 r=0.38 turn=1/30
+zone ring1 treasure rich r=0.17 turn=1/12
+zone p2 start size=1.1 r=0.3 turn=1/6
+zone pocket2a treasure size=0.7 r=0.38 turn=2/15
+zone pocket2b treasure size=0.7 r=0.38 turn=1/5
+zone ring2 treasure rich r=0.17 turn=1/4
+zone p3 start size=1.1 r=0.3 turn=1/3
+zone pocket3a treasure size=0.7 r=0.38 turn=3/10
+zone pocket3b treasure size=0.7 r=0.38 turn=11/30
+zone ring3 treasure rich r=0.17 turn=5/12
+zone p4 start size=1.1 r=0.3 turn=1/2
+zone pocket4a treasure size=0.7 r=0.38 turn=7/15
+zone pocket4b treasure size=0.7 r=0.38 turn=8/15
+zone ring4 treasure rich r=0.17 turn=7/12
+zone p5 start size=1.1 r=0.3 turn=2/3
+zone pocket5a treasure size=0.7 r=0.38 turn=19/30
+zone pocket5b treasure size=0.7 r=0.38 turn=7/10
+zone ring5 treasure rich r=0.17 turn=3/4
+zone p6 start size=1.1 r=0.3 turn=5/6
+zone pocket6a treasure size=0.7 r=0.38 turn=4/5
+zone pocket6b treasure size=0.7 r=0.38 turn=13/15
+zone ring6 treasure rich r=0.17 turn=11/12
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 pocket1a weak
+link p1 pocket1b weak
+link p2 pocket2a weak
+link p2 pocket2b weak
+link p3 pocket3a weak
+link p3 pocket3b weak
+link p4 pocket4a weak
+link p4 pocket4b weak
+link p5 pocket5a weak
+link p5 pocket5b weak
+link p6 pocket6a weak
+link p6 pocket6b weak
+link p1 ring1 normal
+link p2 ring1 normal
+link p2 ring2 normal
+link p3 ring2 normal
+link p3 ring3 normal
+link p4 ring3 normal
+link p4 ring4 normal
+link p5 ring4 normal
+link p5 ring5 normal
+link p6 ring5 normal
+link p6 ring6 normal
+link p1 ring6 normal
+link ring1 middle strong
+link ring2 middle strong
+link ring3 middle strong
+link ring4 middle strong
+link ring5 middle strong
+link ring6 middle strong

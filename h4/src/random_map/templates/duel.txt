@@ -1,0 +1,82 @@
+# Duel: two players, mirrored halves; two treasure zones in front of each start, a rich middle
+# with a town between them, rich edges on medium maps and up, corners on large ones.
+
+name Duel
+players 2
+sizes small
+
+zone middle1 treasure rich town x=0 y=0
+zone p1 start size=1.2 x=-0.34 y=0
+zone side1 treasure x=-0.18 y=-0.24
+zone side2 treasure x=-0.18 y=0.24
+zone p2 start size=1.2 x=0.34 y=0
+zone side3 treasure x=0.18 y=-0.24
+zone side4 treasure x=0.18 y=0.24
+link p1 side1
+link p1 side2
+link side1 middle1 strong
+link side2 middle1 strong
+link p2 side3
+link p2 side4
+link side3 middle1 strong
+link side4 middle1 strong
+
+name Duel
+players 2
+sizes medium
+
+zone middle1 treasure rich town size=1.3 x=0 y=0
+zone p1 start size=1.2 x=-0.34 y=0
+zone side1 treasure x=-0.18 y=-0.24
+zone side2 treasure x=-0.18 y=0.24
+zone p2 start size=1.2 x=0.34 y=0
+zone side3 treasure x=0.18 y=-0.24
+zone side4 treasure x=0.18 y=0.24
+zone edge1 treasure rich x=0 y=-0.36
+zone edge2 treasure rich x=0 y=0.36
+link p1 side1
+link p1 side2
+link side1 middle1 strong
+link side2 middle1 strong
+link p2 side3
+link p2 side4
+link side3 middle1 strong
+link side4 middle1 strong
+link side1 edge1 deadly
+link side2 edge2 deadly
+link side3 edge1 deadly
+link side4 edge2 deadly
+
+name Duel
+players 2
+sizes large-huge
+
+zone middle1 treasure rich town size=1.3 x=0 y=0
+zone p1 start size=1.2 x=-0.34 y=0
+zone side1 treasure x=-0.18 y=-0.24
+zone side2 treasure x=-0.18 y=0.24
+zone corner1 treasure size=0.9 x=-0.36 y=-0.34
+zone corner2 treasure size=0.9 x=-0.36 y=0.34
+zone p2 start size=1.2 x=0.34 y=0
+zone side3 treasure x=0.18 y=-0.24
+zone side4 treasure x=0.18 y=0.24
+zone corner3 treasure size=0.9 x=0.36 y=-0.34
+zone corner4 treasure size=0.9 x=0.36 y=0.34
+zone edge1 treasure rich x=0 y=-0.36
+zone edge2 treasure rich x=0 y=0.36
+link p1 side1
+link p1 side2
+link side1 middle1 strong
+link side2 middle1 strong
+link side1 corner1
+link side2 corner2
+link p2 side3
+link p2 side4
+link side3 middle1 strong
+link side4 middle1 strong
+link side3 corner3
+link side4 corner4
+link side1 edge1 deadly
+link side2 edge2 deadly
+link side3 edge1 deadly
+link side4 edge2 deadly

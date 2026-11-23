@@ -1,0 +1,52 @@
+# Frontier: two lands of three zones, a line of strongly guarded border zones between them.
+
+name Frontier
+players 2
+sizes small-medium
+
+zone p1 start size=1.2 x=-0.34 y=0
+zone home1a treasure x=-0.3 y=-0.3
+zone home1b treasure x=-0.3 y=0.3
+zone p2 start size=1.2 x=0.34 y=0
+zone home2a treasure x=0.3 y=-0.3
+zone home2b treasure x=0.3 y=0.3
+zone border1 treasure size=0.8 x=0 y=-0.3
+zone border2 treasure rich town size=0.8 x=0 y=0
+zone border3 treasure size=0.8 x=0 y=0.3
+link p1 home1a weak
+link p1 home1b weak
+link p2 home2a weak
+link p2 home2b weak
+link home1a border1 strong
+link home2a border1 strong
+link p1 border2 strong
+link p2 border2 strong
+link home1b border3 strong
+link home2b border3 strong
+
+name Frontier
+players 2
+sizes large-huge
+
+zone p1 start size=1.2 x=-0.34 y=0
+zone home1a treasure x=-0.3 y=-0.3
+zone home1b treasure x=-0.3 y=0.3
+zone p2 start size=1.2 x=0.34 y=0
+zone home2a treasure x=0.3 y=-0.3
+zone home2b treasure x=0.3 y=0.3
+zone border1 treasure size=0.8 x=0 y=-0.3
+zone border2 treasure rich size=0.8 x=0 y=-0.1
+zone border3 treasure town size=0.8 x=0 y=0.1
+zone border4 treasure rich size=0.8 x=0 y=0.3
+link p1 home1a weak
+link p1 home1b weak
+link p2 home2a weak
+link p2 home2b weak
+link home1a border1 strong
+link home2a border1 strong
+link p1 border2 strong
+link p2 border2 strong
+link p1 border3 strong
+link p2 border3 strong
+link home1b border4 strong
+link home2b border4 strong

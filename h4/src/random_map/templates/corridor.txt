@@ -1,0 +1,66 @@
+# Corridor: two players at the ends of a line of zones, pockets on its sides, the richest
+# (and a town) in the middle.
+
+name Corridor
+players 2
+sizes small-medium
+
+zone p1 start size=1.2 x=-0.36 y=0
+zone way1 treasure x=-0.18 y=0
+zone way2 treasure rich town x=0 y=0
+zone way3 treasure x=0.18 y=0
+zone p2 start size=1.2 x=0.36 y=0
+zone pocket1n treasure rich size=0.8 x=-0.18 y=-0.28
+zone pocket1s treasure rich size=0.8 x=-0.18 y=0.28
+zone pocket2n treasure rich size=0.8 x=0 y=-0.28
+zone pocket2s treasure rich size=0.8 x=0 y=0.28
+zone pocket3n treasure rich size=0.8 x=0.18 y=-0.28
+zone pocket3s treasure rich size=0.8 x=0.18 y=0.28
+link p1 way1 normal
+link way1 way2 strong
+link way2 way3 strong
+link way3 p2 normal
+link way1 pocket1n strong
+link way1 pocket1s strong
+link way2 pocket2n strong
+link way2 pocket2s strong
+link way3 pocket3n strong
+link way3 pocket3s strong
+
+name Corridor
+players 2
+sizes large-huge
+
+zone p1 start size=1.2 x=-0.38 y=0
+zone way1 treasure x=-0.25 y=0
+zone way2 treasure x=-0.12 y=0
+zone way3 treasure rich town x=0 y=0
+zone way4 treasure x=0.12 y=0
+zone way5 treasure x=0.25 y=0
+zone p2 start size=1.2 x=0.38 y=0
+zone pocket1n treasure size=0.8 x=-0.25 y=-0.28
+zone pocket1s treasure size=0.8 x=-0.25 y=0.28
+zone pocket2n treasure rich size=0.8 x=-0.12 y=-0.28
+zone pocket2s treasure rich size=0.8 x=-0.12 y=0.28
+zone pocket3n treasure rich size=0.8 x=0 y=-0.28
+zone pocket3s treasure rich size=0.8 x=0 y=0.28
+zone pocket4n treasure rich size=0.8 x=0.12 y=-0.28
+zone pocket4s treasure rich size=0.8 x=0.12 y=0.28
+zone pocket5n treasure size=0.8 x=0.25 y=-0.28
+zone pocket5s treasure size=0.8 x=0.25 y=0.28
+link p1 way1 normal
+link way1 way2 normal
+link way2 way3 strong
+link way3 way4 strong
+link way4 way5 normal
+link way5 p2 normal
+link way1 pocket1n weak
+link way1 pocket1s weak
+link way2 pocket2n strong
+link way2 pocket2s strong
+link way3 pocket3n strong
+link way3 pocket3s strong
+link way4 pocket4n strong
+link way4 pocket4s strong
+link way5 pocket5n weak
+link way5 pocket5s weak

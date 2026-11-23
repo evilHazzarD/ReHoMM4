@@ -1,0 +1,49 @@
+--- a/src/runtime/hle/user32_window.h	2026-11-23 03:18:06
++++ b/src/runtime/hle/user32_window.h	2026-11-23 03:18:06
+@@ -56,6 +56,10 @@
+ // controls over the game (native buttons, panels) that a pad's clicks otherwise never reach.
+ void SetPadPointerSpeed(float factor);
+ void SetPadEventHook(bool (*hook)(const SDL_Event&));
++// Apps' own controls drawn over the game (gfx::SetPresentBadge) take input from every source: a
++// hook that gets each mouse, touch-made, gamepad-made and key event before the game (after
++// SetPadEventHook's); true: taken (the game does not get it).
++void SetAppInputHook(bool (*hook)(const SDL_Event&));
+ // The right stick (the arrow keys held, with Ctrl: scrolls maps): below 1, held only that share of
+ // the time (slower).
+ void SetPadScrollSpeed(float factor);
+--- a/src/runtime/hle/user32_window.cpp	2026-11-23 03:18:06
++++ b/src/runtime/hle/user32_window.cpp	2026-11-23 03:18:06
+@@ -479,9 +479,25 @@
+   Post(hwnd, WM_ACTIVATE, active ? 1 : 0, 0);
+   Post(hwnd, active ? WM_SETFOCUS : WM_KILLFOCUS, 0, 0);
+ }
++
++// The app's controls over the game (SetAppInputHook).
++bool (*g_app_input_hook)(const SDL_Event&) = nullptr;
+ 
+ void HandleSdlEvent(const SDL_Event& e) {
+   switch (e.type) {
++    case SDL_EVENT_MOUSE_MOTION:
++    case SDL_EVENT_MOUSE_BUTTON_DOWN:
++    case SDL_EVENT_MOUSE_BUTTON_UP:
++    case SDL_EVENT_MOUSE_WHEEL:
++    case SDL_EVENT_KEY_DOWN:
++    case SDL_EVENT_KEY_UP:
++    case SDL_EVENT_TEXT_INPUT:
++      if (g_app_input_hook && g_app_input_hook(e)) return;
++      break;
++    default:
++      break;
++  }
++  switch (e.type) {
+     case SDL_EVENT_QUIT: {
+       std::lock_guard<std::recursive_mutex> l(g_mu);
+       for (auto& [h, w] : g_windows)
+@@ -1188,6 +1204,7 @@
+ void SetHostEventSink(void (*sink)(const SDL_Event&)) { g_host_event_sink = sink; }
+ void SetPadPointerSpeed(float factor) { g_pad_speed = std::clamp(factor, 0.1f, 10.0f); }
+ void SetPadEventHook(bool (*hook)(const SDL_Event&)) { g_pad_hook = hook; }
++void SetAppInputHook(bool (*hook)(const SDL_Event&)) { g_app_input_hook = hook; }
+ void SetPadEnabled(bool on) { g_pad_on = on; }
+ void SetPadScrollSpeed(float factor) { g_pad_scroll = std::clamp(factor, 0.05f, 1.0f); }
+ void SetPadAction(PadButton b, PadAction a) {

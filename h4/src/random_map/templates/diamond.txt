@@ -1,0 +1,61 @@
+# Diamond: the starts on the sides' middles, corner zones between them, a rich middle.
+
+name Diamond
+players 2-4
+sizes small-medium
+
+zone middle treasure rich town size=1.3 x=0 y=0
+zone p1 start size=1.1 x=0 y=-0.36
+zone p2 start size=1.1 x=0 y=0.36
+zone p3 start size=1.1 x=-0.36 y=0
+zone p4 start size=1.1 x=0.36 y=0
+zone corner1 treasure x=-0.22 y=-0.22
+zone corner2 treasure x=0.22 y=-0.22
+zone corner3 treasure x=0.22 y=0.22
+zone corner4 treasure x=-0.22 y=0.22
+link p1 corner1 weak
+link p1 corner2 weak
+link p2 corner3 weak
+link p2 corner4 weak
+link p3 corner1 weak
+link p3 corner4 weak
+link p4 corner2 weak
+link p4 corner3 weak
+link corner1 middle strong
+link corner2 middle strong
+link corner3 middle strong
+link corner4 middle strong
+
+name Diamond
+players 2-4
+sizes large-huge
+
+zone middle treasure rich town size=1.3 x=0 y=0
+zone p1 start size=1.1 x=0 y=-0.36
+zone p2 start size=1.1 x=0 y=0.36
+zone p3 start size=1.1 x=-0.36 y=0
+zone p4 start size=1.1 x=0.36 y=0
+zone corner1 treasure rich x=-0.22 y=-0.22
+zone corner2 treasure rich x=0.22 y=-0.22
+zone corner3 treasure rich x=0.22 y=0.22
+zone corner4 treasure rich x=-0.22 y=0.22
+zone pocket1 treasure size=0.7 x=0.14 y=-0.38
+zone pocket2 treasure size=0.7 x=0.14 y=0.38
+zone pocket3 treasure size=0.7 x=-0.38 y=0.14
+zone pocket4 treasure size=0.7 x=0.38 y=0.14
+link p1 corner1 normal
+link p1 corner2 normal
+link p2 corner3 normal
+link p2 corner4 normal
+link p3 corner1 normal
+link p3 corner4 normal
+link p4 corner2 normal
+link p4 corner3 normal
+link corner1 middle strong
+link corner2 middle strong
+link corner3 middle strong
+link corner4 middle strong
+link p1 pocket1 weak
+link p2 pocket2 weak
+link p3 pocket3 weak
+link p4 pocket4 weak

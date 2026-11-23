@@ -1,0 +1,62 @@
+# Labyrinth: two players at the ends of a winding line through a grid of zones; one deadly
+# short cut.
+
+name Labyrinth
+players 2
+sizes small-medium
+
+zone p1 start x=-0.33 y=-0.33
+zone cell1 treasure x=0 y=-0.33
+zone cell2 treasure x=0.33 y=-0.33
+zone cell3 treasure x=0.33 y=0
+zone cell4 treasure rich town x=0 y=0
+zone cell5 treasure x=-0.33 y=0
+zone cell6 treasure x=-0.33 y=0.33
+zone cell7 treasure x=0 y=0.33
+zone p2 start x=0.33 y=0.33
+link p1 cell1 normal
+link cell1 cell2 normal
+link cell2 cell3 normal
+link cell3 cell4 strong
+link cell4 cell5 strong
+link cell5 cell6 strong
+link cell6 cell7 normal
+link cell7 p2 normal
+link cell1 cell4 deadly
+
+name Labyrinth
+players 2
+sizes large-huge
+
+zone p1 start x=-0.33 y=-0.33
+zone cell1 treasure x=-0.11 y=-0.33
+zone cell2 treasure x=0.11 y=-0.33
+zone cell3 treasure x=0.33 y=-0.33
+zone cell4 treasure x=0.33 y=-0.11
+zone cell5 treasure x=0.11 y=-0.11
+zone cell6 treasure x=-0.11 y=-0.11
+zone cell7 treasure x=-0.33 y=-0.11
+zone cell8 treasure rich town x=-0.33 y=0.11
+zone cell9 treasure x=-0.11 y=0.11
+zone cell10 treasure x=0.11 y=0.11
+zone cell11 treasure x=0.33 y=0.11
+zone cell12 treasure x=0.33 y=0.33
+zone cell13 treasure x=0.11 y=0.33
+zone cell14 treasure x=-0.11 y=0.33
+zone p2 start x=-0.33 y=0.33
+link p1 cell1 normal
+link cell1 cell2 normal
+link cell2 cell3 normal
+link cell3 cell4 normal
+link cell4 cell5 normal
+link cell5 cell6 normal
+link cell6 cell7 normal
+link cell7 cell8 strong
+link cell8 cell9 strong
+link cell9 cell10 strong
+link cell10 cell11 normal
+link cell11 cell12 normal
+link cell12 cell13 normal
+link cell13 cell14 normal
+link cell14 p2 normal
+link cell1 cell6 deadly

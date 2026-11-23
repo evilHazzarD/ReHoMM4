@@ -38,12 +38,15 @@ find_library(H4_INNOEXTRACT recomp_innoextract REQUIRED)
 find_library(H4_LZMA lzma REQUIRED)
 find_path(H4_INNOEXTRACT_INCLUDE recomp_innoextract.h REQUIRED)
 
+# The random map generator (h4/CMakeLists.txt): no fused multiply-add, the same maps everywhere.
+file(GLOB H4_RANDOM_MAP ${H4_SRC}/random_map/*.cpp)
+set_source_files_properties(${H4_RANDOM_MAP} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
 add_executable(h4
   ${H4_SRC}/main.cpp ${H4_SRC}/hle_extra.cpp ${H4_SRC}/resolution.cpp ${H4_SRC}/smooth.cpp
   ${H4_SRC}/install/installer.cpp ${H4_SRC}/install/gog.cpp ${H4_SRC}/install/inno.cpp
   ${H4_SRC}/install/manifest.cpp ${H4_SRC}/install/json.cpp ${H4_SRC}/install/hash.cpp
   ${H4_SRC}/language.cpp ${H4_SRC}/intro.cpp ${H4_SRC}/window_mode.cpp ${H4_SRC}/pad_config.cpp
-  ${H4_SRC}/menu_button_linux.cpp
+  ${H4_SRC}/menu_button_linux.cpp ${H4_SRC}/random_map_ui.cpp ${H4_RANDOM_MAP}
   src/web_main.cpp src/web_platform.cpp
   $<TARGET_OBJECTS:h4_lifted>)
 set_target_properties(h4 PROPERTIES OUTPUT_NAME heroes4 SUFFIX ".js")

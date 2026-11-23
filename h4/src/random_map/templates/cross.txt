@@ -1,0 +1,66 @@
+# Cross: four corners round a rich middle with a town; each start's own zone on the way in,
+# the own zones linked in a ring; on large maps rich edges between the corners.
+
+name Cross
+players 2-4
+sizes small-medium
+
+zone middle treasure rich town size=1.4 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=1/8
+zone p2 start size=1.2 r=0.37 turn=5/8
+zone p3 start size=1.2 r=0.37 turn=3/8
+zone p4 start size=1.2 r=0.37 turn=7/8
+zone own1 treasure r=0.2 turn=1/8
+zone own2 treasure r=0.2 turn=3/8
+zone own3 treasure r=0.2 turn=5/8
+zone own4 treasure r=0.2 turn=7/8
+link p1 own1
+link own1 middle deadly
+link p3 own2
+link own2 middle deadly
+link p2 own3
+link own3 middle deadly
+link p4 own4
+link own4 middle deadly
+link own1 own2 normal
+link own2 own3 normal
+link own3 own4 normal
+link own4 own1 normal
+
+name Cross
+players 2-4
+sizes large-huge
+
+zone middle treasure rich town size=1.4 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=1/8
+zone p2 start size=1.2 r=0.37 turn=5/8
+zone p3 start size=1.2 r=0.37 turn=3/8
+zone p4 start size=1.2 r=0.37 turn=7/8
+zone own1 treasure r=0.2 turn=1/8
+zone own2 treasure r=0.2 turn=3/8
+zone own3 treasure r=0.2 turn=5/8
+zone own4 treasure r=0.2 turn=7/8
+zone edge1 treasure rich r=0.38 turn=1/4
+zone edge2 treasure rich r=0.38 turn=1/2
+zone edge3 treasure rich r=0.38 turn=3/4
+zone edge4 treasure rich r=0.38 turn=0
+link p1 own1
+link own1 middle deadly
+link p3 own2
+link own2 middle deadly
+link p2 own3
+link own3 middle deadly
+link p4 own4
+link own4 middle deadly
+link own1 own2 normal
+link own2 own3 normal
+link own3 own4 normal
+link own4 own1 normal
+link p1 edge1 strong
+link p3 edge1 strong
+link p3 edge2 strong
+link p2 edge2 strong
+link p2 edge3 strong
+link p4 edge3 strong
+link p4 edge4 strong
+link p1 edge4 strong

@@ -1,0 +1,40 @@
+# Horseshoe: two players at a horseshoe's ends, the riches round its bend; a deadly short cut
+# across its opening.
+
+name Horseshoe
+players 2
+sizes small-medium
+
+zone p1 start r=0.33 turn=1/8
+zone bend1 treasure r=0.33 turn=5/16
+zone bend2 treasure rich town r=0.33 turn=1/2
+zone bend3 treasure r=0.33 turn=11/16
+zone p2 start r=0.33 turn=7/8
+zone gap treasure size=0.7 r=0.1 turn=0
+link p1 bend1 normal
+link bend1 bend2 strong
+link bend2 bend3 strong
+link bend3 p2 normal
+link p1 gap deadly
+link p2 gap deadly
+
+name Horseshoe
+players 2
+sizes large-huge
+
+zone p1 start r=0.33 turn=1/8
+zone bend1 treasure r=0.33 turn=1/4
+zone bend2 treasure r=0.33 turn=3/8
+zone bend3 treasure rich town r=0.33 turn=1/2
+zone bend4 treasure r=0.33 turn=5/8
+zone bend5 treasure r=0.33 turn=3/4
+zone p2 start r=0.33 turn=7/8
+zone gap treasure size=0.7 r=0.1 turn=0
+link p1 bend1 normal
+link bend1 bend2 normal
+link bend2 bend3 strong
+link bend3 bend4 strong
+link bend4 bend5 normal
+link bend5 p2 normal
+link p1 gap deadly
+link p2 gap deadly

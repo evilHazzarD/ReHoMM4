@@ -1,0 +1,379 @@
+# Race: each player a lane of richer zones to a deadly guarded middle with a town.
+
+name Race
+players 2
+sizes small-medium
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.26 turn=0
+zone lane1b treasure rich r=0.15 turn=0
+zone p2 start r=0.37 turn=1/2
+zone lane2a treasure r=0.26 turn=1/2
+zone lane2b treasure rich r=0.15 turn=1/2
+link p1 lane1a weak
+link lane1a lane1b strong
+link lane1b middle deadly
+link p2 lane2a weak
+link lane2a lane2b strong
+link lane2b middle deadly
+link lane1a lane2a strong
+
+name Race
+players 2
+sizes large-huge
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.29 turn=0
+zone lane1b treasure r=0.21 turn=0
+zone lane1c treasure rich r=0.13 turn=0
+zone p2 start r=0.37 turn=1/2
+zone lane2a treasure r=0.29 turn=1/2
+zone lane2b treasure r=0.21 turn=1/2
+zone lane2c treasure rich r=0.13 turn=1/2
+link p1 lane1a weak
+link lane1a lane1b normal
+link lane1b lane1c strong
+link lane1c middle deadly
+link p2 lane2a weak
+link lane2a lane2b normal
+link lane2b lane2c strong
+link lane2c middle deadly
+link lane1a lane2a strong
+
+name Race
+players 3
+sizes small-medium
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.26 turn=0
+zone lane1b treasure rich r=0.15 turn=0
+zone p2 start r=0.37 turn=1/3
+zone lane2a treasure r=0.26 turn=1/3
+zone lane2b treasure rich r=0.15 turn=1/3
+zone p3 start r=0.37 turn=2/3
+zone lane3a treasure r=0.26 turn=2/3
+zone lane3b treasure rich r=0.15 turn=2/3
+link p1 lane1a weak
+link lane1a lane1b strong
+link lane1b middle deadly
+link p2 lane2a weak
+link lane2a lane2b strong
+link lane2b middle deadly
+link p3 lane3a weak
+link lane3a lane3b strong
+link lane3b middle deadly
+link lane1a lane2a strong
+link lane2a lane3a strong
+link lane3a lane1a strong
+
+name Race
+players 3
+sizes large-huge
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.29 turn=0
+zone lane1b treasure r=0.21 turn=0
+zone lane1c treasure rich r=0.13 turn=0
+zone p2 start r=0.37 turn=1/3
+zone lane2a treasure r=0.29 turn=1/3
+zone lane2b treasure r=0.21 turn=1/3
+zone lane2c treasure rich r=0.13 turn=1/3
+zone p3 start r=0.37 turn=2/3
+zone lane3a treasure r=0.29 turn=2/3
+zone lane3b treasure r=0.21 turn=2/3
+zone lane3c treasure rich r=0.13 turn=2/3
+link p1 lane1a weak
+link lane1a lane1b normal
+link lane1b lane1c strong
+link lane1c middle deadly
+link p2 lane2a weak
+link lane2a lane2b normal
+link lane2b lane2c strong
+link lane2c middle deadly
+link p3 lane3a weak
+link lane3a lane3b normal
+link lane3b lane3c strong
+link lane3c middle deadly
+link lane1a lane2a strong
+link lane2a lane3a strong
+link lane3a lane1a strong
+
+name Race
+players 4
+sizes small-medium
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.26 turn=0
+zone lane1b treasure rich r=0.15 turn=0
+zone p2 start r=0.37 turn=1/4
+zone lane2a treasure r=0.26 turn=1/4
+zone lane2b treasure rich r=0.15 turn=1/4
+zone p3 start r=0.37 turn=1/2
+zone lane3a treasure r=0.26 turn=1/2
+zone lane3b treasure rich r=0.15 turn=1/2
+zone p4 start r=0.37 turn=3/4
+zone lane4a treasure r=0.26 turn=3/4
+zone lane4b treasure rich r=0.15 turn=3/4
+link p1 lane1a weak
+link lane1a lane1b strong
+link lane1b middle deadly
+link p2 lane2a weak
+link lane2a lane2b strong
+link lane2b middle deadly
+link p3 lane3a weak
+link lane3a lane3b strong
+link lane3b middle deadly
+link p4 lane4a weak
+link lane4a lane4b strong
+link lane4b middle deadly
+link lane1a lane2a strong
+link lane2a lane3a strong
+link lane3a lane4a strong
+link lane4a lane1a strong
+
+name Race
+players 4
+sizes large-huge
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.29 turn=0
+zone lane1b treasure r=0.21 turn=0
+zone lane1c treasure rich r=0.13 turn=0
+zone p2 start r=0.37 turn=1/4
+zone lane2a treasure r=0.29 turn=1/4
+zone lane2b treasure r=0.21 turn=1/4
+zone lane2c treasure rich r=0.13 turn=1/4
+zone p3 start r=0.37 turn=1/2
+zone lane3a treasure r=0.29 turn=1/2
+zone lane3b treasure r=0.21 turn=1/2
+zone lane3c treasure rich r=0.13 turn=1/2
+zone p4 start r=0.37 turn=3/4
+zone lane4a treasure r=0.29 turn=3/4
+zone lane4b treasure r=0.21 turn=3/4
+zone lane4c treasure rich r=0.13 turn=3/4
+link p1 lane1a weak
+link lane1a lane1b normal
+link lane1b lane1c strong
+link lane1c middle deadly
+link p2 lane2a weak
+link lane2a lane2b normal
+link lane2b lane2c strong
+link lane2c middle deadly
+link p3 lane3a weak
+link lane3a lane3b normal
+link lane3b lane3c strong
+link lane3c middle deadly
+link p4 lane4a weak
+link lane4a lane4b normal
+link lane4b lane4c strong
+link lane4c middle deadly
+link lane1a lane2a strong
+link lane2a lane3a strong
+link lane3a lane4a strong
+link lane4a lane1a strong
+
+name Race
+players 5
+sizes medium
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.26 turn=0
+zone lane1b treasure rich r=0.15 turn=0
+zone p2 start r=0.37 turn=1/5
+zone lane2a treasure r=0.26 turn=1/5
+zone lane2b treasure rich r=0.15 turn=1/5
+zone p3 start r=0.37 turn=2/5
+zone lane3a treasure r=0.26 turn=2/5
+zone lane3b treasure rich r=0.15 turn=2/5
+zone p4 start r=0.37 turn=3/5
+zone lane4a treasure r=0.26 turn=3/5
+zone lane4b treasure rich r=0.15 turn=3/5
+zone p5 start r=0.37 turn=4/5
+zone lane5a treasure r=0.26 turn=4/5
+zone lane5b treasure rich r=0.15 turn=4/5
+link p1 lane1a weak
+link lane1a lane1b strong
+link lane1b middle deadly
+link p2 lane2a weak
+link lane2a lane2b strong
+link lane2b middle deadly
+link p3 lane3a weak
+link lane3a lane3b strong
+link lane3b middle deadly
+link p4 lane4a weak
+link lane4a lane4b strong
+link lane4b middle deadly
+link p5 lane5a weak
+link lane5a lane5b strong
+link lane5b middle deadly
+link lane1a lane2a strong
+link lane2a lane3a strong
+link lane3a lane4a strong
+link lane4a lane5a strong
+link lane5a lane1a strong
+
+name Race
+players 5
+sizes large-huge
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.29 turn=0
+zone lane1b treasure r=0.21 turn=0
+zone lane1c treasure rich r=0.13 turn=0
+zone p2 start r=0.37 turn=1/5
+zone lane2a treasure r=0.29 turn=1/5
+zone lane2b treasure r=0.21 turn=1/5
+zone lane2c treasure rich r=0.13 turn=1/5
+zone p3 start r=0.37 turn=2/5
+zone lane3a treasure r=0.29 turn=2/5
+zone lane3b treasure r=0.21 turn=2/5
+zone lane3c treasure rich r=0.13 turn=2/5
+zone p4 start r=0.37 turn=3/5
+zone lane4a treasure r=0.29 turn=3/5
+zone lane4b treasure r=0.21 turn=3/5
+zone lane4c treasure rich r=0.13 turn=3/5
+zone p5 start r=0.37 turn=4/5
+zone lane5a treasure r=0.29 turn=4/5
+zone lane5b treasure r=0.21 turn=4/5
+zone lane5c treasure rich r=0.13 turn=4/5
+link p1 lane1a weak
+link lane1a lane1b normal
+link lane1b lane1c strong
+link lane1c middle deadly
+link p2 lane2a weak
+link lane2a lane2b normal
+link lane2b lane2c strong
+link lane2c middle deadly
+link p3 lane3a weak
+link lane3a lane3b normal
+link lane3b lane3c strong
+link lane3c middle deadly
+link p4 lane4a weak
+link lane4a lane4b normal
+link lane4b lane4c strong
+link lane4c middle deadly
+link p5 lane5a weak
+link lane5a lane5b normal
+link lane5b lane5c strong
+link lane5c middle deadly
+link lane1a lane2a strong
+link lane2a lane3a strong
+link lane3a lane4a strong
+link lane4a lane5a strong
+link lane5a lane1a strong
+
+name Race
+players 6
+sizes medium
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.26 turn=0
+zone lane1b treasure rich r=0.15 turn=0
+zone p2 start r=0.37 turn=1/6
+zone lane2a treasure r=0.26 turn=1/6
+zone lane2b treasure rich r=0.15 turn=1/6
+zone p3 start r=0.37 turn=1/3
+zone lane3a treasure r=0.26 turn=1/3
+zone lane3b treasure rich r=0.15 turn=1/3
+zone p4 start r=0.37 turn=1/2
+zone lane4a treasure r=0.26 turn=1/2
+zone lane4b treasure rich r=0.15 turn=1/2
+zone p5 start r=0.37 turn=2/3
+zone lane5a treasure r=0.26 turn=2/3
+zone lane5b treasure rich r=0.15 turn=2/3
+zone p6 start r=0.37 turn=5/6
+zone lane6a treasure r=0.26 turn=5/6
+zone lane6b treasure rich r=0.15 turn=5/6
+link p1 lane1a weak
+link lane1a lane1b strong
+link lane1b middle deadly
+link p2 lane2a weak
+link lane2a lane2b strong
+link lane2b middle deadly
+link p3 lane3a weak
+link lane3a lane3b strong
+link lane3b middle deadly
+link p4 lane4a weak
+link lane4a lane4b strong
+link lane4b middle deadly
+link p5 lane5a weak
+link lane5a lane5b strong
+link lane5b middle deadly
+link p6 lane6a weak
+link lane6a lane6b strong
+link lane6b middle deadly
+link lane1a lane2a strong
+link lane2a lane3a strong
+link lane3a lane4a strong
+link lane4a lane5a strong
+link lane5a lane6a strong
+link lane6a lane1a strong
+
+name Race
+players 6
+sizes large-huge
+
+zone middle treasure rich town r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone lane1a treasure r=0.29 turn=0
+zone lane1b treasure r=0.21 turn=0
+zone lane1c treasure rich r=0.13 turn=0
+zone p2 start r=0.37 turn=1/6
+zone lane2a treasure r=0.29 turn=1/6
+zone lane2b treasure r=0.21 turn=1/6
+zone lane2c treasure rich r=0.13 turn=1/6
+zone p3 start r=0.37 turn=1/3
+zone lane3a treasure r=0.29 turn=1/3
+zone lane3b treasure r=0.21 turn=1/3
+zone lane3c treasure rich r=0.13 turn=1/3
+zone p4 start r=0.37 turn=1/2
+zone lane4a treasure r=0.29 turn=1/2
+zone lane4b treasure r=0.21 turn=1/2
+zone lane4c treasure rich r=0.13 turn=1/2
+zone p5 start r=0.37 turn=2/3
+zone lane5a treasure r=0.29 turn=2/3
+zone lane5b treasure r=0.21 turn=2/3
+zone lane5c treasure rich r=0.13 turn=2/3
+zone p6 start r=0.37 turn=5/6
+zone lane6a treasure r=0.29 turn=5/6
+zone lane6b treasure r=0.21 turn=5/6
+zone lane6c treasure rich r=0.13 turn=5/6
+link p1 lane1a weak
+link lane1a lane1b normal
+link lane1b lane1c strong
+link lane1c middle deadly
+link p2 lane2a weak
+link lane2a lane2b normal
+link lane2b lane2c strong
+link lane2c middle deadly
+link p3 lane3a weak
+link lane3a lane3b normal
+link lane3b lane3c strong
+link lane3c middle deadly
+link p4 lane4a weak
+link lane4a lane4b normal
+link lane4b lane4c strong
+link lane4c middle deadly
+link p5 lane5a weak
+link lane5a lane5b normal
+link lane5b lane5c strong
+link lane5c middle deadly
+link p6 lane6a weak
+link lane6a lane6b normal
+link lane6b lane6c strong
+link lane6c middle deadly
+link lane1a lane2a strong
+link lane2a lane3a strong
+link lane3a lane4a strong
+link lane4a lane5a strong
+link lane5a lane6a strong
+link lane6a lane1a strong

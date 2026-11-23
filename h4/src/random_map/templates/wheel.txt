@@ -1,0 +1,342 @@
+# Wheel: the starts on the rim, a spoke from each to a rich hub with a town; rim zones
+# between the starts.
+
+name Wheel
+players 2
+sizes small-medium
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure r=0.38 turn=1/4
+zone p2 start r=0.37 turn=1/2
+zone spoke2 treasure size=0.8 r=0.19 turn=1/2
+zone rim2 treasure r=0.38 turn=3/4
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link rim1 p2 normal
+link rim2 p1 normal
+
+name Wheel
+players 2
+sizes large-huge
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure rich r=0.38 turn=1/4
+zone p2 start r=0.37 turn=1/2
+zone spoke2 treasure size=0.8 r=0.19 turn=1/2
+zone rim2 treasure rich r=0.38 turn=3/4
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link rim1 p2 normal
+link rim2 p1 normal
+
+name Wheel
+players 3
+sizes small-medium
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure r=0.38 turn=1/6
+zone p2 start r=0.37 turn=1/3
+zone spoke2 treasure size=0.8 r=0.19 turn=1/3
+zone rim2 treasure r=0.38 turn=1/2
+zone p3 start r=0.37 turn=2/3
+zone spoke3 treasure size=0.8 r=0.19 turn=2/3
+zone rim3 treasure r=0.38 turn=5/6
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link p3 spoke3 weak
+link spoke3 hub strong
+link p3 rim3 normal
+link rim1 p2 normal
+link rim2 p3 normal
+link rim3 p1 normal
+
+name Wheel
+players 3
+sizes large-huge
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure rich r=0.38 turn=1/6
+zone p2 start r=0.37 turn=1/3
+zone spoke2 treasure size=0.8 r=0.19 turn=1/3
+zone rim2 treasure rich r=0.38 turn=1/2
+zone p3 start r=0.37 turn=2/3
+zone spoke3 treasure size=0.8 r=0.19 turn=2/3
+zone rim3 treasure rich r=0.38 turn=5/6
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link p3 spoke3 weak
+link spoke3 hub strong
+link p3 rim3 normal
+link rim1 p2 normal
+link rim2 p3 normal
+link rim3 p1 normal
+
+name Wheel
+players 4
+sizes small-medium
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure r=0.38 turn=1/8
+zone p2 start r=0.37 turn=1/4
+zone spoke2 treasure size=0.8 r=0.19 turn=1/4
+zone rim2 treasure r=0.38 turn=3/8
+zone p3 start r=0.37 turn=1/2
+zone spoke3 treasure size=0.8 r=0.19 turn=1/2
+zone rim3 treasure r=0.38 turn=5/8
+zone p4 start r=0.37 turn=3/4
+zone spoke4 treasure size=0.8 r=0.19 turn=3/4
+zone rim4 treasure r=0.38 turn=7/8
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link p3 spoke3 weak
+link spoke3 hub strong
+link p3 rim3 normal
+link p4 spoke4 weak
+link spoke4 hub strong
+link p4 rim4 normal
+link rim1 p2 normal
+link rim2 p3 normal
+link rim3 p4 normal
+link rim4 p1 normal
+
+name Wheel
+players 4
+sizes large-huge
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure rich r=0.38 turn=1/8
+zone p2 start r=0.37 turn=1/4
+zone spoke2 treasure size=0.8 r=0.19 turn=1/4
+zone rim2 treasure rich r=0.38 turn=3/8
+zone p3 start r=0.37 turn=1/2
+zone spoke3 treasure size=0.8 r=0.19 turn=1/2
+zone rim3 treasure rich r=0.38 turn=5/8
+zone p4 start r=0.37 turn=3/4
+zone spoke4 treasure size=0.8 r=0.19 turn=3/4
+zone rim4 treasure rich r=0.38 turn=7/8
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link p3 spoke3 weak
+link spoke3 hub strong
+link p3 rim3 normal
+link p4 spoke4 weak
+link spoke4 hub strong
+link p4 rim4 normal
+link rim1 p2 normal
+link rim2 p3 normal
+link rim3 p4 normal
+link rim4 p1 normal
+
+name Wheel
+players 5
+sizes medium
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure r=0.38 turn=1/10
+zone p2 start r=0.37 turn=1/5
+zone spoke2 treasure size=0.8 r=0.19 turn=1/5
+zone rim2 treasure r=0.38 turn=3/10
+zone p3 start r=0.37 turn=2/5
+zone spoke3 treasure size=0.8 r=0.19 turn=2/5
+zone rim3 treasure r=0.38 turn=1/2
+zone p4 start r=0.37 turn=3/5
+zone spoke4 treasure size=0.8 r=0.19 turn=3/5
+zone rim4 treasure r=0.38 turn=7/10
+zone p5 start r=0.37 turn=4/5
+zone spoke5 treasure size=0.8 r=0.19 turn=4/5
+zone rim5 treasure r=0.38 turn=9/10
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link p3 spoke3 weak
+link spoke3 hub strong
+link p3 rim3 normal
+link p4 spoke4 weak
+link spoke4 hub strong
+link p4 rim4 normal
+link p5 spoke5 weak
+link spoke5 hub strong
+link p5 rim5 normal
+link rim1 p2 normal
+link rim2 p3 normal
+link rim3 p4 normal
+link rim4 p5 normal
+link rim5 p1 normal
+
+name Wheel
+players 5
+sizes large-huge
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure rich r=0.38 turn=1/10
+zone p2 start r=0.37 turn=1/5
+zone spoke2 treasure size=0.8 r=0.19 turn=1/5
+zone rim2 treasure rich r=0.38 turn=3/10
+zone p3 start r=0.37 turn=2/5
+zone spoke3 treasure size=0.8 r=0.19 turn=2/5
+zone rim3 treasure rich r=0.38 turn=1/2
+zone p4 start r=0.37 turn=3/5
+zone spoke4 treasure size=0.8 r=0.19 turn=3/5
+zone rim4 treasure rich r=0.38 turn=7/10
+zone p5 start r=0.37 turn=4/5
+zone spoke5 treasure size=0.8 r=0.19 turn=4/5
+zone rim5 treasure rich r=0.38 turn=9/10
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link p3 spoke3 weak
+link spoke3 hub strong
+link p3 rim3 normal
+link p4 spoke4 weak
+link spoke4 hub strong
+link p4 rim4 normal
+link p5 spoke5 weak
+link spoke5 hub strong
+link p5 rim5 normal
+link rim1 p2 normal
+link rim2 p3 normal
+link rim3 p4 normal
+link rim4 p5 normal
+link rim5 p1 normal
+
+name Wheel
+players 6
+sizes medium
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure r=0.38 turn=1/12
+zone p2 start r=0.37 turn=1/6
+zone spoke2 treasure size=0.8 r=0.19 turn=1/6
+zone rim2 treasure r=0.38 turn=1/4
+zone p3 start r=0.37 turn=1/3
+zone spoke3 treasure size=0.8 r=0.19 turn=1/3
+zone rim3 treasure r=0.38 turn=5/12
+zone p4 start r=0.37 turn=1/2
+zone spoke4 treasure size=0.8 r=0.19 turn=1/2
+zone rim4 treasure r=0.38 turn=7/12
+zone p5 start r=0.37 turn=2/3
+zone spoke5 treasure size=0.8 r=0.19 turn=2/3
+zone rim5 treasure r=0.38 turn=3/4
+zone p6 start r=0.37 turn=5/6
+zone spoke6 treasure size=0.8 r=0.19 turn=5/6
+zone rim6 treasure r=0.38 turn=11/12
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link p3 spoke3 weak
+link spoke3 hub strong
+link p3 rim3 normal
+link p4 spoke4 weak
+link spoke4 hub strong
+link p4 rim4 normal
+link p5 spoke5 weak
+link spoke5 hub strong
+link p5 rim5 normal
+link p6 spoke6 weak
+link spoke6 hub strong
+link p6 rim6 normal
+link rim1 p2 normal
+link rim2 p3 normal
+link rim3 p4 normal
+link rim4 p5 normal
+link rim5 p6 normal
+link rim6 p1 normal
+
+name Wheel
+players 6
+sizes large-huge
+
+zone hub treasure rich town size=0.9 r=0 turn=0
+zone p1 start r=0.37 turn=0
+zone spoke1 treasure size=0.8 r=0.19 turn=0
+zone rim1 treasure rich r=0.38 turn=1/12
+zone p2 start r=0.37 turn=1/6
+zone spoke2 treasure size=0.8 r=0.19 turn=1/6
+zone rim2 treasure rich r=0.38 turn=1/4
+zone p3 start r=0.37 turn=1/3
+zone spoke3 treasure size=0.8 r=0.19 turn=1/3
+zone rim3 treasure rich r=0.38 turn=5/12
+zone p4 start r=0.37 turn=1/2
+zone spoke4 treasure size=0.8 r=0.19 turn=1/2
+zone rim4 treasure rich r=0.38 turn=7/12
+zone p5 start r=0.37 turn=2/3
+zone spoke5 treasure size=0.8 r=0.19 turn=2/3
+zone rim5 treasure rich r=0.38 turn=3/4
+zone p6 start r=0.37 turn=5/6
+zone spoke6 treasure size=0.8 r=0.19 turn=5/6
+zone rim6 treasure rich r=0.38 turn=11/12
+link p1 spoke1 weak
+link spoke1 hub strong
+link p1 rim1 normal
+link p2 spoke2 weak
+link spoke2 hub strong
+link p2 rim2 normal
+link p3 spoke3 weak
+link spoke3 hub strong
+link p3 rim3 normal
+link p4 spoke4 weak
+link spoke4 hub strong
+link p4 rim4 normal
+link p5 spoke5 weak
+link spoke5 hub strong
+link p5 rim5 normal
+link p6 spoke6 weak
+link spoke6 hub strong
+link p6 rim6 normal
+link rim1 p2 normal
+link rim2 p3 normal
+link rim3 p4 normal
+link rim4 p5 normal
+link rim5 p6 normal
+link rim6 p1 normal

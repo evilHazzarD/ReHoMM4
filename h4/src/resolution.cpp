@@ -42,6 +42,7 @@
 #include "intro.h"
 #include "window_mode.h"
 #include "menu_button.h"
+#include "random_map_ui.h"
 #include "runtime/ctx.h"
 #include "runtime/gfx/device.h"
 #include "runtime/display.h"
@@ -1045,7 +1046,7 @@ void KeepScreenKeyboard() {
   next = now + 100;
   const uint32_t top = Rd32(kTopWindow);
   const uint32_t field = top ? FocusedTextEdit(top) : 0;
-  const bool want = field != 0;
+  const bool want = field != 0 || h4::RandomMapTyping();  // a game's field, or the generator's seed
   static bool was = false;
   SDL_Window* win = SDL_GetKeyboardFocus();
   if (!win) {
@@ -1086,6 +1087,153 @@ bool MainMenuAlone() {
   return menu && !other;
 }
 
+// ---- the random map generator in the scenario list (random_map_ui.h)
+//
+// t_new_map_dialog (New Game > Scenario): +0x110 the folder it lists, an MSVC string ({allocator,
+// char* +0x114, size +0x118, capacity}; its full path, ending in '\\'). 0x7B58A0 (thiscall, a
+// const string&) reads a folder into the list (opening a subfolder calls it too): it changes to
+// the folder, keeps its path at +0x110, lists its .h4c files and subfolders, selects the first map
+// and changes back. 0x401D30 assigns (const char*, size) to such a string, 0x401CE0(1) frees it.
+constexpr uint32_t kReadMapFolder = 0x7B58A0, kStringAssign = 0x401D30, kStringTidy = 0x401CE0;
+
+// The dialog, when it is up with nothing over it. The top window's children are in their
+// creation order: what is behind the dialog (the menu; from a game going on, the adventure screen
+// and whatever the game keeps up under it) is on one side of it in the list, a window over it (a
+// message) would be on the other. So: the dialog at either end of the visible windows' list (the
+// tooltip and the cursor's window left out).
+uint32_t NewMapDialog() {
+  const uint32_t top = Rd32(kTopWindow);
+  if (!top) return 0;
+  static uint32_t vtable = 0;   // t_new_map_dialog's, once seen
+  static uint32_t balloon = 0;  // t_help_balloon's: the tooltip shown on hover, not a window over it
+  std::vector<uint32_t> shown;
+  int at = -1;
+  ForChildren(top, [&](uint32_t w) {
+    if (!GPtr(w + kVisible)[0]) return;
+    const uint32_t vt = Rd32(w);
+    if (vt == kCursorWindowVtable || (balloon && vt == balloon)) return;
+    if (!balloon && ClassOf(w) == ".?AVt_help_balloon@@") {
+      balloon = vt;
+      return;
+    }
+    if (!vtable && ClassOf(w) == ".?AVt_new_map_dialog@@") vtable = vt;
+    if (vtable && vt == vtable) at = int(shown.size());
+    shown.push_back(w);
+  });
+  if (at < 0) return 0;
+  const bool front = at == 0 || at == int(shown.size()) - 1;
+  static std::string last;  // what is up with it, when that changes (for the log)
+  std::string now;
+  for (uint32_t w : shown) now += ClassOf(w) + " ";
+  if (now != last) {
+    std::fprintf(stderr, "h4: new map dialog %s: %s\n", front ? "on top" : "covered", now.c_str());
+    last = now;
+  }
+  return front ? shown[size_t(at)] : 0;
+}
+
+std::string MapFolder(uint32_t dialog) {
+  const uint32_t text = Rd32(dialog + 0x114), size = Rd32(dialog + 0x118);
+  if (!text || !size || size > 1024) return "C:\\Heroes4\\maps\\";
+  std::string folder = GStr(text);
+  if (folder.empty() || folder.back() != '\\') folder += '\\';
+  return folder;
+}
+
+// The file name of the map selected in the dialog's list ("" none, or a folder). Its items
+// (+0x124, a vector of pointers; the one selected: +0x17c) are a map's (FUN_007afa00: vtable
+// 0x98D4D4, its file name a string at +8) or a folder's.
+std::string SelectedMap(uint32_t dialog) {
+  constexpr uint32_t kMapItemVtable = 0x98D4D4;
+  const uint32_t begin = Rd32(dialog + 0x124), end = Rd32(dialog + 0x128);
+  const int32_t index = int32_t(Rd32(dialog + 0x17C));
+  if (!begin || end < begin || index < 0 || uint32_t(index) >= (end - begin) / 4) return {};
+  const uint32_t item = Rd32(begin + uint32_t(index) * 4);
+  if (!item || Rd32(item) != kMapItemVtable) return {};
+  const uint32_t text = Rd32(item + 0xC), size = Rd32(item + 0x10);
+  if (!text || !size || size > 260) return {};
+  return std::string(reinterpret_cast<const char*>(GPtr(text)), size);
+}
+
+// The list read again from its folder, so a map just written there shows (and is selected).
+void ReadMapFolder(::recomp::Ctx& c, uint32_t dialog) {
+  const std::string folder = MapFolder(dialog);
+  const gaddr str = ScratchRect() + 0x100, text = ScratchRect() + 0x200;
+  if (folder.size() >= 0x400) return;
+  std::memset(GPtr(str), 0, 16);
+  std::memcpy(GPtr(text), folder.c_str(), folder.size() + 1);
+  const uint32_t eax = c.eax, ecx = c.ecx, edx = c.edx, esp = c.esp;
+  c.ecx = str;
+  CallGuest(c, kStringAssign, {text, folder.size()});
+  c.ecx = dialog;
+  CallGuest(c, kReadMapFolder, {str});
+  c.ecx = str;
+  CallGuest(c, kStringTidy, {1});
+  c.eax = eax;
+  c.ecx = ecx;
+  c.edx = edx;
+  c.esp = esp;
+  WarnF("h4: random map: the list read again (%s)\n", folder.c_str());
+}
+
+// Points the dialog's list at `folder` (its folder string, +0x110: what MapFolder reads), to be
+// read with ReadMapFolder.
+void SetMapFolder(::recomp::Ctx& c, uint32_t dialog, const std::string& folder) {
+  const gaddr text = ScratchRect() + 0x200;
+  if (folder.size() >= 0x400) return;
+  std::memcpy(GPtr(text), folder.c_str(), folder.size() + 1);
+  const uint32_t eax = c.eax, ecx = c.ecx, edx = c.edx, esp = c.esp;
+  c.ecx = dialog + 0x110;
+  CallGuest(c, kStringAssign, {text, folder.size()});
+  c.eax = eax;
+  c.ecx = ecx;
+  c.edx = edx;
+  c.esp = esp;
+}
+
+// The generated maps' folder lists them newest first (their names, rm_<date>_<time>_<seed>, sort
+// oldest first): once for each list read (its items another set), the maps' items put in
+// descending name order after the folders', the newest selected, and the list shown again by the
+// dialog's sort (FUN_007b71a0) asked for a column it has not (7): no sorting, only the selection
+// found again, scrolled to and drawn. A column header clicked after sorts as the game does.
+void NewestFirst(::recomp::Ctx& c, uint32_t dialog) {
+  constexpr uint32_t kMapItemVtable = 0x98D4D4, kSortList = 0x7B71A0;
+  static uint64_t done = 0;
+  const uint32_t begin = Rd32(dialog + 0x124), end = Rd32(dialog + 0x128);
+  if (!begin || end <= begin || (end - begin) / 4 > 8192) return;
+  std::vector<uint32_t> items((end - begin) / 4);
+  for (size_t i = 0; i < items.size(); ++i) items[i] = Rd32(begin + uint32_t(i) * 4);
+  std::vector<uint32_t> set = items;
+  std::sort(set.begin(), set.end());
+  uint64_t sig = 1469598103934665603ull ^ begin;
+  for (uint32_t it : set) sig = (sig ^ it) * 1099511628211ull;
+  if (sig == done) return;
+  done = sig;
+  auto name = [&](uint32_t item) {
+    const uint32_t text = Rd32(item + 0xC), size = Rd32(item + 0x10);
+    std::string s = text && size <= 260 ? std::string(reinterpret_cast<const char*>(GPtr(text)), size) : std::string();
+    for (char& ch : s) ch = char(std::tolower(static_cast<unsigned char>(ch)));
+    return s;
+  };
+  auto is_map = [&](uint32_t item) { return item && Rd32(item) == kMapItemVtable; };
+  std::vector<uint32_t> order = items;
+  const auto maps = std::stable_partition(order.begin(), order.end(), [&](uint32_t it) { return !is_map(it); });
+  const size_t first_map = size_t(maps - order.begin());
+  if (first_map == order.size()) return;
+  std::stable_sort(maps, order.end(), [&](uint32_t a, uint32_t b) { return name(a) > name(b); });
+  for (size_t i = 0; i < order.size(); ++i) Wr32(begin + uint32_t(i) * 4, order[i]);
+  Wr32(dialog + 0x17C, uint32_t(first_map));
+  Wr32(dialog + 0x1B4, 0);
+  Wr32(dialog + 400, 0);
+  const uint32_t eax = c.eax, ecx = c.ecx, edx = c.edx, esp = c.esp;
+  c.ecx = dialog;
+  CallGuest(c, kSortList, {0, 7});
+  c.eax = eax;
+  c.ecx = ecx;
+  c.edx = edx;
+  c.esp = esp;
+}
+
 void KeepWide(::recomp::Ctx& c) {
   // The settings button (⚙︎) in the menu's top right corner, next to the wings; the ☁️ one (when the
   // settings show it) and "ReHoMM4 <version>" left of it.
@@ -1096,6 +1244,18 @@ void KeepWide(::recomp::Ctx& c) {
   h4::TestWindowMode();
     h4::ShowLanguageButton(menu, Wide() ? lay.l + kLayoutW - 14 : int(Rd32(kScreenW)) - 14,
                            Wide() ? lay.t + 14 : 14, Wide() ? lay.l + 14 : 14);
+  }
+  {
+    const uint32_t dialog = NewMapDialog();
+    const Rect r = dialog ? RectOf(dialog) : Rect{0, 0, 0, 0};
+    std::string open;
+    if (h4::RandomMapPass(dialog != 0, r.l, r.t, r.r, r.b, dialog ? MapFolder(dialog) : std::string(),
+                          dialog ? SelectedMap(dialog) : std::string(), &open) &&
+        dialog) {
+      if (!open.empty() && open != MapFolder(dialog)) SetMapFolder(c, dialog, open);
+      ReadMapFolder(c, dialog);
+    }
+    if (dialog && h4::IsRandomMapsFolder(MapFolder(dialog))) NewestFirst(c, dialog);
   }
   // A constructor presenting (a loading screen) while the top window is
   // narrowed for it: leave it so until it returns.

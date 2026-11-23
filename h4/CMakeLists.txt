@@ -35,15 +35,26 @@ if(TARGET h4_lifted)
   if(H4_DEBUG_HOOKS)
     list(APPEND _h4_sources src/debug_hooks.cpp)
   endif()
+  # The random map generator (New Game > Scenario > Random map): a port of Tihomir Ivanov's
+  # homm4-random-map-generator. Its floating point is kept to plain IEEE operations (no fused
+  # multiply-add) so a seed makes the same map on every target.
+  set(_h4_random_map src/random_map/bodies.cpp src/random_map/catalog.cpp src/random_map/container.cpp
+      src/random_map/font.cpp src/random_map/generator.cpp src/random_map/objects.cpp
+      src/random_map/hero_card.cpp src/random_map/locale.cpp src/random_map/map_settings.cpp src/random_map/panel.cpp
+      src/random_map/resources.cpp src/random_map/scenario.cpp src/random_map/translations.cpp
+      src/random_map/storage.cpp src/random_map/template.cpp src/random_map/templates_shipped.cpp src/random_map/tiles.cpp src/random_map/transitions.cpp)
+  set_source_files_properties(${_h4_random_map} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
+  list(APPEND _h4_sources src/random_map_ui.cpp ${_h4_random_map})
   set(_h4_libs recomp_runtime recomp_mss32 recomp_dsound recomp_bink recomp_d3d7)
   # H4_DESKTOP_APP: the Linux (Steam Deck) and Mac app builds, made like the mobile ones
   # (platforms/build.sh linux|macos-*): one binary with the in-app installer, the translation and the
   # wings beside it.
   option(H4_DESKTOP_APP "Linux/Mac app build (platforms/build.sh linux|macos-*)" OFF)
+  option(H4_WINDOWS_APP "Portable Windows app build (platforms/build.sh windows-x86_64)" OFF)
   # H4_SWITCH_APP: Nintendo Switch homebrew (platforms/build.sh switch): heroes4.elf, packed into an
   # .nro by platforms/switch/package.sh; the soft gfx device (no SDL_GPU there).
   option(H4_SWITCH_APP "Nintendo Switch homebrew build (platforms/build.sh switch)" OFF)
-  if(ANDROID OR IOS OR H4_DESKTOP_APP OR H4_SWITCH_APP)
+  if(ANDROID OR IOS OR H4_DESKTOP_APP OR H4_WINDOWS_APP OR H4_SWITCH_APP)
     # The in-app installer (src/install/installer.h): GOG download or the offline installer,
     # unpacked by innoextract (platforms/deps.sh builds it into the prefix).
     list(APPEND _h4_sources src/install/installer.cpp src/install/gog.cpp src/install/inno.cpp
@@ -52,9 +63,16 @@ if(TARGET h4_lifted)
     find_library(H4_INNOEXTRACT recomp_innoextract REQUIRED)
     find_library(H4_LZMA lzma REQUIRED)
     find_path(H4_INNOEXTRACT_INCLUDE recomp_innoextract.h REQUIRED)
+    # Homebrew MinGW's zlib package exports zlibstatic, not the Unix -lz
+    # name. Keep the native targets on their system zlib.
+    if(H4_WINDOWS_APP)
+      find_library(H4_ZLIB NAMES zlibstatic REQUIRED)
+    else()
+      set(H4_ZLIB z)
+    endif()
   endif()
   if(H4_DESKTOP_APP AND APPLE)
-    # Packed into Heroes IV.app by platforms/macos/package.sh (SDL3 static, Metal).
+    # Packed into ReHoMM4.app by platforms/macos/package.sh (SDL3 static, Metal).
     enable_language(OBJCXX)
     add_executable(h4 ${_h4_sources} src/install/platform_desktop.cpp src/menu_button_mac.mm
                    src/install/gog_login_mac.mm src/save_sync_apple.mm src/save_sync.cpp $<TARGET_OBJECTS:h4_lifted>)
@@ -80,6 +98,17 @@ if(TARGET h4_lifted)
     target_compile_definitions(h4 PRIVATE H4_DESKTOP_APP=1 H4_LINUX_APP=1)
     target_link_libraries(h4 PRIVATE ${H4_INNOEXTRACT} ${H4_LZMA} z dl pthread)
     # The C++ runtime inside (the sysroot's is older than many systems', never newer).
+    target_link_options(h4 PRIVATE -static-libstdc++ -static-libgcc)
+  elseif(H4_WINDOWS_APP)
+    # Native desktop plumbing lives separately from the POSIX desktop implementation.
+    enable_language(RC)
+    add_executable(h4 ${_h4_sources} src/install/installer.cpp src/install/gog.cpp src/install/inno.cpp
+                   src/install/manifest.cpp src/install/json.cpp src/install/hash.cpp src/install/platform_windows.cpp
+                   src/language.cpp src/intro.cpp src/window_mode.cpp src/pad_config.cpp src/save_sync.cpp
+                   windows_icon.rc $<TARGET_OBJECTS:h4_lifted>)
+    set_target_properties(h4 PROPERTIES OUTPUT_NAME heroes4)
+    target_compile_definitions(h4 PRIVATE H4_DESKTOP_APP=1 H4_WINDOWS_APP=1)
+    target_link_libraries(h4 PRIVATE ${H4_INNOEXTRACT} ${H4_LZMA} ${H4_ZLIB} winhttp shell32 ole32 uuid)
     target_link_options(h4 PRIVATE -static-libstdc++ -static-libgcc)
   elseif(ANDROID)
     # SDLActivity loads libmain.so and calls its SDL_main (SDL_main.h).
@@ -157,7 +186,8 @@ if(TARGET h4_lifted)
     add_executable(h4 ${_h4_sources} $<TARGET_OBJECTS:h4_lifted>)
   endif()
   recomp_link_hle(h4 ${_h4_libs})
-  if(ANDROID OR IOS OR H4_DESKTOP_APP OR H4_SWITCH_APP)
+  target_link_libraries(h4 PRIVATE ${H4_ZLIB})  # the generator's maps are gzipped
+  if(ANDROID OR IOS OR H4_DESKTOP_APP OR H4_WINDOWS_APP OR H4_SWITCH_APP)
     target_include_directories(h4 PRIVATE src ${H4_INNOEXTRACT_INCLUDE})
     # The translations (platforms/languages.py): the list the app starts with, and where the
     # latest release's list is (checked at every start).

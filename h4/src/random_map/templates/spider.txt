@@ -1,0 +1,381 @@
+# Spider: each start a leg to a rich middle with a town; rich zones between the legs.
+
+name Spider
+players 2
+sizes small-medium
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone p2 start size=1.2 r=0.37 turn=1/2
+zone leg2 treasure r=0.21 turn=1/2
+zone web1 treasure rich r=0.33 turn=1/4
+zone web2 treasure rich r=0.33 turn=3/4
+link p1 leg1 weak
+link leg1 middle strong
+link p2 leg2 weak
+link leg2 middle strong
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg1 web2 normal
+
+name Spider
+players 2
+sizes large-huge
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone out1 treasure r=0.4 turn=1/8
+zone p2 start size=1.2 r=0.37 turn=1/2
+zone leg2 treasure r=0.21 turn=1/2
+zone out2 treasure r=0.4 turn=5/8
+zone web1 treasure rich r=0.33 turn=1/4
+zone web2 treasure rich r=0.33 turn=3/4
+link p1 leg1 weak
+link leg1 middle strong
+link p1 out1 weak
+link p2 leg2 weak
+link leg2 middle strong
+link p2 out2 weak
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg1 web2 normal
+
+name Spider
+players 3
+sizes small-medium
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone p2 start size=1.2 r=0.37 turn=1/3
+zone leg2 treasure r=0.21 turn=1/3
+zone p3 start size=1.2 r=0.37 turn=2/3
+zone leg3 treasure r=0.21 turn=2/3
+zone web1 treasure rich r=0.33 turn=1/6
+zone web2 treasure rich r=0.33 turn=1/2
+zone web3 treasure rich r=0.33 turn=5/6
+link p1 leg1 weak
+link leg1 middle strong
+link p2 leg2 weak
+link leg2 middle strong
+link p3 leg3 weak
+link leg3 middle strong
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg3 web2 normal
+link leg3 web3 normal
+link leg1 web3 normal
+
+name Spider
+players 3
+sizes large-huge
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone out1 treasure r=0.4 turn=1/12
+zone p2 start size=1.2 r=0.37 turn=1/3
+zone leg2 treasure r=0.21 turn=1/3
+zone out2 treasure r=0.4 turn=5/12
+zone p3 start size=1.2 r=0.37 turn=2/3
+zone leg3 treasure r=0.21 turn=2/3
+zone out3 treasure r=0.4 turn=3/4
+zone web1 treasure rich r=0.33 turn=1/6
+zone web2 treasure rich r=0.33 turn=1/2
+zone web3 treasure rich r=0.33 turn=5/6
+link p1 leg1 weak
+link leg1 middle strong
+link p1 out1 weak
+link p2 leg2 weak
+link leg2 middle strong
+link p2 out2 weak
+link p3 leg3 weak
+link leg3 middle strong
+link p3 out3 weak
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg3 web2 normal
+link leg3 web3 normal
+link leg1 web3 normal
+
+name Spider
+players 4
+sizes small-medium
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone p2 start size=1.2 r=0.37 turn=1/4
+zone leg2 treasure r=0.21 turn=1/4
+zone p3 start size=1.2 r=0.37 turn=1/2
+zone leg3 treasure r=0.21 turn=1/2
+zone p4 start size=1.2 r=0.37 turn=3/4
+zone leg4 treasure r=0.21 turn=3/4
+zone web1 treasure rich r=0.33 turn=1/8
+zone web2 treasure rich r=0.33 turn=3/8
+zone web3 treasure rich r=0.33 turn=5/8
+zone web4 treasure rich r=0.33 turn=7/8
+link p1 leg1 weak
+link leg1 middle strong
+link p2 leg2 weak
+link leg2 middle strong
+link p3 leg3 weak
+link leg3 middle strong
+link p4 leg4 weak
+link leg4 middle strong
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg3 web2 normal
+link leg3 web3 normal
+link leg4 web3 normal
+link leg4 web4 normal
+link leg1 web4 normal
+
+name Spider
+players 4
+sizes large-huge
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone out1 treasure r=0.4 turn=1/16
+zone p2 start size=1.2 r=0.37 turn=1/4
+zone leg2 treasure r=0.21 turn=1/4
+zone out2 treasure r=0.4 turn=5/16
+zone p3 start size=1.2 r=0.37 turn=1/2
+zone leg3 treasure r=0.21 turn=1/2
+zone out3 treasure r=0.4 turn=9/16
+zone p4 start size=1.2 r=0.37 turn=3/4
+zone leg4 treasure r=0.21 turn=3/4
+zone out4 treasure r=0.4 turn=13/16
+zone web1 treasure rich r=0.33 turn=1/8
+zone web2 treasure rich r=0.33 turn=3/8
+zone web3 treasure rich r=0.33 turn=5/8
+zone web4 treasure rich r=0.33 turn=7/8
+link p1 leg1 weak
+link leg1 middle strong
+link p1 out1 weak
+link p2 leg2 weak
+link leg2 middle strong
+link p2 out2 weak
+link p3 leg3 weak
+link leg3 middle strong
+link p3 out3 weak
+link p4 leg4 weak
+link leg4 middle strong
+link p4 out4 weak
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg3 web2 normal
+link leg3 web3 normal
+link leg4 web3 normal
+link leg4 web4 normal
+link leg1 web4 normal
+
+name Spider
+players 5
+sizes medium
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone p2 start size=1.2 r=0.37 turn=1/5
+zone leg2 treasure r=0.21 turn=1/5
+zone p3 start size=1.2 r=0.37 turn=2/5
+zone leg3 treasure r=0.21 turn=2/5
+zone p4 start size=1.2 r=0.37 turn=3/5
+zone leg4 treasure r=0.21 turn=3/5
+zone p5 start size=1.2 r=0.37 turn=4/5
+zone leg5 treasure r=0.21 turn=4/5
+zone web1 treasure rich r=0.33 turn=1/10
+zone web2 treasure rich r=0.33 turn=3/10
+zone web3 treasure rich r=0.33 turn=1/2
+zone web4 treasure rich r=0.33 turn=7/10
+zone web5 treasure rich r=0.33 turn=9/10
+link p1 leg1 weak
+link leg1 middle strong
+link p2 leg2 weak
+link leg2 middle strong
+link p3 leg3 weak
+link leg3 middle strong
+link p4 leg4 weak
+link leg4 middle strong
+link p5 leg5 weak
+link leg5 middle strong
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg3 web2 normal
+link leg3 web3 normal
+link leg4 web3 normal
+link leg4 web4 normal
+link leg5 web4 normal
+link leg5 web5 normal
+link leg1 web5 normal
+
+name Spider
+players 5
+sizes large-huge
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone out1 treasure r=0.4 turn=1/20
+zone p2 start size=1.2 r=0.37 turn=1/5
+zone leg2 treasure r=0.21 turn=1/5
+zone out2 treasure r=0.4 turn=1/4
+zone p3 start size=1.2 r=0.37 turn=2/5
+zone leg3 treasure r=0.21 turn=2/5
+zone out3 treasure r=0.4 turn=9/20
+zone p4 start size=1.2 r=0.37 turn=3/5
+zone leg4 treasure r=0.21 turn=3/5
+zone out4 treasure r=0.4 turn=13/20
+zone p5 start size=1.2 r=0.37 turn=4/5
+zone leg5 treasure r=0.21 turn=4/5
+zone out5 treasure r=0.4 turn=17/20
+zone web1 treasure rich r=0.33 turn=1/10
+zone web2 treasure rich r=0.33 turn=3/10
+zone web3 treasure rich r=0.33 turn=1/2
+zone web4 treasure rich r=0.33 turn=7/10
+zone web5 treasure rich r=0.33 turn=9/10
+link p1 leg1 weak
+link leg1 middle strong
+link p1 out1 weak
+link p2 leg2 weak
+link leg2 middle strong
+link p2 out2 weak
+link p3 leg3 weak
+link leg3 middle strong
+link p3 out3 weak
+link p4 leg4 weak
+link leg4 middle strong
+link p4 out4 weak
+link p5 leg5 weak
+link leg5 middle strong
+link p5 out5 weak
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg3 web2 normal
+link leg3 web3 normal
+link leg4 web3 normal
+link leg4 web4 normal
+link leg5 web4 normal
+link leg5 web5 normal
+link leg1 web5 normal
+
+name Spider
+players 6
+sizes medium
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone p2 start size=1.2 r=0.37 turn=1/6
+zone leg2 treasure r=0.21 turn=1/6
+zone p3 start size=1.2 r=0.37 turn=1/3
+zone leg3 treasure r=0.21 turn=1/3
+zone p4 start size=1.2 r=0.37 turn=1/2
+zone leg4 treasure r=0.21 turn=1/2
+zone p5 start size=1.2 r=0.37 turn=2/3
+zone leg5 treasure r=0.21 turn=2/3
+zone p6 start size=1.2 r=0.37 turn=5/6
+zone leg6 treasure r=0.21 turn=5/6
+zone web1 treasure rich r=0.33 turn=1/12
+zone web2 treasure rich r=0.33 turn=1/4
+zone web3 treasure rich r=0.33 turn=5/12
+zone web4 treasure rich r=0.33 turn=7/12
+zone web5 treasure rich r=0.33 turn=3/4
+zone web6 treasure rich r=0.33 turn=11/12
+link p1 leg1 weak
+link leg1 middle strong
+link p2 leg2 weak
+link leg2 middle strong
+link p3 leg3 weak
+link leg3 middle strong
+link p4 leg4 weak
+link leg4 middle strong
+link p5 leg5 weak
+link leg5 middle strong
+link p6 leg6 weak
+link leg6 middle strong
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg3 web2 normal
+link leg3 web3 normal
+link leg4 web3 normal
+link leg4 web4 normal
+link leg5 web4 normal
+link leg5 web5 normal
+link leg6 web5 normal
+link leg6 web6 normal
+link leg1 web6 normal
+
+name Spider
+players 6
+sizes large-huge
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone leg1 treasure r=0.21 turn=0
+zone out1 treasure r=0.4 turn=1/24
+zone p2 start size=1.2 r=0.37 turn=1/6
+zone leg2 treasure r=0.21 turn=1/6
+zone out2 treasure r=0.4 turn=5/24
+zone p3 start size=1.2 r=0.37 turn=1/3
+zone leg3 treasure r=0.21 turn=1/3
+zone out3 treasure r=0.4 turn=3/8
+zone p4 start size=1.2 r=0.37 turn=1/2
+zone leg4 treasure r=0.21 turn=1/2
+zone out4 treasure r=0.4 turn=13/24
+zone p5 start size=1.2 r=0.37 turn=2/3
+zone leg5 treasure r=0.21 turn=2/3
+zone out5 treasure r=0.4 turn=17/24
+zone p6 start size=1.2 r=0.37 turn=5/6
+zone leg6 treasure r=0.21 turn=5/6
+zone out6 treasure r=0.4 turn=7/8
+zone web1 treasure rich r=0.33 turn=1/12
+zone web2 treasure rich r=0.33 turn=1/4
+zone web3 treasure rich r=0.33 turn=5/12
+zone web4 treasure rich r=0.33 turn=7/12
+zone web5 treasure rich r=0.33 turn=3/4
+zone web6 treasure rich r=0.33 turn=11/12
+link p1 leg1 weak
+link leg1 middle strong
+link p1 out1 weak
+link p2 leg2 weak
+link leg2 middle strong
+link p2 out2 weak
+link p3 leg3 weak
+link leg3 middle strong
+link p3 out3 weak
+link p4 leg4 weak
+link leg4 middle strong
+link p4 out4 weak
+link p5 leg5 weak
+link leg5 middle strong
+link p5 out5 weak
+link p6 leg6 weak
+link leg6 middle strong
+link p6 out6 weak
+link leg1 web1 normal
+link leg2 web1 normal
+link leg2 web2 normal
+link leg3 web2 normal
+link leg3 web3 normal
+link leg4 web3 normal
+link leg4 web4 normal
+link leg5 web4 normal
+link leg5 web5 normal
+link leg6 web5 normal
+link leg6 web6 normal
+link leg1 web6 normal

@@ -1,0 +1,52 @@
+# Triangle: three players, a zone between each two, a rich middle with a town.
+
+name Triangle
+players 3
+sizes small-medium
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone p2 start size=1.2 r=0.37 turn=1/3
+zone p3 start size=1.2 r=0.37 turn=2/3
+zone side1 treasure r=0.33 turn=1/6
+zone side2 treasure r=0.33 turn=1/2
+zone side3 treasure r=0.33 turn=5/6
+link p1 side1 normal
+link p2 side1 normal
+link side1 middle strong
+link p2 side2 normal
+link p3 side2 normal
+link side2 middle strong
+link p3 side3 normal
+link p1 side3 normal
+link side3 middle strong
+
+name Triangle
+players 3
+sizes large-huge
+
+zone middle treasure rich town size=1.3 r=0 turn=0
+zone p1 start size=1.2 r=0.37 turn=0
+zone p2 start size=1.2 r=0.37 turn=1/3
+zone p3 start size=1.2 r=0.37 turn=2/3
+zone side1 treasure r=0.33 turn=1/6
+zone inner1 treasure r=0.18 turn=0
+zone side2 treasure r=0.33 turn=1/2
+zone inner2 treasure r=0.18 turn=1/3
+zone side3 treasure r=0.33 turn=5/6
+zone inner3 treasure r=0.18 turn=2/3
+link p1 side1 normal
+link p2 side1 normal
+link side1 middle strong
+link p1 inner1 weak
+link inner1 middle strong
+link p2 side2 normal
+link p3 side2 normal
+link side2 middle strong
+link p2 inner2 weak
+link inner2 middle strong
+link p3 side3 normal
+link p1 side3 normal
+link side3 middle strong
+link p3 inner3 weak
+link inner3 middle strong

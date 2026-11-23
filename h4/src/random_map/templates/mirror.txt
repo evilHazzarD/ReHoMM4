@@ -1,0 +1,57 @@
+# Mirror: two players, mirrored halves; two rich middles joined by an open way.
+
+name Mirror
+players 2
+sizes small-medium
+
+zone north treasure rich x=0 y=-0.17
+zone south treasure rich town x=0 y=0.17
+zone p1 start size=1.2 x=-0.33 y=0
+zone front1a treasure x=-0.17 y=-0.2
+zone front1b treasure x=-0.17 y=0.2
+zone back1 treasure size=0.8 x=-0.34 y=0.3
+zone p2 start size=1.2 x=0.33 y=0
+zone front2a treasure x=0.17 y=-0.2
+zone front2b treasure x=0.17 y=0.2
+zone back2 treasure size=0.8 x=0.34 y=-0.3
+link north south open
+link p1 front1a weak
+link p1 front1b weak
+link front1a north strong
+link front1b south strong
+link p1 back1 weak
+link p2 front2a weak
+link p2 front2b weak
+link front2a north strong
+link front2b south strong
+link p2 back2 weak
+
+name Mirror
+players 2
+sizes large-huge
+
+zone north treasure rich x=0 y=-0.17
+zone south treasure rich town x=0 y=0.17
+zone p1 start size=1.2 x=-0.33 y=0
+zone front1a treasure x=-0.17 y=-0.2
+zone front1b treasure x=-0.17 y=0.2
+zone back1 treasure size=0.8 x=-0.34 y=0.3
+zone far1 treasure rich x=-0.34 y=-0.3
+zone p2 start size=1.2 x=0.33 y=0
+zone front2a treasure x=0.17 y=-0.2
+zone front2b treasure x=0.17 y=0.2
+zone back2 treasure size=0.8 x=0.34 y=-0.3
+zone far2 treasure rich x=0.34 y=0.3
+link north south open
+link p1 front1a weak
+link p1 front1b weak
+link front1a north strong
+link front1b south strong
+link p1 back1 weak
+link front1a far1 strong
+link p2 front2a weak
+link p2 front2b weak
+link front2a north strong
+link front2b south strong
+link p2 back2 weak
+link front2b far2 strong

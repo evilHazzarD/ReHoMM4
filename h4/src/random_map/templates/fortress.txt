@@ -1,0 +1,414 @@
+# Fortress: each start behind one strongly guarded gate and its own yard; a wide land
+# outside (and a rich middle for 3 players and more).
+
+name Fortress
+players 2
+sizes small-medium
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/4
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure r=0.22 turn=1/4
+zone p2 start size=1.2 r=0.36 turn=1/2
+zone yard2 treasure size=0.8 r=0.38 turn=3/4
+zone gate2 treasure size=0.8 r=0.2 turn=1/2
+zone field2 treasure r=0.22 turn=3/4
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link field1 gate2 normal
+
+name Fortress
+players 2
+sizes large-huge
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/4
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure rich r=0.22 turn=1/4
+zone p2 start size=1.2 r=0.36 turn=1/2
+zone yard2 treasure size=0.8 r=0.38 turn=3/4
+zone gate2 treasure size=0.8 r=0.2 turn=1/2
+zone field2 treasure rich r=0.22 turn=3/4
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link field1 gate2 normal
+
+name Fortress
+players 3
+sizes small-medium
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/6
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure r=0.22 turn=1/6
+zone p2 start size=1.2 r=0.36 turn=1/3
+zone yard2 treasure size=0.8 r=0.38 turn=1/2
+zone gate2 treasure size=0.8 r=0.2 turn=1/3
+zone field2 treasure r=0.22 turn=1/2
+zone p3 start size=1.2 r=0.36 turn=2/3
+zone yard3 treasure size=0.8 r=0.38 turn=5/6
+zone gate3 treasure size=0.8 r=0.2 turn=2/3
+zone field3 treasure r=0.22 turn=5/6
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link p3 yard3 weak
+link p3 gate3 strong
+link gate3 field3 normal
+link field1 gate2 normal
+link field2 gate3 normal
+link field3 gate1 normal
+link field1 middle strong
+link field2 middle strong
+link field3 middle strong
+
+name Fortress
+players 3
+sizes large-huge
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/6
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure rich r=0.22 turn=1/6
+zone p2 start size=1.2 r=0.36 turn=1/3
+zone yard2 treasure size=0.8 r=0.38 turn=1/2
+zone gate2 treasure size=0.8 r=0.2 turn=1/3
+zone field2 treasure rich r=0.22 turn=1/2
+zone p3 start size=1.2 r=0.36 turn=2/3
+zone yard3 treasure size=0.8 r=0.38 turn=5/6
+zone gate3 treasure size=0.8 r=0.2 turn=2/3
+zone field3 treasure rich r=0.22 turn=5/6
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link p3 yard3 weak
+link p3 gate3 strong
+link gate3 field3 normal
+link field1 gate2 normal
+link field2 gate3 normal
+link field3 gate1 normal
+link field1 middle strong
+link field2 middle strong
+link field3 middle strong
+
+name Fortress
+players 4
+sizes medium
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/8
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure r=0.22 turn=1/8
+zone p2 start size=1.2 r=0.36 turn=1/4
+zone yard2 treasure size=0.8 r=0.38 turn=3/8
+zone gate2 treasure size=0.8 r=0.2 turn=1/4
+zone field2 treasure r=0.22 turn=3/8
+zone p3 start size=1.2 r=0.36 turn=1/2
+zone yard3 treasure size=0.8 r=0.38 turn=5/8
+zone gate3 treasure size=0.8 r=0.2 turn=1/2
+zone field3 treasure r=0.22 turn=5/8
+zone p4 start size=1.2 r=0.36 turn=3/4
+zone yard4 treasure size=0.8 r=0.38 turn=7/8
+zone gate4 treasure size=0.8 r=0.2 turn=3/4
+zone field4 treasure r=0.22 turn=7/8
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link p3 yard3 weak
+link p3 gate3 strong
+link gate3 field3 normal
+link p4 yard4 weak
+link p4 gate4 strong
+link gate4 field4 normal
+link field1 gate2 normal
+link field2 gate3 normal
+link field3 gate4 normal
+link field4 gate1 normal
+link field1 middle strong
+link field2 middle strong
+link field3 middle strong
+link field4 middle strong
+
+name Fortress
+players 4
+sizes large-huge
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/8
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure rich r=0.22 turn=1/8
+zone p2 start size=1.2 r=0.36 turn=1/4
+zone yard2 treasure size=0.8 r=0.38 turn=3/8
+zone gate2 treasure size=0.8 r=0.2 turn=1/4
+zone field2 treasure rich r=0.22 turn=3/8
+zone p3 start size=1.2 r=0.36 turn=1/2
+zone yard3 treasure size=0.8 r=0.38 turn=5/8
+zone gate3 treasure size=0.8 r=0.2 turn=1/2
+zone field3 treasure rich r=0.22 turn=5/8
+zone p4 start size=1.2 r=0.36 turn=3/4
+zone yard4 treasure size=0.8 r=0.38 turn=7/8
+zone gate4 treasure size=0.8 r=0.2 turn=3/4
+zone field4 treasure rich r=0.22 turn=7/8
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link p3 yard3 weak
+link p3 gate3 strong
+link gate3 field3 normal
+link p4 yard4 weak
+link p4 gate4 strong
+link gate4 field4 normal
+link field1 gate2 normal
+link field2 gate3 normal
+link field3 gate4 normal
+link field4 gate1 normal
+link field1 middle strong
+link field2 middle strong
+link field3 middle strong
+link field4 middle strong
+
+name Fortress
+players 5
+sizes medium
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/10
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure r=0.22 turn=1/10
+zone p2 start size=1.2 r=0.36 turn=1/5
+zone yard2 treasure size=0.8 r=0.38 turn=3/10
+zone gate2 treasure size=0.8 r=0.2 turn=1/5
+zone field2 treasure r=0.22 turn=3/10
+zone p3 start size=1.2 r=0.36 turn=2/5
+zone yard3 treasure size=0.8 r=0.38 turn=1/2
+zone gate3 treasure size=0.8 r=0.2 turn=2/5
+zone field3 treasure r=0.22 turn=1/2
+zone p4 start size=1.2 r=0.36 turn=3/5
+zone yard4 treasure size=0.8 r=0.38 turn=7/10
+zone gate4 treasure size=0.8 r=0.2 turn=3/5
+zone field4 treasure r=0.22 turn=7/10
+zone p5 start size=1.2 r=0.36 turn=4/5
+zone yard5 treasure size=0.8 r=0.38 turn=9/10
+zone gate5 treasure size=0.8 r=0.2 turn=4/5
+zone field5 treasure r=0.22 turn=9/10
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link p3 yard3 weak
+link p3 gate3 strong
+link gate3 field3 normal
+link p4 yard4 weak
+link p4 gate4 strong
+link gate4 field4 normal
+link p5 yard5 weak
+link p5 gate5 strong
+link gate5 field5 normal
+link field1 gate2 normal
+link field2 gate3 normal
+link field3 gate4 normal
+link field4 gate5 normal
+link field5 gate1 normal
+link field1 middle strong
+link field2 middle strong
+link field3 middle strong
+link field4 middle strong
+link field5 middle strong
+
+name Fortress
+players 5
+sizes large-huge
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/10
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure rich r=0.22 turn=1/10
+zone p2 start size=1.2 r=0.36 turn=1/5
+zone yard2 treasure size=0.8 r=0.38 turn=3/10
+zone gate2 treasure size=0.8 r=0.2 turn=1/5
+zone field2 treasure rich r=0.22 turn=3/10
+zone p3 start size=1.2 r=0.36 turn=2/5
+zone yard3 treasure size=0.8 r=0.38 turn=1/2
+zone gate3 treasure size=0.8 r=0.2 turn=2/5
+zone field3 treasure rich r=0.22 turn=1/2
+zone p4 start size=1.2 r=0.36 turn=3/5
+zone yard4 treasure size=0.8 r=0.38 turn=7/10
+zone gate4 treasure size=0.8 r=0.2 turn=3/5
+zone field4 treasure rich r=0.22 turn=7/10
+zone p5 start size=1.2 r=0.36 turn=4/5
+zone yard5 treasure size=0.8 r=0.38 turn=9/10
+zone gate5 treasure size=0.8 r=0.2 turn=4/5
+zone field5 treasure rich r=0.22 turn=9/10
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link p3 yard3 weak
+link p3 gate3 strong
+link gate3 field3 normal
+link p4 yard4 weak
+link p4 gate4 strong
+link gate4 field4 normal
+link p5 yard5 weak
+link p5 gate5 strong
+link gate5 field5 normal
+link field1 gate2 normal
+link field2 gate3 normal
+link field3 gate4 normal
+link field4 gate5 normal
+link field5 gate1 normal
+link field1 middle strong
+link field2 middle strong
+link field3 middle strong
+link field4 middle strong
+link field5 middle strong
+
+name Fortress
+players 6
+sizes medium
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/12
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure r=0.22 turn=1/12
+zone p2 start size=1.2 r=0.36 turn=1/6
+zone yard2 treasure size=0.8 r=0.38 turn=1/4
+zone gate2 treasure size=0.8 r=0.2 turn=1/6
+zone field2 treasure r=0.22 turn=1/4
+zone p3 start size=1.2 r=0.36 turn=1/3
+zone yard3 treasure size=0.8 r=0.38 turn=5/12
+zone gate3 treasure size=0.8 r=0.2 turn=1/3
+zone field3 treasure r=0.22 turn=5/12
+zone p4 start size=1.2 r=0.36 turn=1/2
+zone yard4 treasure size=0.8 r=0.38 turn=7/12
+zone gate4 treasure size=0.8 r=0.2 turn=1/2
+zone field4 treasure r=0.22 turn=7/12
+zone p5 start size=1.2 r=0.36 turn=2/3
+zone yard5 treasure size=0.8 r=0.38 turn=3/4
+zone gate5 treasure size=0.8 r=0.2 turn=2/3
+zone field5 treasure r=0.22 turn=3/4
+zone p6 start size=1.2 r=0.36 turn=5/6
+zone yard6 treasure size=0.8 r=0.38 turn=11/12
+zone gate6 treasure size=0.8 r=0.2 turn=5/6
+zone field6 treasure r=0.22 turn=11/12
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link p3 yard3 weak
+link p3 gate3 strong
+link gate3 field3 normal
+link p4 yard4 weak
+link p4 gate4 strong
+link gate4 field4 normal
+link p5 yard5 weak
+link p5 gate5 strong
+link gate5 field5 normal
+link p6 yard6 weak
+link p6 gate6 strong
+link gate6 field6 normal
+link field1 gate2 normal
+link field2 gate3 normal
+link field3 gate4 normal
+link field4 gate5 normal
+link field5 gate6 normal
+link field6 gate1 normal
+link field1 middle strong
+link field2 middle strong
+link field3 middle strong
+link field4 middle strong
+link field5 middle strong
+link field6 middle strong
+
+name Fortress
+players 6
+sizes large-huge
+
+zone p1 start size=1.2 r=0.36 turn=0
+zone yard1 treasure size=0.8 r=0.38 turn=1/12
+zone gate1 treasure size=0.8 r=0.2 turn=0
+zone field1 treasure rich r=0.22 turn=1/12
+zone p2 start size=1.2 r=0.36 turn=1/6
+zone yard2 treasure size=0.8 r=0.38 turn=1/4
+zone gate2 treasure size=0.8 r=0.2 turn=1/6
+zone field2 treasure rich r=0.22 turn=1/4
+zone p3 start size=1.2 r=0.36 turn=1/3
+zone yard3 treasure size=0.8 r=0.38 turn=5/12
+zone gate3 treasure size=0.8 r=0.2 turn=1/3
+zone field3 treasure rich r=0.22 turn=5/12
+zone p4 start size=1.2 r=0.36 turn=1/2
+zone yard4 treasure size=0.8 r=0.38 turn=7/12
+zone gate4 treasure size=0.8 r=0.2 turn=1/2
+zone field4 treasure rich r=0.22 turn=7/12
+zone p5 start size=1.2 r=0.36 turn=2/3
+zone yard5 treasure size=0.8 r=0.38 turn=3/4
+zone gate5 treasure size=0.8 r=0.2 turn=2/3
+zone field5 treasure rich r=0.22 turn=3/4
+zone p6 start size=1.2 r=0.36 turn=5/6
+zone yard6 treasure size=0.8 r=0.38 turn=11/12
+zone gate6 treasure size=0.8 r=0.2 turn=5/6
+zone field6 treasure rich r=0.22 turn=11/12
+zone middle treasure rich town size=0.8 r=0 turn=0
+link p1 yard1 weak
+link p1 gate1 strong
+link gate1 field1 normal
+link p2 yard2 weak
+link p2 gate2 strong
+link gate2 field2 normal
+link p3 yard3 weak
+link p3 gate3 strong
+link gate3 field3 normal
+link p4 yard4 weak
+link p4 gate4 strong
+link gate4 field4 normal
+link p5 yard5 weak
+link p5 gate5 strong
+link gate5 field5 normal
+link p6 yard6 weak
+link p6 gate6 strong
+link gate6 field6 normal
+link field1 gate2 normal
+link field2 gate3 normal
+link field3 gate4 normal
+link field4 gate5 normal
+link field5 gate6 normal
+link field6 gate1 normal
+link field1 middle strong
+link field2 middle strong
+link field3 middle strong
+link field4 middle strong
+link field5 middle strong
+link field6 middle strong

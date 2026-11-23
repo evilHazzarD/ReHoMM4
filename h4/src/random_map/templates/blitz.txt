@@ -1,0 +1,33 @@
+# Blitz: two players close to each other, few zones: a short game.
+
+name Blitz
+players 2
+sizes small-medium
+
+zone p1 start x=-0.2 y=0
+zone p2 start x=0.2 y=0
+zone north treasure rich size=0.8 x=0 y=-0.3
+zone south treasure size=0.8 x=0 y=0.3
+link p1 p2 weak
+link p1 north normal
+link p2 north normal
+link p1 south weak
+link p2 south weak
+
+name Blitz
+players 2
+sizes large-huge
+
+zone p1 start x=-0.2 y=0
+zone p2 start x=0.2 y=0
+zone north treasure rich size=0.8 x=0 y=-0.3
+zone south treasure size=0.8 x=0 y=0.3
+zone back1 treasure x=-0.38 y=0
+zone back2 treasure x=0.38 y=0
+link p1 p2 weak
+link p1 north normal
+link p2 north normal
+link p1 south weak
+link p2 south weak
+link p1 back1 weak
+link p2 back2 weak
