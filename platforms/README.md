@@ -50,7 +50,7 @@ the license of every library linked in, made by `platforms/notices.py` from the 
 library without a known license is linked.
 
 The app icon is the project's own: a gold-rimmed shield with "IV", drawn at build time by
-`assets/icon/heroes-iv.png`, in each platform's form by
+`assets/icon/rehomm4.png`, in each platform's form by
 `assets/icon/icon.sh` (iOS asset catalog, Android adaptive icon, macOS .icns, Linux PNG, Switch
 JPEG). Some launchers keep an old icon until they are restarted.
 

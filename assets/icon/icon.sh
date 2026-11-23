@@ -1,6 +1,6 @@
 #!/bin/bash
 # icon.sh <platform> <out>: the app icon for platforms/build.sh, made from
-# heroes-iv.png. Its outer canvas is transparent; platform launchers apply
+# rehomm4.png. Its outer canvas is transparent; platform launchers apply
 # their own required masks/backgrounds where applicable.
 #   ios <dir>        <dir>/Assets.xcassets with AppIcon (1024 px, opaque)
 #   android <dir>    <dir>: an adaptive launcher icon (extra res folder, platforms/android/package.sh)
@@ -11,7 +11,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 P="$1"; OUT="$2"
 T="$(mktemp -d "${TMPDIR:-/tmp}/h4_icon.XXXXXX")"; trap 'rm -rf "$T"' EXIT
-SOURCE="$HERE/heroes-iv.png"
+SOURCE="$HERE/rehomm4.png"
 [[ -f "$SOURCE" ]] || { echo "missing project icon: $SOURCE" >&2; exit 1; }
 resize_icon() { sips -z "$2" "$2" "$SOURCE" --out "$1" >/dev/null; }
 case "$P" in
@@ -19,7 +19,7 @@ case "$P" in
     A="$OUT/Assets.xcassets"; rm -rf "$A"; mkdir -p "$A/AppIcon.appiconset"
     # A dedicated opaque square keeps the gold rim inside iOS's rounded
     # launcher mask instead of letting the system crop its outer points.
-    sips -z 1024 1024 "$HERE/ios/heroes-iv-ios.png" --out "$A/AppIcon.appiconset/icon-1024.png" >/dev/null
+    sips -z 1024 1024 "$HERE/ios/rehomm4-ios.png" --out "$A/AppIcon.appiconset/icon-1024.png" >/dev/null
     echo '{ "info" : { "author" : "xcode", "version" : 1 } }' > "$A/Contents.json"
     cat > "$A/AppIcon.appiconset/Contents.json" <<'J'
 {
