@@ -1,10 +1,10 @@
 #!/bin/bash
-# Packs the Mac build (platforms/build.sh macos-arm64|macos-x86_64) into Heroes IV.app and a DMG:
+# Packs the Mac build (platforms/build.sh macos-arm64|macos-x86_64) into ReHoMM4.app and a DMG:
 #
-#   Heroes IV.app/Contents/MacOS/heroes4           the game (with the in-app installer)
-#   Heroes IV.app/Contents/Resources/wings, <code>.h4p  the side panels and the translations built in
-#   Heroes IV.app/Contents/Resources/AppIcon.icns   the shield icon (assets/icon)
-#   Heroes IV.app/Contents/Resources/THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py)
+#   ReHoMM4.app/Contents/MacOS/heroes4           the game (with the in-app installer)
+#   ReHoMM4.app/Contents/Resources/wings, <code>.h4p  the side panels and the translations built in
+#   ReHoMM4.app/Contents/Resources/AppIcon.icns   the shield icon (assets/icon)
+#   ReHoMM4.app/Contents/Resources/THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py)
 #   the DMG: the app, an Applications link and "Third-party notices.txt"
 #
 # Ad-hoc signed (as any app built on this Mac); on another Mac: right-click > Open the first time.
@@ -15,7 +15,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/platforms/env.sh" "${2:-macos-arm64}"
 B="$1"
 OUT="$MOBILE_CACHE/dist"
-APP="$OUT/Heroes IV.app"
+APP="$OUT/ReHoMM4.app"
 rm -rf "$OUT"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 strip -S -o "$APP/Contents/MacOS/heroes4" "$B/heroes4"
 [[ -d "$MOBILE_CACHE/res/wings" ]] && cp -R "$MOBILE_CACHE/res/wings" "$APP/Contents/Resources/wings"
@@ -42,9 +42,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict></plist>
 PLIST
 codesign --force --sign - "$APP" >/dev/null 2>&1
-( cd "$OUT" && ditto -c -k --keepParent "Heroes IV.app" HeroesIV-macos-$MAC_ARCH.zip )
+( cd "$OUT" && ditto -c -k --keepParent ReHoMM4.app HeroesIV-macos-$MAC_ARCH.zip )
 STAGE="$MOBILE_CACHE/dmg-stage"; rm -rf "$STAGE"; mkdir -p "$STAGE"
-ditto "$APP" "$STAGE/Heroes IV.app"
+ditto "$APP" "$STAGE/ReHoMM4.app"
 ln -s /Applications "$STAGE/Applications"
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$STAGE/Third-party notices.txt"
 hdiutil create -quiet -fs HFS+ -volname "Heroes IV" -srcfolder "$STAGE" -ov -format UDZO "$OUT/HeroesIV-macos-$MAC_ARCH.dmg"

@@ -28,7 +28,12 @@ platforms/deps.sh ios                 # SDL3, glslang, SPIRV-Cross, LGPL ffmpeg 
 platforms/build.sh ios <TEAM_ID>      # -> .cache/outputs/ios/dist/HeroesIV-ios.ipa (+ the .app in build/)
 platforms/deps.sh android             # the same for Android
 platforms/build.sh android            # -> .cache/outputs/android/dist/HeroesIV-android_arm64.apk
+platforms/build.sh windows-x86_64     # -> .cache/outputs/windows-x86_64/dist/HeroesIV-windows-x86_64.zip
 ```
+
+The Windows build is cross-compiled on the Mac with Homebrew's MinGW-w64 (`brew install mingw-w64`).
+It is a portable folder containing `Heroes IV.exe` and `SDL3.dll`; it uses an existing GOG game
+installation passed with `--game-dir` (or `H4_GAME_DIR`).
 
 `tools/build.sh` also builds the Mac DMG; for the mobile builds only its first steps are needed
 (stop it after "Recompiling the game" if you like). It applies every `patches/x86recomp-*.patch`,
@@ -45,7 +50,7 @@ the license of every library linked in, made by `platforms/notices.py` from the 
 library without a known license is linked.
 
 The app icon is the project's own: a gold-rimmed shield with "IV", drawn at build time by
-`assets/icon/icon.swift` (nothing taken from the game), in each platform's form by
+`assets/icon/heroes-iv.png`, in each platform's form by
 `assets/icon/icon.sh` (iOS asset catalog, Android adaptive icon, macOS .icns, Linux PNG, Switch
 JPEG). Some launchers keep an old icon until they are restarted.
 
@@ -412,8 +417,8 @@ All in `patches/x86recomp-mobile.patch`, `h4/CMakeLists.txt`, `h4/src/main.cpp` 
 
 ## Linux and the Steam Deck
 
-`platforms/build.sh linux` cross-builds it on the Mac for Linux x86-64 (glibc 2.36+: SteamOS 3,
-Debian 12, Ubuntu 22.10 and later): `.cache/outputs/linux/dist/HeroesIV-linux-x86_64.tar.gz`, a
+`platforms/build.sh linux-x86_64` (or `linux`) cross-builds it on the Mac for Linux x86-64 (glibc 2.36+: SteamOS 3,
+Debian 12, Ubuntu 22.10 and later): `.cache/outputs/linux-x86_64/dist/HeroesIV-linux-x86_64.tar.gz`, a
 folder with `heroes4`, `lib/libSDL3.so.0`, the wings and (when built in) the translation. It is
 the mobile app's way of working: the in-app installer (GOG sign-in in the browser: the address
 it ends on is copied or pasted back; or the GOG installer files from `~/Downloads`, or picked with
@@ -424,7 +429,7 @@ and the desktop's Xwayland) with Vulkan; audio through PipeWire, PulseAudio or A
 run time, so the binary needs only libc, libm and zlib.
 
 The toolchain: Homebrew's clang aimed at a Debian 12 sysroot that `platforms/linux/sysroot.py`
-assembles from Debian's packages (`.cache/outputs/linux/sysroot`, ~100 MB), linked by the Android
+assembles from Debian's packages (`.cache/outputs/linux-x86_64/sysroot`, ~100 MB), linked by the Android
 NDK's `ld.lld`; `platforms/deps.sh linux` builds SDL3, glslang, ffmpeg and innoextract for it; the
 runtime is linked in statically (`RECOMP_STATIC_APP`). On the Deck: Desktop Mode, unpack, then in
 Steam *Add a Non-Steam Game* > `heroes4`; Launch options `--lang=uk` for Ukrainian (any language code the app has).
@@ -432,7 +437,7 @@ Steam *Add a Non-Steam Game* > `heroes4`; Launch options `--lang=uk` for Ukraini
 ## Mac app (Apple Silicon and Intel)
 
 `platforms/build.sh macos-arm64` makes the same app for the Mac (Apple Silicon, macOS 13+):
-`.cache/outputs/macos-arm64/dist/Heroes IV.app` and `HeroesIV-macos-arm64.dmg`. `platforms/build.sh
+`.cache/outputs/macos-arm64/dist/ReHoMM4.app` and `HeroesIV-macos-arm64.dmg`. `platforms/build.sh
 macos-x86_64` makes it for Intel Macs (cross-built on an Apple Silicon Mac, which runs it under Rosetta for
 testing): `.cache/outputs/macos-x86_64/dist/`, `HeroesIV-macos-x86_64.dmg`. One binary (runtime and
 SDL3 static, Metal), the in-app installer (GOG sign-in in a web view over the game, or installer
@@ -464,4 +469,11 @@ On the SD card: `sdmc:/switch/ReHoMM4/HeroesIV.nro` and, beside it, the GOG inst
 (no file picker or GOG sign-in on the Switch); the game goes to `.../ReHoMM4/game`, saves to
 `.../player`. The wings, the language button's pictures and (when built in) the translation are
 in the .nro's romfs.
+
+### Nintendo Switch 2
+
+Install [ounce-devkit](https://github.com/ouncebrew/ounce-devkit) into the devkitPro installation,
+then run `bash platforms/build.sh switch2`. This builds the app and its project dependencies
+in `.cache/outputs/switch2/` with libounce and OunceVK. The packaging step checks for the
+Switch 2 startup record in `.cache/outputs/switch2/dist/HeroesIV.nro`.
 

@@ -1,6 +1,6 @@
 # ReHoMM4: Heroes of Might and Magic IV, native
 
-Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android (including Android TV), Linux, Steam Deck, and Nintendo Switch. Runs directly on hardware—no Wine, emulators, or VMs.
+Native port of Heroes of Might and Magic IV (including both expansions) for Windows, macOS, iOS, iPadOS, Android (including Android TV), Linux, Steam Deck, and Nintendo Switch. Runs directly on hardware—no Wine, emulators, or VMs.
 
 [Українською — нижче](#українською)
 
@@ -25,6 +25,7 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   - an iPhone or iPad with iOS / iPadOS 17 or later;
   - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
   - a Linux PC (x86-64 or 64-bit ARM) or a Steam Deck;
+  - a 64-bit Windows 10 or later PC;
   - a Nintendo Switch that runs homebrew.
 - An internet connection and about 3 GB of free space.
 
@@ -43,29 +44,41 @@ below is the release's number (for example `0.3`; releases before 0.3 named them
 | Mac | `reHoMM4-v<version>-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
+| Windows PC | `reHoMM4-v<version>-windows-x86_64.zip` |
 | Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-bit ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 
 Not sure which Mac you have:  → **About This Mac**; "Chip: Apple M…" is an Apple chip,
 "Processor: … Intel" is Intel.
 
+### Windows
+
+1. Download `reHoMM4-v<version>-windows-x86_64.zip` and extract it anywhere, for example in
+   `Downloads`.
+2. Install **Heroes of Might and Magic IV: Complete** from GOG. In the extracted folder, right-click
+   `Heroes IV.exe` → **Create shortcut**; open the shortcut's **Properties** and add
+   ` --game-dir "C:\\GOG Games\\Heroes of Might and Magic 4 Complete"` after the quoted program path
+   in **Target** (replace it with your actual GOG folder).
+3. Start that shortcut. The portable Windows build keeps game files where GOG installed them.
+
 ### Mac
 
 1. Open the downloaded `.dmg` (double-click it in **Downloads**).
-2. In the window that opens, drag **Heroes IV** onto **Applications**. Then eject the disk
+2. In the window that opens, drag **ReHoMM4** onto **Applications**. Then eject the disk
    ("Heroes IV" in Finder's sidebar → ⏏).
-3. Open **Applications** and double-click **Heroes IV**. The app is not signed by Apple, so
+3. Open **Applications** and double-click **ReHoMM4**. The app is not signed by Apple, so
    the first time macOS refuses to open it:
    - **macOS 15 (Sequoia) and later:** click **Done** in the message, open  →
-     **System Settings** → **Privacy & Security**, scroll down to *"Heroes IV" was blocked…*,
+     **System Settings** → **Privacy & Security**, scroll down to *"ReHoMM4" was blocked…*,
      click **Open Anyway** and confirm with your password; then **Open Anyway** once more.
-   - **macOS 13 and 14:** right-click (or Control-click) **Heroes IV** → **Open** → **Open**.
+   - **macOS 13 and 14:** right-click (or Control-click) **ReHoMM4** → **Open** → **Open**.
 
    From then on it opens normally.
 
 **Update:** download the new `.dmg` (or use ⚙ → **Check for updates** in the game) and drag the
-new **Heroes IV** onto **Applications** → **Replace**. Saves and settings are kept (they are in
-`~/Library/Application Support/ReHoMM4`).
+new **ReHoMM4** onto **Applications** → **Replace**. Saves and settings are kept (they are in
+`~/Library/Application Support/ReHoMM4`). Versions up to 0.3 were called **Heroes IV** in
+Applications: move that one to the Bin.
 
 ### iPhone, iPad
 
@@ -125,11 +138,11 @@ SteamOS 3 and newer), Vulkan graphics drivers, X11 or Wayland (through Xwayland)
    ```
 2. Start it:
    ```sh
-   ~/Games/"Heroes IV"/heroes4
+   ~/Games/ReHoMM4/heroes4
    ```
 3. Optional: add it to the desktop's application menu:
    ```sh
-   ~/Games/"Heroes IV"/install-desktop-entry.sh
+   ~/Games/ReHoMM4/install-desktop-entry.sh
    ```
 
 **Update:** unpack the new archive over the old folder. Saves and settings are in
@@ -142,7 +155,7 @@ SteamOS 3 and newer), Vulkan graphics drivers, X11 or Wayland (through Xwayland)
 3. In **Dolphin** (the file manager) open **Downloads**, right-click the archive → **Extract** →
    **Extract archive to…** → pick e.g. `/home/deck/Games`.
 4. Add it to Steam: open **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
-   **Browse…** → `/home/deck/Games/Heroes IV/heroes4` → **Add Selected Programs**.
+   **Browse…** → `/home/deck/Games/ReHoMM4/heroes4` → **Add Selected Programs**.
 5. Start it once here in Desktop Mode: the first start installs the game (the GOG sign-in opens in
    the browser), easier with the desktop's keyboard. Then go back with **Return to Gaming Mode**:
    the game is in your library under **Non-Steam**.
@@ -232,7 +245,7 @@ The licenses of the third-party libraries are in `THIRD_PARTY_NOTICES.txt` insid
 
 ## If something goes wrong
 
-**The Mac says "Heroes IV cannot be opened because the developer cannot be verified".**
+**The Mac says "ReHoMM4 cannot be opened because the developer cannot be verified".**
 Right-click the app → **Open** → **Open**.
 
 **The installer says the files are not the right ones.** The port works only with the current GOG
@@ -336,7 +349,7 @@ no game code or game files.
 | `symbols/` | function and jump-table addresses of `heroes4.exe` (from Ghidra) |
 | `platforms/` | the app builds: iOS, Android, Linux, Mac and Switch (`build.sh`, a folder per platform); a Mac DMG that builds the game on the player's Mac (`macos-dmg/`) |
 | `libs/innoextract/` | the GOG installer unpacker every app uses |
-| `assets/icon/` | the app icons (the shield with "IV") |
+| `assets/icon/` | the app icons (the Heroes IV emblem) |
 | `licenses/` | license texts of the third-party parts the apps carry |
 | `tools/` | preparing the source build (`build.sh`), pre-publish checks (`release/`), Ghidra scripts and art tools (`re/`) |
 
@@ -351,8 +364,8 @@ game and prepares its code, then for each platform `platforms/deps.sh <platform>
 | `platforms/build.sh android` | `HeroesIV-android_arm64.apk` |
 | `platforms/build.sh linux` | `HeroesIV-linux-x86_64.tar.gz` |
 | `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
-| `platforms/build.sh macos-arm64` | `Heroes IV.app` and `HeroesIV-macos-arm64.dmg` |
-| `platforms/build.sh macos-x86_64` | `Heroes IV.app` and `HeroesIV-macos-x86_64.dmg` (Intel) |
+| `platforms/build.sh macos-arm64` | `ReHoMM4.app` and `HeroesIV-macos-arm64.dmg` |
+| `platforms/build.sh macos-x86_64` | `ReHoMM4.app` and `HeroesIV-macos-x86_64.dmg` (Intel) |
 | `platforms/build.sh switch` | `HeroesIV.nro` |
 
 Details: [`platforms/README.md`](platforms/README.md).
@@ -378,6 +391,10 @@ The files taken from it say so at their top.
 The way saves are synced on the iPhone, iPad and Mac (`h4/src/save_sync_apple.mm`) is adapted
 from the `cloud_saves` of [HommaRe](https://github.com/livmaster-dev/HommaRe-public) by Ilia
 (MIT License).
+The random map generator (New Game > Scenario > Random map, `h4/src/random_map/`) is a port of
+[homm4-random-map-generator](https://github.com/tishonator/homm4-random-map-generator) by Tihomir
+Ivanov, adapted and distributed with his permission. It reads what it needs from your own game
+files; nothing of the game is carried.
 
 ## License
 
@@ -445,21 +462,22 @@ Linux і Steam Deck, і Nintendo Switch. Без Wine, емуляторів і в
 #### Мак
 
 1. Відкрийте завантажений `.dmg` (двічі клацніть його в **«Завантаженнях»**).
-2. У вікні, що відкриється, перетягніть **Heroes IV** на **Applications**. Потім вийміть диск
+2. У вікні, що відкриється, перетягніть **ReHoMM4** на **Applications**. Потім вийміть диск
    («Heroes IV» на бічній панелі Finder → ⏏).
-3. Відкрийте **«Програми»** й двічі клацніть **Heroes IV**. Програма не підписана Apple, тому
+3. Відкрийте **«Програми»** й двічі клацніть **ReHoMM4**. Програма не підписана Apple, тому
    першого разу macOS не дає її відкрити:
    - **macOS 15 (Sequoia) і новіші:** натисніть **«Готово»** в повідомленні, відкрийте  →
-     **«Системні параметри»** → **«Приватність і безпека»**, прокрутіть до *«Heroes IV» заблоковано…*,
+     **«Системні параметри»** → **«Приватність і безпека»**, прокрутіть до *«ReHoMM4» заблоковано…*,
      натисніть **«Усе одно відкрити»** й підтвердіть паролем; потім ще раз **«Усе одно відкрити»**.
-   - **macOS 13 і 14:** правою кнопкою (або з Control) клацніть **Heroes IV** → **«Відкрити»** →
+   - **macOS 13 і 14:** правою кнопкою (або з Control) клацніть **ReHoMM4** → **«Відкрити»** →
      **«Відкрити»**.
 
    Далі вона відкривається як звичайно.
 
 **Оновлення:** завантажте новий `.dmg` (або ⚙ → **«Перевірити оновлення»** у грі) і перетягніть
-нову **Heroes IV** на **Applications** → **«Замінити»**. Збереження й налаштування лишаються (вони в
-`~/Library/Application Support/ReHoMM4`).
+нову **ReHoMM4** на **Applications** → **«Замінити»**. Збереження й налаштування лишаються (вони в
+`~/Library/Application Support/ReHoMM4`). Версії до 0.3 звалися в «Програмах» **Heroes IV**:
+перемістіть її в Кошик.
 
 #### iPhone, iPad
 
@@ -519,11 +537,11 @@ SteamOS 3 і новіші), драйвери з Vulkan, X11 або Wayland (че
    ```
 2. Запустіть:
    ```sh
-   ~/Games/"Heroes IV"/heroes4
+   ~/Games/ReHoMM4/heroes4
    ```
 3. За бажанням додайте її в меню програм:
    ```sh
-   ~/Games/"Heroes IV"/install-desktop-entry.sh
+   ~/Games/ReHoMM4/install-desktop-entry.sh
    ```
 
 **Оновлення:** розпакуйте новий архів поверх старої теки. Збереження й налаштування — у
@@ -536,7 +554,7 @@ SteamOS 3 і новіші), драйвери з Vulkan, X11 або Wayland (че
 3. У **Dolphin** (файловий менеджер) відкрийте **Downloads**, правою кнопкою на архіві → **Extract** →
    **Extract archive to…** → оберіть, наприклад, `/home/deck/Games`.
 4. Додайте в Steam: **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
-   **Browse…** → `/home/deck/Games/Heroes IV/heroes4` → **Add Selected Programs**.
+   **Browse…** → `/home/deck/Games/ReHoMM4/heroes4` → **Add Selected Programs**.
 5. Запустіть її раз тут, у режимі робочого столу: перший запуск встановлює гру (вхід у GOG
    відкривається в браузері), з клавіатурою робочого столу простіше. Потім **Return to Gaming Mode**:
    гра у вашій бібліотеці в розділі **Non-Steam**.
@@ -729,7 +747,7 @@ SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У р�
 | `symbols/` | адреси функцій і таблиць переходів `heroes4.exe` (з Ghidra) |
 | `platforms/` | збирання програм: iOS, Android, Linux, Мак і Switch (`build.sh`, по теці на платформу); DMG для Мака, який збирає гру на Маці гравця (`macos-dmg/`) |
 | `libs/innoextract/` | розпаковувач інсталятора GOG, яким користуються всі програми |
-| `assets/icon/` | іконки програм (щит із «IV») |
+| `assets/icon/` | іконки програм (емблема Heroes IV) |
 | `licenses/` | тексти ліцензій сторонніх частин, що входять у програми |
 | `tools/` | підготовка збирання з коду (`build.sh`), перевірки перед публікацією (`release/`), скрипти Ghidra та інструменти для арту (`re/`) |
 
@@ -744,8 +762,8 @@ SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У р�
 | `platforms/build.sh android` | `HeroesIV-android_arm64.apk` |
 | `platforms/build.sh linux` | `HeroesIV-linux-x86_64.tar.gz` |
 | `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
-| `platforms/build.sh macos-arm64` | `Heroes IV.app` і `HeroesIV-macos-arm64.dmg` |
-| `platforms/build.sh macos-x86_64` | `Heroes IV.app` і `HeroesIV-macos-x86_64.dmg` (Intel) |
+| `platforms/build.sh macos-arm64` | `ReHoMM4.app` і `HeroesIV-macos-arm64.dmg` |
+| `platforms/build.sh macos-x86_64` | `ReHoMM4.app` і `HeroesIV-macos-x86_64.dmg` (Intel) |
 | `platforms/build.sh switch` | `HeroesIV.nro` |
 
 Подробиці: [`platforms/README.md`](platforms/README.md).
@@ -770,6 +788,10 @@ ReHoMM4 почався з [HoMM4Deadware](https://github.com/LeoDeadware/HoMM4De
 це на початку.
 Спосіб синхронізації збережень на iPhone, iPad і Маці (`h4/src/save_sync_apple.mm`) узято з
 `cloud_saves` проєкту [HommaRe](https://github.com/livmaster-dev/HommaRe-public) від Ilia (ліцензія MIT).
+Генератор випадкових карт (Нова гра > Сценарій > Випадкова карта, `h4/src/random_map/`) — порт
+[homm4-random-map-generator](https://github.com/tishonator/homm4-random-map-generator) Тихомира
+Іванова, адаптований і поширюваний з його дозволу. Усе потрібне він бере з ваших файлів гри; нічого
+з гри в ньому немає.
 
 ### Ліцензія
 

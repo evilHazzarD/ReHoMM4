@@ -1,22 +1,22 @@
 #!/bin/bash
-# Packs the Linux build (platforms/build.sh linux) into a folder and a .tar.gz:
+# Packs the Linux build (platforms/build.sh linux-x86_64 or linux-arm64) into a folder and a .tar.gz:
 #
-#   Heroes IV/heroes4            the game (with the in-app installer)
-#   Heroes IV/lib/libSDL3.so.0   SDL3 (found through the binary's $ORIGIN/lib)
-#   Heroes IV/wings/, <code>.h4p the side panels and the translations built in (platforms/languages.py)
-#   Heroes IV/ui/                the language button's pictures (platforms/linux/render_ui.swift)
-#   Heroes IV/heroes4.png        the shield icon (assets/icon)
-#   Heroes IV/THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py)
-#   Heroes IV/install-desktop-entry.sh   adds it to the desktop's menu (Steam Deck: Desktop Mode)
+#   ReHoMM4/heroes4            the game (with the in-app installer)
+#   ReHoMM4/lib/libSDL3.so.0   SDL3 (found through the binary's $ORIGIN/lib)
+#   ReHoMM4/wings/, <code>.h4p the side panels and the translations built in (platforms/languages.py)
+#   ReHoMM4/ui/                the language button's pictures (platforms/linux/render_ui.swift)
+#   ReHoMM4/heroes4.png        the shield icon (assets/icon)
+#   ReHoMM4/THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py)
+#   ReHoMM4/install-desktop-entry.sh   adds it to the desktop's menu (Steam Deck: Desktop Mode)
 #
 #   platforms/linux/package.sh <build dir> [linux|linux-arm64]
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-source "$ROOT/platforms/env.sh" "${2:-linux}"
+source "$ROOT/platforms/env.sh" "${2:-linux-x86_64}"
 B="$1"
 ARCH=x86_64; [[ $TARGET == linux-arm64 ]] && ARCH=arm64
 OUT="$MOBILE_CACHE/dist"
-D="$OUT/Heroes IV"
+D="$OUT/ReHoMM4"
 rm -rf "$OUT"; mkdir -p "$D/lib"
 "$H4_LINUX_LLVM/bin/llvm-strip" --strip-debug -o "$D/heroes4" "$B/heroes4"
 chmod 755 "$D/heroes4"
@@ -61,5 +61,5 @@ is the left button.
 
 Language: Steam > the game > Properties > Launch options: --lang=<code> (uk Ukrainian, ...) or --lang=en.
 TXT
-tar -czf "$OUT/HeroesIV-linux-$ARCH.tar.gz" -C "$OUT" "Heroes IV"
+tar -czf "$OUT/HeroesIV-linux-$ARCH.tar.gz" -C "$OUT" ReHoMM4
 echo "$TARGET: $OUT/HeroesIV-linux-$ARCH.tar.gz ($(du -sh "$OUT/HeroesIV-linux-$ARCH.tar.gz" | cut -f1))"
