@@ -646,7 +646,7 @@
  
  namespace recomp {
  
-@@ -949,6 +963,17 @@
+@@ -965,6 +979,17 @@
      // A phone or tablet held upright: the games are landscape (their window
      // turns the device), so the desktop is the landscape one.
      float mw = float(m->w), mh = float(m->h);
@@ -664,7 +664,7 @@
  #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
      if (mw < mh) std::swap(mw, mh);
  #endif
-@@ -1425,6 +1450,12 @@
+@@ -1442,6 +1467,12 @@
    if (!w) return;
    if (SDL_TextInputActive(w)) SDL_StopTextInput(w);
    else SDL_StartTextInput(w);

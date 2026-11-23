@@ -2,6 +2,7 @@
 #include "intro.h"
 
 #include <cstdio>
+#include <cstdlib>
 
 namespace h4 {
 
@@ -17,6 +18,8 @@ void LoadSkipIntro(const std::string& path) {
     g_on = std::fgetc(f) == '1';
     std::fclose(f);
   }
+  // H4_SKIP_INTRO=1 or 0: the browser's page (index.html) chooses it, not the file.
+  if (const char* env = std::getenv("H4_SKIP_INTRO"); env && *env) g_on = *env == '1';
   SkipIntroMovies(g_on);
   std::printf("h4: intro movies %s\n", g_on ? "skipped (settings)" : "shown");
 }

@@ -20,8 +20,12 @@
      zooms the page into smaller fields). */
   #kbd { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0;
          padding: 0; font-size: 16px; z-index: -1; }
-  #panel { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  /* Scrolls when the card is taller than the window (a phone on its side); centred when not
+     (margin: auto, not align-items: center, which would cut its top off). */
+  #panel { position: fixed; inset: 0; display: flex; overflow-y: auto; overscroll-behavior: contain;
+           -webkit-overflow-scrolling: touch; padding: 1rem; box-sizing: border-box;
            background: radial-gradient(ellipse at center, #2a1d0c 0%, #000 75%); z-index: 2; }
+  #panel > .card { margin: auto; }
   #panel.hidden { display: none; }
   .card { max-width: 34rem; padding: 2rem 2.2rem; border: 1px solid #8a6a32; border-radius: 10px;
           background: rgba(20, 13, 5, .92); box-shadow: 0 0 40px rgba(0,0,0,.8); }
@@ -34,12 +38,21 @@
   button.link { background: none; color: #b89c64; padding: 0; font-weight: 400; text-decoration: underline; }
   button:disabled { opacity: .5; cursor: default; }
   .row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 1.2rem; }
+  /* The settings' two rows; Start at the card's bottom */
+  .setup { margin-top: 1.2rem; }
+  .start-row { justify-content: center; }
+  .start-row button { min-width: 12rem; }
+  .settings { display: grid; gap: .65rem; flex: 1 1 auto; min-width: 0; }
+  /* Two rows, always: the check boxes in one, the lists in the other (their words wrap instead) */
+  .settings-row { display: flex; gap: 1rem; align-items: center; flex-wrap: nowrap; }
+  .settings-row > .fs { flex: 1 1 0; min-width: 0; white-space: normal; }
+  .settings-row select { max-width: 100%; }
   .bad { color: #ff9b7a; }
   .small { font-size: .85rem; color: #9c8558; }
   #toast { position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%); z-index: 3;
            background: rgba(20,13,5,.94); border: 1px solid #8a6a32; border-radius: 8px;
            padding: .6rem 1rem; display: none; max-width: 90vw; }
-  .fs { margin-left: .8rem; font-size: .9rem; color: #cbb98f; white-space: nowrap; }
+  .fs { font-size: .9rem; color: #cbb98f; white-space: nowrap; }
   #log { max-height: 40vh; overflow: auto; font-size: .75rem; white-space: pre-wrap; color: #cbb98f; }
   progress { width: 100%; height: .6rem; accent-color: #d6ab57; }
   #rotate { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center;
@@ -67,16 +80,30 @@
   <p id="problem" class="bad" hidden></p>
   <div id="loading" hidden><p id="loadtext">Loading…</p><progress id="loadbar"></progress></div>
   <details id="logbox" hidden><summary class="small">The game's log</summary><pre id="log"></pre></details>
-  <div class="row">
-    <button id="start">Start</button>
-    <label class="fs"><input type="checkbox" id="fullscreen" checked> Full screen</label>
-    <label class="fs">Side panels
+  <div class="setup">
+  <div class="settings">
+    <div class="settings-row">
+      <label class="fs"><input type="checkbox" id="fullscreen" checked> Full screen</label>
+      <label class="fs"><input type="checkbox" id="skip-intro"> Skip the intro movies</label>
+    </div>
+    <div class="settings-row">
+      <label class="fs">Side panels
       <select id="side-panels">
-        <option value="wings">Automatic wings</option>
         <option value="black">Black</option>
+        <option value="wings">Automatic wings</option>
       </select>
     </label>
+      <label class="fs">Language
+        <select id="language"><option value="en">English</option></select>
+      </label>
+    </div>
+  </div>
+  </div>
+  <div class="row">
     <button id="reset" class="link">Delete the game files kept in this browser</button>
+  </div>
+  <div class="row start-row">
+    <button id="start">Start</button>
   </div>
 </div></div>
 <div id="toast"></div>
@@ -185,56 +212,89 @@ function status(kind, a, b) {
 }
 
 // index.html?game=<folder on this server> (web/serve.py --game: a server of your own, or
-// testing): that installed game is copied into the browser's storage once, in place of the
-// installer. The game then finds it as the app finds a "game" folder put in by hand.
-async function copyServedGame(base) {
+// testing): that installed game is copied into the browser's storage, in place of the installer.
+// The game then finds it as the app finds a "game" folder put in by hand. Complete when every
+// file the server lists is there at its size: a copy cut short is finished, its missing files
+// only. The files are written by a worker through sync access handles (no moves, no writable
+// streams: Safari's refused those with "the state had changed since it was read from disk").
+const COPY_WORKER = `
+onmessage = async (e) => {
+  const { path, url } = e.data;
+  let h = null;
+  try {
+    let d = await navigator.storage.getDirectory();
+    for (const p of path.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    h = await (await d.getFileHandle(path[path.length - 1], { create: true })).createSyncAccessHandle();
+    await h.truncate(0);
+    const reader = res.body.getReader();
+    let at = 0;
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      for (let off = 0; off < value.length;) off += h.write(value.subarray(off), { at: at + off });
+      at += value.length;
+      postMessage({ bytes: value.length });
+    }
+    await h.flush();
+    await h.close();
+    h = null;
+    postMessage({ end: true });
+  } catch (err) {
+    try { if (h) await h.close(); } catch (e2) { /* closed */ }
+    postMessage({ error: String((err && err.message) || err) });
+  }
+};`;
+
+async function copyServedGame(served) {
+  const base = new URL(served.replace(/\/?$/, '/'), location.href).href;
+  const list = await (await fetch(base + 'index.json', { cache: 'no-store' })).json();
   const root = await navigator.storage.getDirectory();
   const app = await root.getDirectoryHandle('ReHoMM4', { create: true });
-  try {
-    const g = await app.getDirectoryHandle('game');
-    await g.getFileHandle('heroes4.exe');
-    return;  // there already
-  } catch (e) { /* not yet */ }
-  const list = await (await fetch(base.replace(/\/?$/, '/') + 'index.json')).json();
-  const total = list.files.reduce((n, f) => n + f.size, 0);
-  // Into game.part first: an interrupted copy is never taken for an installed game.
+  // (game.part: earlier pages' copy, moved into game/ at its end)
   try { await app.removeEntry('game.part', { recursive: true }); } catch (e) { /* none */ }
-  const part = await app.getDirectoryHandle('game.part', { create: true });
+  const game = await app.getDirectoryHandle('game', { create: true });
+  const total = list.files.reduce((n, f) => n + f.size, 0);
   let done = 0;
+  const todo = [];
   for (const f of list.files) {
     const parts = f.path.split('/');
-    let d = part;
-    for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
-    const w = await (await d.getFileHandle(parts[parts.length - 1], { create: true })).createWritable();
-    const res = await fetch(base.replace(/\/?$/, '/') + f.path.split('/').map(encodeURIComponent).join('/'));
-    if (!res.ok) throw new Error(`${f.path}: HTTP ${res.status}`);
-    const reader = res.body.getReader();
-    for (;;) {
-      const { value, done: end } = await reader.read();
-      if (end) break;
-      await w.write(value);
-      done += value.length;
-      $('loadbar').max = total;
-      $('loadbar').value = done;
-      $('loadtext').textContent = `Copying the game into this browser… ${(done / 1048576).toFixed(0)} of ${(total / 1048576).toFixed(0)} MB`;
-    }
-    await w.close();
+    let size = -1;
+    try {
+      let d = game;
+      for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
+      size = (await (await d.getFileHandle(parts[parts.length - 1])).getFile()).size;
+    } catch (e) { /* not there */ }
+    if (size === f.size) done += f.size;
+    else todo.push(f);
   }
-  // Complete: into game/ (each file moved where the browser can, else copied).
-  await copyDir(part, await app.getDirectoryHandle('game', { create: true }));
-  await app.removeEntry('game.part', { recursive: true });
-}
-
-async function copyDir(from, to) {
-  for await (const [name, h] of from.entries()) {
-    if (h.kind === 'directory') {
-      await copyDir(h, await to.getDirectoryHandle(name, { create: true }));
-    } else if (h.move) {
-      await h.move(to, name);  // Chrome, Safari, Firefox 111+: a move, not a copy
-    } else {
-      const w = await (await to.getFileHandle(name, { create: true })).createWritable();
-      await (await h.getFile()).stream().pipeTo(w);
+  if (!todo.length) return;
+  const show = () => {
+    $('loadbar').max = total;
+    $('loadbar').value = done;
+    $('loadtext').textContent = `Copying the game into this browser… ${(done / 1048576).toFixed(0)} of ${(total / 1048576).toFixed(0)} MB`;
+  };
+  show();
+  const worker = new Worker(URL.createObjectURL(new Blob([COPY_WORKER], { type: 'text/javascript' })));
+  try {
+    for (const f of todo) {
+      const start = done;
+      await new Promise((resolve, reject) => {
+        worker.onmessage = (e) => {
+          if (e.data.error) reject(new Error(`${f.path}: ${e.data.error} (open in another tab of the game? ` +
+                                             'close it and reload this page)'));
+          else if (e.data.end) resolve();
+          else { done += e.data.bytes; show(); }
+        };
+        worker.onerror = (e) => reject(new Error(`${f.path}: ${e.message || 'the copying worker failed'}`));
+        worker.postMessage({ path: ['ReHoMM4', 'game', ...f.path.split('/')],
+                             url: base + f.path.split('/').map(encodeURIComponent).join('/') });
+      });
+      done = start + f.size;
     }
+  } finally {
+    worker.terminate();
   }
 }
 
@@ -288,10 +348,51 @@ fsBox.checked = localStorage.getItem('h4-fullscreen') !== '0';
 fsBox.onchange = () => localStorage.setItem('h4-fullscreen', fsBox.checked ? '1' : '0');
 const sidePanels = $('side-panels');
 const savedSidePanels = localStorage.getItem('h4-side-panels');
-sidePanels.value = savedSidePanels === 'black' ||
-  (savedSidePanels === null && localStorage.getItem('h4-black-side-panels') === '1')
-  ? 'black' : 'wings';
+sidePanels.value = savedSidePanels === 'wings' ? 'wings' : 'black';  // black unless wings were chosen
 sidePanels.onchange = () => localStorage.setItem('h4-side-panels', sidePanels.value);
+// The game's language and the intro movies: chosen here, before the game starts (the game's own
+// settings have them in the apps). Given to the game as H4_LANG and H4_SKIP_INTRO.
+const skipIntro = $('skip-intro');
+skipIntro.checked = localStorage.getItem('h4-skip-intro') === '1';
+skipIntro.onchange = () => localStorage.setItem('h4-skip-intro', skipIntro.checked ? '1' : '0');
+const language = $('language');
+language.onchange = () => localStorage.setItem('h4-language', language.value);
+async function readOpfs(path) {  // a small text file in the origin private file system, or null
+  try {
+    const parts = path.split('/');
+    let d = await navigator.storage.getDirectory();
+    for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
+    return (await (await d.getFileHandle(parts[parts.length - 1])).getFile()).text();
+  } catch (e) { return null; }
+}
+async function loadLanguages() {
+  // The translations the site has (web/build.sh: the release's list, translations/languages.json).
+  try {
+    const res = await fetch('translations/languages.json');
+    if (res.ok)
+      for (const l of (await res.json()).languages || [])
+        if (l.code && l.code !== 'en') language.add(new Option(l.name || l.english || l.code, l.code));
+  } catch (e) { /* English only */ }
+  // A game installed from GOG in another language is played in it (main.cpp's ChooseLanguage).
+  const own = ((await readOpfs('ReHoMM4/game/rehomm4-language')) || '').trim();
+  if (own) {
+    let name = own;
+    try { name = new Intl.DisplayNames(['en'], { type: 'language' }).of(own) || own; } catch (e) { /* the code */ }
+    language.replaceChildren(new Option(name + ' (the installed game\'s)', own));
+    language.disabled = true;
+    return;
+  }
+  // Else the one chosen here before, or in the game's settings in earlier versions.
+  const saved = localStorage.getItem('h4-language') ??
+    ((await readOpfs('ReHoMM4/player/language')) || '').trim();
+  if ([...language.options].some((o) => o.value === saved)) language.value = saved;
+}
+async function loadSettings() {
+  if (localStorage.getItem('h4-skip-intro') === null)  // the game's own setting in earlier versions
+    skipIntro.checked = ((await readOpfs('ReHoMM4/player/skip_intro')) || '')[0] === '1';
+  await loadLanguages();
+}
+const settingsLoaded = loadSettings();
 
 async function start() {
   if (portraitBlocked()) return;
@@ -312,6 +413,7 @@ async function start() {
     }
   }
   await fs;
+  await settingsLoaded;
   while (portraitBlocked()) {
     await new Promise(resolve => portrait.addEventListener('change', resolve, { once: true }));
   }
@@ -328,6 +430,8 @@ async function start() {
         h4Status: status,
         h4Env: {
           H4_SIDE_PANELS: sidePanels.value,
+          H4_SKIP_INTRO: skipIntro.checked ? '1' : '0',
+          ...(language.disabled ? {} : { H4_LANG: language.value }),
           ...Object.fromEntries((new URLSearchParams(location.search).get('env') || '').split(',')
             .filter((kv) => kv.includes('=')).map((kv) => [kv.slice(0, kv.indexOf('=')), kv.slice(kv.indexOf('=') + 1)])),
         },
@@ -360,8 +464,32 @@ async function start() {
 
 async function reset() {
   if (!confirm('Delete the game files, saves and settings kept in this browser?')) return;
+  // Each file on its own: one the browser will not let go (open in the game, in another tab of
+  // this page) leaves the rest deleted, and is named.
   const root = await navigator.storage.getDirectory();
-  for await (const name of root.keys()) await root.removeEntry(name, { recursive: true });
+  const kept = [];
+  async function clear(dir, path) {
+    const names = [];
+    for await (const name of dir.keys()) names.push(name);
+    for (const name of names) {
+      try {
+        await dir.removeEntry(name, { recursive: true });
+      } catch (e) {
+        let sub = null;
+        try { sub = await dir.getDirectoryHandle(name); } catch (e2) { /* a file */ }
+        if (sub) {
+          await clear(sub, path + name + '/');
+          try { await dir.removeEntry(name); } catch (e3) { /* not empty: named below */ }
+        } else {
+          kept.push(path + name);
+        }
+      }
+    }
+  }
+  await clear(root, '');
+  if (kept.length)
+    throw new Error(`${kept.length} file(s) in use (${kept.slice(0, 2).join(', ')}${kept.length > 2 ? ', …' : ''}): ` +
+                    'close the game\'s other tabs and windows, reload this page and try again.');
   toast('Deleted.', 4000);
 }
 

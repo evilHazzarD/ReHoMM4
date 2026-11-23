@@ -514,7 +514,9 @@ bool LoadChoices() {
     return false;
   }
   if (g_version.argb.empty() && !Load(UiDir(), "version", &g_version)) g_version = Picture{};
+#if !defined(H4_WEB_APP)  // the browser: the language and the intro are the page's (index.html)
   if (!g_has_skip) g_has_skip = Load(UiDir(), "skip_off", &g_skip_pic[0]) && Load(UiDir(), "skip_on", &g_skip_pic[1]);
+#endif
 #if !defined(H4_WEB_APP)
   if (!g_has_sides)
     g_has_sides = Load(UiDir(), "sides_off", &g_sides_pic[0]) &&
@@ -537,10 +539,12 @@ bool LoadChoices() {
 #endif
 #endif
   std::vector<Choice> out;
+#if !defined(H4_WEB_APP)  // the browser: chosen on the page before the game starts (index.html)
   if (!g_saved.empty())
     for (const h4::LanguageInfo& l : h4::Languages()) out.push_back({l.code, MakeButton(l.code)});
   else if (const std::string gog = h4::GogLanguage(); !gog.empty())
     out.push_back({gog, MakeButton(gog)});  // installed from GOG in it: shown, nothing to choose
+#endif
   g_choices = std::move(out);
   return true;
 }
