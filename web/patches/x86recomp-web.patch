@@ -1,7 +1,9 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 53e0c40..507bac3 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -139,7 +139,7 @@
-                       PRIVATE recomp_gfx)  # presentation (hle/present.cpp)
+@@ -142,7 +142,7 @@ if(WIN32)
+ endif()
  # Nothing in a game refers to an HLE module's symbols: keep the linker
  # from dropping them where it links --as-needed (ld64 keeps every dylib).
 -if(NOT APPLE)
@@ -9,6 +11,8 @@
    target_link_options(recomp_runtime INTERFACE "LINKER:--no-as-needed")
  endif()
  
+diff --git a/src/runtime/audio/mixer.cpp b/src/runtime/audio/mixer.cpp
+index d1de2c6..6fb06a3 100644
 --- a/src/runtime/audio/mixer.cpp
 +++ b/src/runtime/audio/mixer.cpp
 @@ -8,6 +8,11 @@
@@ -23,7 +27,7 @@
  
  namespace recomp::audio {
  
-@@ -139,7 +144,7 @@
+@@ -139,7 +144,7 @@ bool Prime(Voice& v) {
    return true;
  }
  
@@ -32,7 +36,7 @@
    auto* m = static_cast<Mixer*>(ud);
    float buf[kChunk * 2];
    int frames = additional / int(2 * sizeof(float));
-@@ -168,6 +173,109 @@
+@@ -168,6 +173,109 @@ Mixer& GetMixer() {
    return m;
  }
  
@@ -142,7 +146,7 @@
  bool Mixer::Open(int rate) {
    if (stream_) return true;
    if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
-@@ -188,6 +296,7 @@
+@@ -188,6 +296,7 @@ bool Mixer::Open(int rate) {
          SDL_GetCurrentAudioDriver());
    return true;
  }
@@ -150,7 +154,7 @@
  
  void Mixer::OpenOffline(int rate) {
    if (!stream_) Init(rate);
-@@ -204,6 +313,13 @@
+@@ -204,6 +313,13 @@ void Mixer::Init(int rate) {
  }
  
  void Mixer::Close() {
@@ -164,6 +168,8 @@
    if (stream_) {
      SDL_DestroyAudioStream(stream_);  // stops the callback first
      stream_ = nullptr;
+diff --git a/src/runtime/audio/mixer.h b/src/runtime/audio/mixer.h
+index dda6c69..ff48e90 100644
 --- a/src/runtime/audio/mixer.h
 +++ b/src/runtime/audio/mixer.h
 @@ -17,6 +17,10 @@
@@ -177,7 +183,7 @@
  #include <vector>
  
  #include "runtime/audio/digital_reverb.h"
-@@ -147,6 +151,12 @@
+@@ -147,6 +151,12 @@ class Mixer {
  
    std::mutex mu_;
    SDL_AudioStream* stream_ = nullptr;
@@ -190,26 +196,30 @@
    int rate_ = 0;
    float master_ = 1.0f;
    // LowPass coefficients (a1, a2) per 10 mB of HF cut, 0 to -10000.
+diff --git a/src/runtime/dispatch.cpp b/src/runtime/dispatch.cpp
+index 3dabe31..7a2d3a7 100644
 --- a/src/runtime/dispatch.cpp
 +++ b/src/runtime/dispatch.cpp
-@@ -6,7 +6,7 @@
- // fallback (CLAUDE.md).
- 
+@@ -10,7 +10,7 @@
+ #else
  #include <pthread.h>
--#if !defined(__SWITCH__)
-+#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ #endif
+-#if !defined(__SWITCH__) && !defined(_WIN32)
++#if !defined(__SWITCH__) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
  #include <sys/mman.h>
  #endif
- #include <signal.h>
-@@ -199,7 +199,7 @@
-   }
- }
- 
--#if !defined(__SWITCH__)
-+#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+ #if !defined(_WIN32)
+@@ -240,7 +240,7 @@ LONG CALLBACK FaultHandler(EXCEPTION_POINTERS* ep) {
+ void InstallFaultHandler() { AddVectoredExceptionHandler(1, FaultHandler); }
+ }  // namespace
+ void InstallSignalStack() {}
+-#elif !defined(__SWITCH__)
++#elif !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
  void FaultHandler(int sig, siginfo_t* si, void* uc) {
    char buf[256];
    uintptr_t a = reinterpret_cast<uintptr_t>(si->si_addr);
+diff --git a/src/runtime/gfx/soft_device.cpp b/src/runtime/gfx/soft_device.cpp
+index 2d03cd9..acfef6a 100644
 --- a/src/runtime/gfx/soft_device.cpp
 +++ b/src/runtime/gfx/soft_device.cpp
 @@ -4,9 +4,18 @@
@@ -231,18 +241,18 @@
  #include <cstdint>
  #include <cstring>
  #include <map>
-@@ -14,6 +23,10 @@
- #include <vector>
+@@ -15,6 +24,10 @@
  
  #include "runtime/gfx/device.h"
-+
+ 
 +#if defined(__EMSCRIPTEN__)
 +#include <emscripten/emscripten.h>
 +#endif
- 
++
  namespace recomp::gfx {
  
-@@ -59,6 +72,11 @@
+ namespace {
+@@ -59,6 +72,11 @@ class SoftDevice final : public Device {
    }
  
    bool Init() {
@@ -254,7 +264,7 @@
      r_ = SDL_CreateRenderer(win_, nullptr);
      if (!r_) {
        SDL_Log("gfx: soft: no renderer: %s", SDL_GetError());
-@@ -73,7 +91,7 @@
+@@ -73,7 +91,7 @@ class SoftDevice final : public Device {
      h_ = h;
      front_.Resize(w, h);
      tex_[0].Resize(w, h);
@@ -263,7 +273,7 @@
      // Frames are shown at most once a refresh (and at most max_show_hz_).
      const SDL_DisplayMode* dm = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(win_));
      double hz = dm && dm->refresh_rate > 0 ? double(dm->refresh_rate) : 60.0;
-@@ -359,6 +377,187 @@
+@@ -359,6 +377,187 @@ class SoftDevice final : public Device {
      Show();
    }
  
@@ -451,7 +461,7 @@
    void Show() {
      if (!r_ || w_ <= 0 || h_ <= 0) return;
      if (!frame_ || frame_w_ != w_ || frame_h_ != h_) {
-@@ -398,6 +597,7 @@
+@@ -398,6 +597,7 @@ class SoftDevice final : public Device {
      NotePresentation({w_, h_, ow, oh, fr});
      shown_++;
    }
@@ -459,7 +469,7 @@
  
    SDL_Window* win_;
    SDL_Renderer* r_ = nullptr;
-@@ -417,6 +617,10 @@
+@@ -417,6 +617,10 @@ class SoftDevice final : public Device {
    uint64_t pic_gen_[2] = {0, 0};
    int pic_w_[2] = {0, 0}, pic_h_[2] = {0, 0};
    uint64_t shown_ = 0;
@@ -470,6 +480,8 @@
    // Deferred showing (PresentFront, ShowPending) and the changed region.
    bool pending_ = false;
    int max_show_hz_ = 0;
+diff --git a/src/runtime/guest_memory.cpp b/src/runtime/guest_memory.cpp
+index 0d133bc..0d89738 100644
 --- a/src/runtime/guest_memory.cpp
 +++ b/src/runtime/guest_memory.cpp
 @@ -1,5 +1,6 @@
@@ -483,14 +495,12 @@
  #include <switch.h>
  extern "C" char* fake_heap_start;  // libnx: the C heap
  extern "C" char* fake_heap_end;
--#endif
--
--#if defined(__SWITCH__)
 +#elif defined(__EMSCRIPTEN__)
 +#include <emscripten/heap.h>
 +#include <unistd.h>
-+#endif
-+
+ #endif
+ 
+-#if defined(__SWITCH__)
 +#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
  // The Switch (homebrew): no mmap/mprotect, and no way for an applet to map
  // memory page by page into a reserved range. The arena is one block of the
@@ -504,7 +514,7 @@
  namespace recomp {
  
  bool GuestMemory::Reserve(unsigned bits) {
-@@ -32,6 +39,9 @@
+@@ -32,6 +39,9 @@ bool GuestMemory::Reserve(unsigned bits) {
    // heap growth is a 32-bit signed size), so two 1 GiB steps, which are contiguous; malloc
    // goes on above them.
    void* p = nullptr;
@@ -514,7 +524,7 @@
    {
      const uintptr_t brk = reinterpret_cast<uintptr_t>(sbrk(0));
      const intptr_t pad = intptr_t((0x10000 - (brk & 0xFFFF)) & 0xFFFF);
-@@ -44,6 +54,15 @@
+@@ -44,6 +54,15 @@ bool GuestMemory::Reserve(unsigned bits) {
          (reinterpret_cast<uintptr_t>(lo) & 0xFFFF) == 0)
        p = lo;
    }
@@ -530,7 +540,7 @@
    if (!p) {
      // What the system gave the process, and the C heap (libnx: all of it, at start).
      u64 total = 0, used = 0;
-@@ -57,14 +76,26 @@
+@@ -57,14 +76,26 @@ bool GuestMemory::Reserve(unsigned bits) {
                   (unsigned long long)((fake_heap_end - fake_heap_start) >> 20));
      return false;
    }
@@ -558,7 +568,7 @@
  void GuestMemory::HostRange(gaddr va, uint64_t size, uint64_t* start, uint64_t* end) const {
    *start = uint64_t(va) & ~uint64_t(kPageSize - 1);
    *end = (uint64_t(va) + size + kPageSize - 1) & ~uint64_t(kPageSize - 1);
-@@ -99,7 +130,7 @@
+@@ -99,7 +130,7 @@ void GuestMemory::Decommit(gaddr va, uint64_t size, bool zero) {
  
  namespace recomp {
  
@@ -567,16 +577,16 @@
  namespace {
  
  // Preferred host placement keeps base() stable across runs, which makes
-@@ -115,7 +146,7 @@
+@@ -115,7 +146,7 @@ constexpr int kReserveFlags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
  }  // namespace
  #endif
  
 -#if !defined(__SWITCH__)
 +#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
  bool GuestMemory::Reserve(unsigned bits) {
-   host_page_ = static_cast<size_t>(sysconf(_SC_PAGESIZE));
-   if (host_page_ < kPageSize || host_page_ % kPageSize) {
-@@ -164,7 +195,7 @@
+ #if defined(_WIN32)
+   SYSTEM_INFO si{};
+@@ -170,7 +201,7 @@ void GuestMemory::HostRange(gaddr va, uint64_t size, uint64_t* start,
    *end = (uint64_t(va) + size + mask) & ~mask;
  }
  
@@ -585,7 +595,7 @@
  bool GuestMemory::HostPageInUse(uint64_t host_off) const {
    for (uint64_t g = host_off / kPageSize, n = host_page_ / kPageSize; n--; g++)
      if (pages_[g] & kCommitted) return true;
-@@ -172,7 +203,7 @@
+@@ -178,7 +209,7 @@ bool GuestMemory::HostPageInUse(uint64_t host_off) const {
  }
  #endif
  
@@ -594,7 +604,7 @@
  bool GuestMemory::Commit(gaddr va, uint64_t size, Prot prot) {
    if (!size) return true;
    if (!InRange(va, size)) return false;
-@@ -202,7 +233,7 @@
+@@ -208,7 +239,7 @@ bool GuestMemory::Protect(gaddr va, uint64_t size, Prot prot) {
    return true;
  }
  
@@ -603,6 +613,8 @@
  void GuestMemory::Decommit(gaddr va, uint64_t size, bool zero) {
    if (!size || !InRange(va, size)) return;
    uint64_t first = va / kPageSize, last = (uint64_t(va) + size - 1) / kPageSize;
+diff --git a/src/runtime/hle/kernel32_sync.cpp b/src/runtime/hle/kernel32_sync.cpp
+index b3533fd..2af54a3 100644
 --- a/src/runtime/hle/kernel32_sync.cpp
 +++ b/src/runtime/hle/kernel32_sync.cpp
 @@ -12,7 +12,7 @@
@@ -614,7 +626,7 @@
  #include <sys/mman.h>
  #endif
  #include <sys/stat.h>
-@@ -709,7 +709,7 @@
+@@ -709,7 +709,7 @@ uint32_t MapView(uint32_t h, uint32_t access, uint32_t off_hi, uint32_t off_lo,
      return 0;
    }
    bool write = (access & 0x2) && m->writable;  // FILE_MAP_WRITE
@@ -623,13 +635,14 @@
    // No mmap: the view is a copy of the file read in (writes to it do not
    // reach the file).
    g_proc->mem.Commit(base, size, write ? Prot::RW : Prot::R);
+diff --git a/src/runtime/hle/user32_window.cpp b/src/runtime/hle/user32_window.cpp
+index 566037c..8acab2a 100644
 --- a/src/runtime/hle/user32_window.cpp
 +++ b/src/runtime/hle/user32_window.cpp
-@@ -38,6 +38,20 @@
- #include "runtime/hle/win32.h"
+@@ -39,6 +39,20 @@
  #include "runtime/log.h"
  #include "runtime/watchdog.h"
-+
+ 
 +#if defined(__EMSCRIPTEN__)
 +#include <emscripten/emscripten.h>
 +#include <emscripten/html5.h>
@@ -643,10 +656,11 @@
 +#define SDL_SetWindowFullscreen(w, on) ((void)(w), (void)(on), true)
 +#define SDL_SetWindowFullscreenMode(w, m) ((void)(w), (void)(m), true)
 +#endif
- 
++
  namespace recomp {
  
-@@ -965,6 +979,17 @@
+ // SDL_MouseID of <ID>_TEST_INPUT "pointer" events: they stand for the host
+@@ -965,6 +979,17 @@ void EnsureSdlVideo() {
      // A phone or tablet held upright: the games are landscape (their window
      // turns the device), so the desktop is the landscape one.
      float mw = float(m->w), mh = float(m->h);
@@ -664,7 +678,7 @@
  #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
      if (mw < mh) std::swap(mw, mh);
  #endif
-@@ -1442,6 +1467,12 @@
+@@ -1442,6 +1467,12 @@ void ToggleKeyboard() {
    if (!w) return;
    if (SDL_TextInputActive(w)) SDL_StopTextInput(w);
    else SDL_StartTextInput(w);
@@ -677,6 +691,8 @@
  }
  
  void Handle(const SDL_TouchFingerEvent& f, Uint32 type) {
+diff --git a/src/runtime/lazy_mem.cpp b/src/runtime/lazy_mem.cpp
+index 7ebb3a7..44f23b4 100644
 --- a/src/runtime/lazy_mem.cpp
 +++ b/src/runtime/lazy_mem.cpp
 @@ -1,6 +1,6 @@
@@ -687,7 +703,7 @@
  #include <sys/mman.h>
  #endif
  
-@@ -44,7 +44,7 @@
+@@ -44,7 +44,7 @@ Region::~Region() = default;
  
  void Region::SetAccess(gaddr lo, gaddr hi, bool accessible) {
    if (hi <= lo) return;
@@ -696,7 +712,7 @@
    // No page protection or fault handler there: pages stay accessible, and a
    // LazyImage fills its rect at Begin instead of on first touch.
    (void)accessible;
-@@ -190,7 +190,7 @@
+@@ -190,7 +190,7 @@ void LazyImage::Begin(Rect r, bool read_only) {
    faults_ = 0;
    for (uint8_t& s : state_) s &= uint8_t(~kPulled);
    CloseAll();
@@ -705,18 +721,20 @@
    Fill(va_ + rect_p0_ * page_, va_ + rect_p1_ * page_);  // what a touch would pull, all now
  #endif
  }
+diff --git a/src/runtime/platform.cpp b/src/runtime/platform.cpp
+index a80ce65..cc83cb6 100644
 --- a/src/runtime/platform.cpp
 +++ b/src/runtime/platform.cpp
-@@ -14,7 +14,7 @@
- #include <signal.h>
+@@ -18,7 +18,7 @@
+ #endif
  #include <string.h>
  #include <time.h>
--#if !defined(__SWITCH__)
-+#if !defined(__SWITCH__) && !defined(__EMSCRIPTEN__)
+-#if !defined(__SWITCH__) && !defined(_WIN32)
++#if !defined(__SWITCH__) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
  #include <ucontext.h>
  #endif
  
-@@ -24,6 +24,12 @@
+@@ -28,6 +28,12 @@
  #include <mach/mach_time.h>
  #include <mach/thread_policy.h>
  #include <pthread.h>
@@ -726,10 +744,10 @@
 +
 +#include <cstdio>
 +#include <cstdlib>
- #elif !defined(__SWITCH__)
+ #elif !defined(__SWITCH__) && !defined(_WIN32)
  #include <sys/prctl.h>
  #endif
-@@ -38,7 +44,7 @@
+@@ -44,7 +50,7 @@
  #include <unwind.h>
  
  #include <cstdio>
@@ -738,7 +756,7 @@
  #include <execinfo.h>
  #endif
  
-@@ -51,7 +57,17 @@
+@@ -57,7 +63,17 @@
  
  namespace recomp::platform {
  
@@ -757,16 +775,16 @@
  namespace {
  // Calls fn() with sp = top (16-byte aligned) and returns on the caller's
  // stack. The frame record (x29, x30) stays on the caller's stack and x29
-@@ -118,7 +134,7 @@
- 
- FaultContext ReadFaultContext(const void* uc) {
-   FaultContext f;
--#if defined(__SWITCH__)
-+#if defined(__SWITCH__) || defined(__EMSCRIPTEN__)
+@@ -137,7 +153,7 @@ FaultContext ReadFaultContext(const void* uc) {
+   f.pc = uintptr_t(c->Rip);
+   f.caller = *reinterpret_cast<const uintptr_t*>(c->Rsp);
+   return f;
+-#elif defined(__SWITCH__)
++#elif defined(__SWITCH__) || defined(__EMSCRIPTEN__)
    (void)uc;  // no signals there
    return f;
  #else
-@@ -211,7 +227,7 @@
+@@ -244,7 +260,7 @@ uint64_t MonotonicNs() {
  }
  
  void SleepUntilNs(uint64_t t) {
@@ -775,21 +793,20 @@
    for (uint64_t now; (now = MonotonicNs()) < t;) {
      timespec d{time_t((t - now) / 1000000000u), long((t - now) % 1000000000u)};
      nanosleep(&d, nullptr);
-@@ -234,7 +250,7 @@
- #endif
- 
- bool RedirectToCall(void* uc, void (*fn)()) {
--#if defined(__SWITCH__)
-+#if defined(__SWITCH__) || defined(__EMSCRIPTEN__)
+@@ -271,7 +287,7 @@ bool RedirectToCall(void* uc, void (*fn)()) {
+   auto* c = static_cast<CONTEXT*>(uc);
+   c->Rip = reinterpret_cast<DWORD64>(fn);
+   return true;
+-#elif defined(__SWITCH__)
++#elif defined(__SWITCH__) || defined(__EMSCRIPTEN__)
    (void)uc;
    (void)fn;
    return false;
-@@ -257,7 +273,22 @@
- #endif
- }
- 
--#if defined(__ANDROID__) || defined(__SWITCH__)
-+#if defined(__EMSCRIPTEN__)
+@@ -297,6 +313,21 @@ bool RedirectToCall(void* uc, void (*fn)()) {
+ #if defined(_WIN32)
+ int Backtrace(void**, int) { return 0; }
+ void BacktraceSymbolsFd(void* const*, int, int) {}
++#elif defined(__EMSCRIPTEN__)
 +// No return addresses to collect: the browser's own stack trace (function
 +// names from the wasm name section) is printed instead, in one piece.
 +int Backtrace(void** frames, int max) {
@@ -804,22 +821,23 @@
 +  const int len = emscripten_get_callstack(EM_LOG_C_STACK | EM_LOG_NO_PATHS, buf, sizeof buf);
 +  if (len > 0) (void)!write(fd, buf, size_t(len < int(sizeof buf) ? len : sizeof buf - 1));
 +}
-+#elif defined(__ANDROID__) || defined(__SWITCH__)
+ #elif defined(__ANDROID__) || defined(__SWITCH__)
  namespace {
  struct UnwindState {
-   void** frames;
+diff --git a/src/runtime/process.cpp b/src/runtime/process.cpp
+index e8e668e..969dae0 100644
 --- a/src/runtime/process.cpp
 +++ b/src/runtime/process.cpp
-@@ -2,7 +2,7 @@
- // host threads that run guest code.
- 
+@@ -7,7 +7,7 @@
+ #else
  #include <pthread.h>
+ #endif
 -#if !defined(__SWITCH__)
 +#if !(defined(__SWITCH__) || defined(__EMSCRIPTEN__))
  #include <sys/mman.h>
  #endif
  #include <sys/stat.h>
-@@ -47,7 +47,14 @@
+@@ -54,7 +54,14 @@ gaddr g_next_teb = 0;  // the next TEB is below it (kTebTop, kTebTop64)
  // Host stack for each guest thread. Guest call depth maps 1:1 onto host
  // call depth, and lifted frames are larger than the originals, so be
  // generous; the memory is only touched as needed.
@@ -834,7 +852,7 @@
  
  constexpr uint32_t kTlsArraySlots = 64;
  
-@@ -345,7 +352,7 @@
+@@ -364,7 +371,7 @@ void GuestMainTrampoline() {
  }  // namespace
  
  static uint32_t RunOnMainThread(Thread* t, gaddr entry) {
@@ -843,7 +861,7 @@
    void* stack = std::aligned_alloc(0x1000, kHostStack);
    if (!stack) FatalF("cannot allocate the main guest stack");
  #else
-@@ -356,7 +363,7 @@
+@@ -375,7 +382,7 @@ static uint32_t RunOnMainThread(Thread* t, gaddr entry) {
    g_main_thread = t;
    g_main_entry = entry;
    platform::RunOnStack(stack, kHostStack, GuestMainTrampoline);
@@ -852,11 +870,13 @@
    std::free(stack);
  #else
    munmap(stack, kHostStack);
+diff --git a/src/runtime/watchdog.cpp b/src/runtime/watchdog.cpp
+index cbb3762..eb351bd 100644
 --- a/src/runtime/watchdog.cpp
 +++ b/src/runtime/watchdog.cpp
 @@ -1,4 +1,4 @@
--#if defined(__SWITCH__)
-+#if (defined(__SWITCH__) || defined(__EMSCRIPTEN__))
+-#if defined(__SWITCH__) || defined(_WIN32)
++#if defined(__SWITCH__) || defined(_WIN32) || defined(__EMSCRIPTEN__)
  // The Switch: no signals to sample or dump other threads with; no watchdog.
  #include "runtime/watchdog.h"
  namespace recomp {
