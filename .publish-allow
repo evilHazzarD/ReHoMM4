@@ -22,3 +22,5 @@ HeroesIV-*ios.ipa:Payload/Heroes IV.app/AppIcon*.png  # the same icon
 reHoMM4-*ios.ipa:Payload/ReHoMM4.app/AppIcon*.png  # as the HeroesIV-* line above: the release files' name from 0.3 on
 */ReHoMM4/ReHoMM4.png  # the same icon
 docs/gog_files.jpg  # a screenshot of the GOG library page (which installer files to download), not game data
+assets/icon/rehomm4.png  # owner's decision 2026-11-23: the app icon, our own picture (nothing from the game)
+assets/icon/ios/rehomm4-ios.png  # owner's decision 2026-11-23: the same icon, opaque for iOS
