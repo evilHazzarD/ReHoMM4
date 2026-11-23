@@ -3,6 +3,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#if defined(_WIN32)
+#include <io.h>
+#include <windows.h>
+#endif
 #include <zlib.h>
 
 #include <algorithm>
@@ -32,6 +36,30 @@ constexpr const char* kRedirect = "https://embed.gog.com/on_login_success?origin
 // The build the manifest was made from: "3.0 win11 GOG 0.2" (2024-09-11).
 constexpr const char* kBuildId = "57915408093044786";
 constexpr int kWorkers = 4;
+
+bool ReadAt(int fd, char* out, size_t size, uint64_t offset) {
+#if defined(_WIN32)
+  OVERLAPPED ov{};
+  ov.Offset = DWORD(offset);
+  ov.OffsetHigh = DWORD(offset >> 32);
+  DWORD got = 0;
+  return ReadFile(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), out, DWORD(size), &got, &ov) && got == size;
+#else
+  return pread(fd, out, size, off_t(offset)) == ssize_t(size);
+#endif
+}
+
+bool WriteAt(int fd, const char* in, size_t size, uint64_t offset) {
+#if defined(_WIN32)
+  OVERLAPPED ov{};
+  ov.Offset = DWORD(offset);
+  ov.OffsetHigh = DWORD(offset >> 32);
+  DWORD put = 0;
+  return WriteFile(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), in, DWORD(size), &put, &ov) && put == size;
+#else
+  return pwrite(fd, in, size, off_t(offset)) == ssize_t(size);
+#endif
+}
 
 std::string Enc(const std::string& s) {
   static const char* hex = "0123456789ABCDEF";
@@ -324,7 +352,7 @@ bool Session::Download(const std::string& dir, const std::string& lang, Task* ta
       bool ok = false;
       if (full) {
         buf.resize(ch.size);
-        ok = pread(fd, &buf[0], ch.size, off_t(ch.offset)) == ssize_t(ch.size) &&
+        ok = ReadAt(fd, &buf[0], ch.size, ch.offset) &&
              Md5Hex(buf.data(), buf.size()) == ch.md5;
       }
       if (ok) task->done += ch.size;
@@ -403,7 +431,7 @@ bool Session::Download(const std::string& dir, const std::string& lang, Task* ta
           err = "a downloaded part was damaged";
           continue;
         }
-        if (pwrite(fds[ch.file], raw.data(), raw.size(), off_t(ch.offset)) != ssize_t(raw.size())) {
+        if (!WriteAt(fds[ch.file], raw.data(), raw.size(), ch.offset)) {
           err = "cannot write the game files (is the storage full?)";
           break;
         }

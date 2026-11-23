@@ -18,6 +18,10 @@
 
 namespace h4 {
 
+// Set by main.cpp for every app variant; only some variants draw native controls for it.
+const std::string& GameFolder();
+void SetGameFolder(const std::string& path);
+
 #if defined(__ANDROID__) || (defined(__APPLE__) && (TARGET_OS_IOS || defined(H4_DESKTOP_APP))) || \
     defined(H4_LINUX_APP) || defined(H4_SWITCH_APP)
 // What the settings offer: the current language ("en", "uk") and the file the choice is saved
@@ -30,8 +34,6 @@ void SetLanguageChoice(const std::string& lang, const std::string& saved_path);
 // app put their ☁️ button (at the height y), when ShowSyncButton().
 void ShowLanguageButton(bool shown, int x, int y, int left = -1);
 // The game's folder as the app found it (main.cpp; "" before), shown in the settings.
-const std::string& GameFolder();
-void SetGameFolder(const std::string& path);
 // Mac and Linux apps: the app started again as it was (a new language applied at its start).
 void RestartApp();
 // (x, y) in the frame -> points in a w x h view showing it (menu_button_*).

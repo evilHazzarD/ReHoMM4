@@ -5,11 +5,14 @@
 #                                       .cache/outputs/ios/build/Release-iphoneos/Heroes IV.app
 #                                       (+ the Xcode project h4_recomp.xcodeproj next to it)
 #   platforms/build.sh android         ->  .cache/outputs/android/dist/HeroesIV-android_arm64.apk
-#   platforms/build.sh linux           ->  .cache/outputs/linux/dist/HeroesIV-linux-x86_64.tar.gz (Steam Deck)
+#   platforms/build.sh linux-x86_64    ->  .cache/outputs/linux-x86_64/dist/HeroesIV-linux-x86_64.tar.gz
+#                                       (Steam Deck; `linux` is the same)
 #   platforms/build.sh linux-arm64     ->  .cache/outputs/linux-arm64/dist/HeroesIV-linux-arm64.tar.gz
+#   platforms/build.sh windows-x86_64  ->  .cache/outputs/windows-x86_64/dist/HeroesIV-windows-x86_64.zip
 #   platforms/build.sh switch          ->  .cache/outputs/switch/dist/HeroesIV.nro (Switch homebrew)
-#   platforms/build.sh macos-arm64     ->  .cache/outputs/macos-arm64/dist/Heroes IV.app (+ HeroesIV-macos-arm64.dmg)
-#   platforms/build.sh macos-x86_64    ->  .cache/outputs/macos-x86_64/dist/Heroes IV.app (+ HeroesIV-macos-x86_64.dmg, Intel Macs)
+#   platforms/build.sh switch2         ->  .cache/outputs/switch2/dist/HeroesIV.nro (requires ounce-devkit)
+#   platforms/build.sh macos-arm64     ->  .cache/outputs/macos-arm64/dist/ReHoMM4.app (+ HeroesIV-macos-arm64.dmg)
+#   platforms/build.sh macos-x86_64    ->  .cache/outputs/macos-x86_64/dist/ReHoMM4.app (+ HeroesIV-macos-x86_64.dmg, Intel Macs)
 #
 # Needs what tools/build.sh made first: game/ (your GOG install), h4/generated/ (lifted heroes4.exe, kept up to date by tools/lift.sh)
 # and third_party/x86recomp with patches/ applied (incl. x86recomp-mobile.patch) and its host build
@@ -25,7 +28,11 @@ die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 # h4/generated lifted again when what it is made from changed (tools/lift.sh).
 bash "$ROOT/tools/lift.sh" || die "lifting heroes4.exe failed (tools/lift.sh)"
 [[ -d "$HOST_DEPS/softfloat-src" ]] || die "no host build of x86recomp: run tools/build.sh first"
-[[ -f "$PREFIX/lib/libavcodec.a" ]] || bash "$ROOT/platforms/deps.sh" "$TARGET"
+if [[ ! -f "$PREFIX/lib/libavcodec.a" || ! -f "$PREFIX/lib/librecomp_innoextract.a" ]] ||
+   { [[ $TARGET == switch2 ]] &&
+     ! cmp -s "$ROOT/platforms/switch/sdl-switch2-display.patch" "$PREFIX/share/sdl-switch2-display.patch"; }; then
+  bash "$ROOT/platforms/deps.sh" "$TARGET"
+fi
 
 # The host build's sources, not a second download (core-math's server is slow).
 FETCH=(-DFETCHCONTENT_SOURCE_DIR_SOFTFLOAT="$HOST_DEPS/softfloat-src"
@@ -88,22 +95,28 @@ elif [[ $TARGET == android ]]; then
   H4_ASSETS_DIR="$MOBILE_CACHE/res" H4_RES_DIR="$ICON_RES" \
     bash "$ROOT/platforms/android/package.sh" "$B"
 fi
-if [[ $TARGET == switch ]]; then
+if [[ $TARGET == switch* ]]; then
   cmake -S "$ROOT/h4" -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=Release "${CMAKE_TARGET_ARGS[@]}" \
     "${FETCH[@]}" "${HOSTTOOLS[@]}" "${LANG_ARGS[@]}" -DH4_SWITCH_APP=ON -DRECOMP_STATIC_APP=ON \
     -DRECOMP_GPU=OFF >"$B.configure.log" 2>&1 || { tail -40 "$B.configure.log"; exit 1; }
-  { cmake --build "$B" --target h4 -j"$JOBS" 2>&1 | grep -E 'error|FAILED|Linking' || true; } | head -60
+  cmake --build "$B" --target h4 -j"$JOBS" >"$B.build.log" 2>&1 ||
+    { tail -60 "$B.build.log"; exit 1; }
   [[ -f "$B/heroes4.elf" ]] || die "heroes4.elf was not built (log above)"
-  python3 -I "$ROOT/platforms/notices.py" switch "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null
-  bash "$ROOT/platforms/switch/package.sh" "$B"
+  python3 -I "$ROOT/platforms/notices.py" "$TARGET" "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null
+  bash "$ROOT/platforms/switch/package.sh" "$B" "$TARGET"
 fi
-if [[ $TARGET == linux* || $TARGET == macos-* ]]; then
+if [[ $TARGET == linux* || $TARGET == macos-* || $TARGET == windows-* ]]; then
+  desktop_args=(-DH4_DESKTOP_APP=ON -DRECOMP_STATIC_APP=ON)
+  # Windows uses its own native installer/platform layer (WinHTTP and the standard file picker).
+  [[ $TARGET == windows-* ]] && desktop_args=(-DH4_WINDOWS_APP=ON -DRECOMP_STATIC_APP=ON)
   cmake -S "$ROOT/h4" -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo "${CMAKE_TARGET_ARGS[@]}" \
-    "${FETCH[@]}" "${HOSTTOOLS[@]}" "${LANG_ARGS[@]}" -DH4_DESKTOP_APP=ON -DRECOMP_STATIC_APP=ON \
+    "${FETCH[@]}" "${HOSTTOOLS[@]}" "${LANG_ARGS[@]}" "${desktop_args[@]}" \
     >"$B.configure.log" 2>&1 || { tail -40 "$B.configure.log"; exit 1; }
   { cmake --build "$B" --target h4 -j"$JOBS" 2>&1 | grep -E 'error|FAILED|Linking' || true; } | head -40
-  [[ -f "$B/heroes4" ]] || die "heroes4 was not built (log above)"
-  python3 -I "$ROOT/platforms/notices.py" "${TARGET%%-*}" "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null
+  [[ -f "$B/heroes4" || -f "$B/heroes4.exe" ]] || die "heroes4 was not built (log above)"
+  notice_target="${TARGET%%-*}"; [[ $TARGET == windows-* ]] && notice_target=windows
+  python3 -I "$ROOT/platforms/notices.py" "$notice_target" "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null
   if [[ $TARGET == linux* ]]; then bash "$ROOT/platforms/linux/package.sh" "$B" "$TARGET"
+  elif [[ $TARGET == windows-* ]]; then bash "$ROOT/platforms/windows/package.sh" "$B" "$TARGET"
   else bash "$ROOT/platforms/macos/package.sh" "$B" "$TARGET"; fi
 fi

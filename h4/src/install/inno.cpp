@@ -4,6 +4,9 @@
 #include <vector>
 #include <dirent.h>
 #include <unistd.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -110,7 +113,15 @@ bool Extract(const PickedFile& exe, const PickedFile& bin, const std::string& st
     const std::string fd_prefix = "/proc/self/fd/";
     if (f.path.compare(0, fd_prefix.size(), fd_prefix) == 0)
       return stand_in(name, atoi(f.path.c_str() + fd_prefix.size()));
+#if defined(_WIN32)
+    // Symlinks need a privilege on many Windows installs. A hard link is
+    // equivalent for innoextract and avoids duplicating a multi-gigabyte
+    // offline installer; CopyFile is the cross-volume fallback.
+    if (CreateHardLinkA(name.c_str(), f.path.c_str(), nullptr) ||
+        CopyFileA(f.path.c_str(), name.c_str(), TRUE)) return true;
+#else
     if (symlink(f.path.c_str(), name.c_str()) == 0) return true;
+#endif
     const int fd = open(f.path.c_str(), O_RDONLY);
     if (fd < 0) return false;
     opened.push_back(fd);

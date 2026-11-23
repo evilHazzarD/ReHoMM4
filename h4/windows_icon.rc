@@ -1,0 +1,3 @@
+// The Windows executable icon.  The shared PNG source is converted to this
+// multi-resolution ICO in assets/icon/heroes-iv.ico.
+IDI_APP_ICON ICON "../assets/icon/heroes-iv.ico"

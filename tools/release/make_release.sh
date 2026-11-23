@@ -55,7 +55,8 @@ TARGETS=(
   "macos-x86_64 HeroesIV-macos-x86_64.dmg      reHoMM4-v$V-macos-x86_64.dmg"
   "ios          HeroesIV-ios.ipa               reHoMM4-v$V-ios.ipa"
   "android      HeroesIV-android_arm64.apk     reHoMM4-v$V-android_arm64.apk"
-  "linux        HeroesIV-linux-x86_64.tar.gz   reHoMM4-v$V-linux-x86_64.tar.gz"
+  "windows-x86_64 HeroesIV-windows-x86_64.zip  reHoMM4-v$V-windows-x86_64.zip"
+  "linux-x86_64 HeroesIV-linux-x86_64.tar.gz   reHoMM4-v$V-linux-x86_64.tar.gz"
   "linux-arm64  HeroesIV-linux-arm64.tar.gz    reHoMM4-v$V-linux-arm64.tar.gz"
   "switch       HeroesIV.nro                   reHoMM4-v$V-switch.nro"
 )
@@ -102,7 +103,7 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/linux" "$T/linux-arm64"
 tar -xzf "$OUT/reHoMM4-v$V-linux-x86_64.tar.gz" -C "$T/linux"
 tar -xzf "$OUT/reHoMM4-v$V-linux-arm64.tar.gz" -C "$T/linux-arm64"
-for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk; do
+for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-windows-x86_64.zip; do
   case "$f" in
     *.dmg) bash tools/release/release_check.sh "$f" 2>/dev/null ;;
     *) cp "$f" "$T/a.zip"; bash tools/release/release_check.sh "$T/a.zip" | sed "s#$T/a.zip#${f##*/}#"; rm "$T/a.zip" ;;
@@ -110,9 +111,9 @@ for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk; do
 done
 bash tools/release/release_check.sh "$T/linux" | sed "s#$T/linux#linux tar.gz#"
 bash tools/release/release_check.sh "$T/linux-arm64" | sed "s#$T/linux-arm64#linux-arm64 tar.gz#"
-python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} |
+python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-windows-x86_64.zip "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} |
   grep -E '^(FAIL|publish_check)' | sed "s#$T/##"
-python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} >/dev/null ||
+python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-windows-x86_64.zip "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} >/dev/null ||
   die "publish_check failed (above)"
 
 say "Release $V: $OUT"

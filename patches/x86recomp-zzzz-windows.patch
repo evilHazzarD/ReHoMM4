@@ -1,0 +1,755 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6994e1c..53e0c40 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -137,6 +137,9 @@ add_library(recomp_runtime ${RECOMP_LIB_TYPE}
+ target_link_libraries(recomp_runtime PUBLIC recomp_image recomp_x87
+                       SDL3::SDL3 Threads::Threads
+                       PRIVATE recomp_gfx)  # presentation (hle/present.cpp)
++if(WIN32)
++  target_link_libraries(recomp_runtime PRIVATE ws2_32)
++endif()
+ # Nothing in a game refers to an HLE module's symbols: keep the linker
+ # from dropping them where it links --as-needed (ld64 keeps every dylib).
+ if(NOT APPLE)
+diff --git a/src/runtime/dispatch.cpp b/src/runtime/dispatch.cpp
+index d2b62e5..3dabe31 100644
+--- a/src/runtime/dispatch.cpp
++++ b/src/runtime/dispatch.cpp
+@@ -5,12 +5,18 @@
+ // for thunk addresses. Anything else is fatal: there is no interpreter
+ // fallback (CLAUDE.md).
+ 
++#if defined(_WIN32)
++#include <windows.h>
++#else
+ #include <pthread.h>
+-#if !defined(__SWITCH__)
++#endif
++#if !defined(__SWITCH__) && !defined(_WIN32)
+ #include <sys/mman.h>
+ #endif
++#if !defined(_WIN32)
+ #include <signal.h>
+ #include <unistd.h>
++#endif
+ 
+ #include <chrono>
+ #include <cstdarg>
+@@ -28,6 +34,10 @@
+ #include "runtime/platform.h"
+ #include "runtime/runtime.h"
+ 
++#if defined(_WIN32) && !defined(O_CLOEXEC)
++#define O_CLOEXEC 0
++#endif
++
+ namespace recomp {
+ 
+ uint8_t* g_guest_base = nullptr;
+@@ -199,7 +209,38 @@ thread_local std::exception_ptr t_fault_exception;
+   }
+ }
+ 
+-#if !defined(__SWITCH__)
++#if defined(_WIN32)
++LONG CALLBACK FaultHandler(EXCEPTION_POINTERS* ep) {
++  if (ep->ExceptionRecord->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
++    return EXCEPTION_CONTINUE_SEARCH;
++  const uintptr_t a = uintptr_t(ep->ExceptionRecord->ExceptionInformation[1]);
++  const uintptr_t base = reinterpret_cast<uintptr_t>(g_guest_base);
++  const bool guest32 = a - base < (1ull << 32) && g_proc && !g_proc->x64;
++  if (guest32 && lazy::HandleFault(uint32_t(a - base)))
++    return EXCEPTION_CONTINUE_EXECUTION;
++  if (guest32 && CurrentThread() && t_fault_depth < kMaxFaultDepth &&
++      hle::t_hle_depth == 0) {
++    ++t_fault_depth;
++    try {
++      const bool write = ep->ExceptionRecord->ExceptionInformation[0] == 1;
++      const bool cont = hle::RaiseAccessViolation(CurrentThread()->ctx, write,
++                                                   uint32_t(a - base));
++      --t_fault_depth;
++      return cont ? EXCEPTION_CONTINUE_EXECUTION : EXCEPTION_CONTINUE_SEARCH;
++    } catch (...) {
++      --t_fault_depth;
++      t_fault_exception = std::current_exception();
++      if (platform::RedirectToCall(ep->ContextRecord, RethrowFaultException))
++        return EXCEPTION_CONTINUE_EXECUTION;
++    }
++  }
++  return EXCEPTION_CONTINUE_SEARCH;
++}
++
++void InstallFaultHandler() { AddVectoredExceptionHandler(1, FaultHandler); }
++}  // namespace
++void InstallSignalStack() {}
++#elif !defined(__SWITCH__)
+ void FaultHandler(int sig, siginfo_t* si, void* uc) {
+   char buf[256];
+   uintptr_t a = reinterpret_cast<uintptr_t>(si->si_addr);
+diff --git a/src/runtime/guest_memory.cpp b/src/runtime/guest_memory.cpp
+index 6bcb958..0d133bc 100644
+--- a/src/runtime/guest_memory.cpp
++++ b/src/runtime/guest_memory.cpp
+@@ -117,7 +117,13 @@ constexpr int kReserveFlags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
+ 
+ #if !defined(__SWITCH__)
+ bool GuestMemory::Reserve(unsigned bits) {
++#if defined(_WIN32)
++  SYSTEM_INFO si{};
++  GetSystemInfo(&si);
++  host_page_ = si.dwPageSize;
++#else
+   host_page_ = static_cast<size_t>(sysconf(_SC_PAGESIZE));
++#endif
+   if (host_page_ < kPageSize || host_page_ % kPageSize) {
+     std::fprintf(stderr, "GuestMemory: unsupported host page size %zu\n",
+                  host_page_);
+diff --git a/src/runtime/hle/kernel32.cpp b/src/runtime/hle/kernel32.cpp
+index 3459d05..b1d2574 100644
+--- a/src/runtime/hle/kernel32.cpp
++++ b/src/runtime/hle/kernel32.cpp
+@@ -1033,7 +1033,11 @@ HLE("kernel32.dll", GetSystemTime, 1) {
+   auto now = system_clock::now();
+   std::time_t tt = system_clock::to_time_t(now);
+   std::tm t{};
++#if defined(_WIN32)
++  gmtime_s(&t, &tt);
++#else
+   gmtime_r(&tt, &t);
++#endif
+   int ms = int(duration_cast<milliseconds>(now.time_since_epoch()).count() % 1000);
+   WriteSystemTime(Arg(c, 0), t, ms);
+   return 0;
+@@ -1044,7 +1048,11 @@ HLE("kernel32.dll", GetLocalTime, 1) {
+   auto now = system_clock::now();
+   std::time_t tt = system_clock::to_time_t(now);
+   std::tm t{};
++#if defined(_WIN32)
++  localtime_s(&t, &tt);
++#else
+   localtime_r(&tt, &t);
++#endif
+   int ms = int(duration_cast<milliseconds>(now.time_since_epoch()).count() % 1000);
+   WriteSystemTime(Arg(c, 0), t, ms);
+   return 0;
+@@ -1057,7 +1065,11 @@ HLE("kernel32.dll", GetTimeZoneInformation, 1) {
+   uint32_t tzi = Arg(c, 0);
+   std::time_t now = std::time(nullptr);
+   std::tm t{};
++#if defined(_WIN32)
++  localtime_s(&t, &now);
++#else
+   localtime_r(&now, &t);
++#endif
+   std::memset(GPtr(tzi), 0, 172);
+   Wr32(tzi + 0, uint32_t(int32_t(-platform::TmGmtOff(t) / 60)));  // Bias, minutes
+   const char* zone = platform::TmZone(t);
+diff --git a/src/runtime/hle/kernel32_file.cpp b/src/runtime/hle/kernel32_file.cpp
+index 3950fef..490d5fb 100644
+--- a/src/runtime/hle/kernel32_file.cpp
++++ b/src/runtime/hle/kernel32_file.cpp
+@@ -8,9 +8,18 @@
+ 
+ #include <dirent.h>
+ #include <fcntl.h>
++#if !defined(_WIN32)
+ #include <fnmatch.h>
++#endif
+ #include <sys/stat.h>
+ #include <unistd.h>
++#if defined(_WIN32)
++#include <direct.h>
++#include <io.h>
++#ifndef O_CLOEXEC
++#define O_CLOEXEC 0
++#endif
++#endif
+ 
+ #include <cstdlib>
+ #include <cstring>
+@@ -30,6 +39,25 @@ namespace recomp {
+ 
+ namespace {
+ 
++bool WildcardMatch(const char* pattern, const char* text) {
++  // FindFirstFile uses DOS wildcards; the game's file scans need only * and
++  // ?.  Inputs are already lower-cased at the call site.
++  while (*pattern) {
++    if (*pattern == '*') {
++      while (*++pattern == '*') {}
++      if (!*pattern) return true;
++      while (*text) {
++        if (WildcardMatch(pattern, text++)) return true;
++      }
++      return false;
++    }
++    if (!*text || (*pattern != '?' && *pattern != *text)) return false;
++    ++pattern;
++    ++text;
++  }
++  return !*text;
++}
++
+ std::mutex g_handles_mu;
+ std::map<uint32_t, std::shared_ptr<KObject>> g_handles;
+ uint32_t g_next_handle = 0x100;
+@@ -500,7 +528,13 @@ HLE("kernel32.dll", GetFileTime, 4) {
+ 
+ HLE64("kernel32.dll", FlushFileBuffers, 1) {
+   int fd = FdOf(Arg(c, 0));
+-  if (fd >= 0) fsync(fd);
++  if (fd >= 0) {
++#if defined(_WIN32)
++    _commit(fd);
++#else
++    fsync(fd);
++#endif
++  }
+   return 1;
+ }
+ 
+@@ -649,7 +683,11 @@ uint32_t CreateDirectory(const std::string& g) {
+   }
+   std::string path = HostPath(g, PathAccess::kWrite);
+   MakeDirs(path.substr(0, path.find_last_of('/')));
++#if defined(_WIN32)
++  if (_mkdir(path.c_str()) != 0) {
++#else
+   if (mkdir(path.c_str(), 0755) != 0) {
++#endif
+     SetLastError(errno == EEXIST ? kErrorAlreadyExists : ErrnoToWin(errno));
+     return 0;
+   }
+@@ -762,7 +800,7 @@ HLE("kernel32.dll", FindFirstFileA, 2) {
+     if (!d) continue;
+     while (dirent* e = readdir(d)) {
+       std::string ln = Lower(e->d_name);
+-      if (fnmatch(lmask.c_str(), ln.c_str(), 0) == 0 && seen.insert(ln).second)
++      if (WildcardMatch(lmask.c_str(), ln.c_str()) && seen.insert(ln).second)
+         f->entries.push_back({hdir, e->d_name});
+     }
+     closedir(d);
+diff --git a/src/runtime/hle/kernel32_misc.cpp b/src/runtime/hle/kernel32_misc.cpp
+index 44a2680..058f6fe 100644
+--- a/src/runtime/hle/kernel32_misc.cpp
++++ b/src/runtime/hle/kernel32_misc.cpp
+@@ -15,6 +15,21 @@
+ namespace recomp::hle {
+ namespace {
+ 
++std::tm* LocalTimeR(const time_t* value, std::tm* out) {
++#if defined(_WIN32)
++  return localtime_s(out, value) == 0 ? out : nullptr;
++#else
++  return localtime_r(value, out);
++#endif
++}
++std::tm* GmTimeR(const time_t* value, std::tm* out) {
++#if defined(_WIN32)
++  return gmtime_s(out, value) == 0 ? out : nullptr;
++#else
++  return gmtime_r(value, out);
++#endif
++}
++
+ using namespace win32;
+ 
+ // ---- resources ------------------------------------------------------------------
+@@ -178,7 +193,7 @@ HLE("kernel32.dll", CompareFileTime, 2) {
+ HLE64("kernel32.dll", FileTimeToLocalFileTime, 2) {
+   time_t now = time(nullptr);
+   std::tm lt{};
+-  localtime_r(&now, &lt);
++  LocalTimeR(&now, &lt);
+   int64_t off = int64_t(platform::TmGmtOff(lt)) * 10000000;
+   Wr64(Arg(c, 1), uint64_t(int64_t(Rd64(Arg(c, 0))) + off));
+   return 1;
+@@ -190,7 +205,7 @@ HLE64("kernel32.dll", FileTimeToDosDateTime, 3) {
+   uint64_t ft = Rd64(Arg(c, 0));
+   time_t secs = time_t(int64_t(ft - kFileTimeUnixEpoch) / 10000000);
+   std::tm t{};
+-  if (ft < kFileTimeUnixEpoch || !gmtime_r(&secs, &t) || t.tm_year < 80 || t.tm_year > 207) {
++  if (ft < kFileTimeUnixEpoch || !GmTimeR(&secs, &t) || t.tm_year < 80 || t.tm_year > 207) {
+     SetLastError(kErrorInvalidParameter);
+     return 0;
+   }
+@@ -204,7 +219,7 @@ HLE("kernel32.dll", FileTimeToSystemTime, 2) {
+   if (ft < kFileTimeUnixEpoch) return 0;
+   time_t secs = time_t((ft - kFileTimeUnixEpoch) / 10000000);
+   std::tm t{};
+-  gmtime_r(&secs, &t);
++  GmTimeR(&secs, &t);
+   WriteSystemTime(Arg(c, 1), t, int((ft / 10000) % 1000));
+   return 1;
+ }
+@@ -223,7 +238,7 @@ std::tm TmFromSystemTime(uint32_t st) {
+   if (st) return ReadSystemTime(st);
+   std::tm t{};
+   time_t now = time(nullptr);
+-  localtime_r(&now, &t);
++  LocalTimeR(&now, &t);
+   return t;
+ }
+ 
+diff --git a/src/runtime/hle/ws2_32.cpp b/src/runtime/hle/ws2_32.cpp
+index eb6f24c..ffb0412 100644
+--- a/src/runtime/hle/ws2_32.cpp
++++ b/src/runtime/hle/ws2_32.cpp
+@@ -3,12 +3,17 @@
+ // values differ, and BSD's have a length byte). Imported by ordinal or by
+ // name, so each function is registered under both.
+ 
++#if defined(_WIN32)
++#include <winsock2.h>
++#include <ws2tcpip.h>
++#else
+ #include <arpa/inet.h>
+ #include <fcntl.h>
+ #include <netinet/in.h>
+ #include <sys/ioctl.h>
+ #include <sys/socket.h>
+ #include <unistd.h>
++#endif
+ 
+ #include <cerrno>
+ #include <cstring>
+@@ -32,7 +37,13 @@ constexpr uint32_t kWsaEInval = 10022, kWsaEWouldBlock = 10035, kWsaEMsgSize = 1
+ struct SocketObject : KObject {
+   SocketObject() : KObject(Type::Socket) {}
+   ~SocketObject() override {
+-    if (fd >= 0) close(fd);
++    if (fd >= 0) {
++#if defined(_WIN32)
++      closesocket(SOCKET(fd));
++#else
++      close(fd);
++#endif
++    }
+   }
+   int fd = -1;
+ };
+@@ -70,7 +81,13 @@ uint64_t Fail(uint32_t wsa) {
+   t_wsa_error = wsa;
+   return kSocketError;
+ }
+-uint64_t FailErrno() { return Fail(WsaError(errno)); }
++uint64_t FailErrno() {
++#if defined(_WIN32)
++  return Fail(WsaError(WSAGetLastError()));
++#else
++  return Fail(WsaError(errno));
++#endif
++}
+ 
+ uint64_t InvalidSocket() { return g_proc->x64 ? ~0ull : 0xFFFFFFFFu; }
+ 
+@@ -146,6 +163,10 @@ void ToGuest(const sockaddr_storage& in, gaddr sa, gaddr len_va) {
+ // WSADATA: version 2.2. Win64 moves iMaxSockets, iMaxUdpDg and lpVendorInfo
+ // before the strings.
+ RECOMP_WS2(115, WSAStartup, 2) {
++#if defined(_WIN32)
++  WSADATA native{};
++  if (int error = ::WSAStartup(MAKEWORD(2, 2), &native)) return Fail(WsaError(error));
++#endif
+   gaddr d = Arg(c, 1);
+   const bool x64 = g_proc->x64;
+   std::memset(GPtr(d), 0, x64 ? 408 : 400);
+@@ -155,7 +176,12 @@ RECOMP_WS2(115, WSAStartup, 2) {
+   PutStr(d + (x64 ? 16 + 257 : 4 + 257), "Running");
+   return 0;
+ }
+-RECOMP_WS2(116, WSACleanup, 0) { return 0; }
++RECOMP_WS2(116, WSACleanup, 0) {
++#if defined(_WIN32)
++  ::WSACleanup();
++#endif
++  return 0;
++}
+ RECOMP_WS2(111, WSAGetLastError, 0) { return t_wsa_error; }
+ RECOMP_WS2(112, WSASetLastError, 1) {
+   t_wsa_error = uint32_t(Arg(c, 0));
+@@ -173,7 +199,9 @@ RECOMP_WS2(23, socket, 3) {
+     t_wsa_error = WsaError(errno);
+     return InvalidSocket();
+   }
++#if !defined(_WIN32)
+   fcntl(fd, F_SETFD, FD_CLOEXEC);
++#endif
+ #ifdef SO_NOSIGPIPE
+   int one = 1;
+   setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof one);
+@@ -205,13 +233,24 @@ RECOMP_WS2(10, ioctlsocket, 3) {
+   uint32_t cmd = uint32_t(Arg(c, 1));
+   gaddr argp = Arg(c, 2);
+   if (cmd == 0x8004667E) {  // FIONBIO
++#if defined(_WIN32)
++    u_long value = Rd32(argp) ? 1 : 0;
++    return ::ioctlsocket(SOCKET(fd), FIONBIO, &value) == 0 ? 0 : FailErrno();
++#else
+     int fl = fcntl(fd, F_GETFL);
+     fl = Rd32(argp) ? fl | O_NONBLOCK : fl & ~O_NONBLOCK;
+     return fcntl(fd, F_SETFL, fl) == 0 ? 0 : FailErrno();
++#endif
+   }
+   if (cmd == 0x4004667F) {  // FIONREAD
+     int n = 0;
++#if defined(_WIN32)
++    u_long count = 0;
++    if (::ioctlsocket(SOCKET(fd), FIONREAD, &count) != 0) return FailErrno();
++    n = int(count);
++#else
+     if (ioctl(fd, FIONREAD, &n) != 0) return FailErrno();
++#endif
+     Wr32(argp, uint32_t(n));
+     return 0;
+   }
+@@ -226,7 +265,7 @@ RECOMP_WS2(20, sendto, 6) {
+   socklen_t len = 0;
+   gaddr to = Arg(c, 4);
+   if (to && !ToHost(to, uint32_t(Arg(c, 5)), &sa, &len)) return Fail(kWsaEAfNoSupport);
+-  ssize_t n = ::sendto(fd, GPtr(Arg(c, 1)), size_t(uint32_t(Arg(c, 2))),
++  ssize_t n = ::sendto(fd, reinterpret_cast<const char*>(GPtr(Arg(c, 1))), size_t(uint32_t(Arg(c, 2))),
+                        int(Arg(c, 3)) | kNoSignal,
+                        to ? reinterpret_cast<sockaddr*>(&sa) : nullptr, len);
+   return n < 0 ? FailErrno() : uint64_t(uint32_t(n));
+@@ -237,7 +276,7 @@ RECOMP_WS2(17, recvfrom, 6) {
+   if (fd < 0) return Fail(kWsaENotSock);
+   sockaddr_storage sa{};
+   socklen_t len = sizeof sa;
+-  ssize_t n = ::recvfrom(fd, GPtr(Arg(c, 1)), size_t(uint32_t(Arg(c, 2))), int(Arg(c, 3)),
++  ssize_t n = ::recvfrom(fd, reinterpret_cast<char*>(GPtr(Arg(c, 1))), size_t(uint32_t(Arg(c, 2))), int(Arg(c, 3)),
+                          reinterpret_cast<sockaddr*>(&sa), &len);
+   if (n < 0) return FailErrno();
+   ToGuest(sa, Arg(c, 4), Arg(c, 5));
+diff --git a/src/runtime/platform.cpp b/src/runtime/platform.cpp
+index 68a5db9..a80ce65 100644
+--- a/src/runtime/platform.cpp
++++ b/src/runtime/platform.cpp
+@@ -11,10 +11,14 @@
+ #include "runtime/platform.h"
+ 
+ #include <errno.h>
++#if defined(_WIN32)
++#include <windows.h>
++#else
+ #include <signal.h>
++#endif
+ #include <string.h>
+ #include <time.h>
+-#if !defined(__SWITCH__)
++#if !defined(__SWITCH__) && !defined(_WIN32)
+ #include <ucontext.h>
+ #endif
+ 
+@@ -24,13 +28,15 @@
+ #include <mach/mach_time.h>
+ #include <mach/thread_policy.h>
+ #include <pthread.h>
+-#elif !defined(__SWITCH__)
++#elif !defined(__SWITCH__) && !defined(_WIN32)
+ #include <sys/prctl.h>
+ #endif
+ #if defined(__ANDROID__) && defined(__aarch64__)
+ #include <asm/sigcontext.h>  // ESR_MAGIC, struct esr_context
+ #endif
+-#if defined(__ANDROID__) || defined(__SWITCH__)
++#if defined(_WIN32)
++#include <cstdio>
++#elif defined(__ANDROID__) || defined(__SWITCH__)
+ #if !defined(__SWITCH__)
+ #include <dlfcn.h>
+ #endif
+@@ -88,6 +94,14 @@ void RunOnStack(void* stack, size_t size, void (*fn)()) {
+   RecompCallOnStack(static_cast<uint8_t*>(stack) + size, fn);
+ #endif
+ }
++#elif defined(_WIN32)
++void RunOnStack(void* stack, size_t size, void (*fn)()) {
++  // SDL requires the process UI thread to remain its normal thread; the
++  // Windows target is linked with a large enough primary stack instead.
++  (void)stack;
++  (void)size;
++  fn();
++}
+ #else
+ namespace {
+ ucontext_t g_caller_ctx, g_stack_ctx;
+@@ -118,7 +132,12 @@ void RunOnStack(void* stack, size_t size, void (*fn)()) {
+ 
+ FaultContext ReadFaultContext(const void* uc) {
+   FaultContext f;
+-#if defined(__SWITCH__)
++#if defined(_WIN32)
++  const auto* c = static_cast<const CONTEXT*>(uc);
++  f.pc = uintptr_t(c->Rip);
++  f.caller = *reinterpret_cast<const uintptr_t*>(c->Rsp);
++  return f;
++#elif defined(__SWITCH__)
+   (void)uc;  // no signals there
+   return f;
+ #else
+@@ -203,6 +222,20 @@ void SleepUntilNs(uint64_t t) {
+                       THREAD_STANDARD_POLICY_COUNT);
+   }
+ }
++#elif defined(_WIN32)
++uint64_t MonotonicNs() {
++  static const uint64_t frequency = [] { LARGE_INTEGER f; QueryPerformanceFrequency(&f); return uint64_t(f.QuadPart); }();
++  LARGE_INTEGER now;
++  QueryPerformanceCounter(&now);
++  const uint64_t ticks = uint64_t(now.QuadPart);
++  return (ticks / frequency) * 1000000000u +
++         (ticks % frequency) * 1000000000u / frequency;
++}
++
++void SleepUntilNs(uint64_t t) {
++  for (uint64_t now; (now = MonotonicNs()) < t;)
++    Sleep(DWORD((t - now + 999999u) / 1000000u));
++}
+ #else
+ uint64_t MonotonicNs() {
+   timespec ts;
+@@ -234,7 +267,11 @@ void SleepUntilNs(uint64_t t) {
+ #endif
+ 
+ bool RedirectToCall(void* uc, void (*fn)()) {
+-#if defined(__SWITCH__)
++#if defined(_WIN32)
++  auto* c = static_cast<CONTEXT*>(uc);
++  c->Rip = reinterpret_cast<DWORD64>(fn);
++  return true;
++#elif defined(__SWITCH__)
+   (void)uc;
+   (void)fn;
+   return false;
+@@ -257,7 +294,10 @@ bool RedirectToCall(void* uc, void (*fn)()) {
+ #endif
+ }
+ 
+-#if defined(__ANDROID__) || defined(__SWITCH__)
++#if defined(_WIN32)
++int Backtrace(void**, int) { return 0; }
++void BacktraceSymbolsFd(void* const*, int, int) {}
++#elif defined(__ANDROID__) || defined(__SWITCH__)
+ namespace {
+ struct UnwindState {
+   void** frames;
+diff --git a/src/runtime/platform.h b/src/runtime/platform.h
+index dd34c17..4ea4c14 100644
+--- a/src/runtime/platform.h
++++ b/src/runtime/platform.h
+@@ -11,15 +11,21 @@
+ #include <cstddef>
+ #include <cstdint>
+ #include <ctime>
++#if defined(_WIN32)
++#include <windows.h>
++#endif
+ 
+ namespace recomp::platform {
+ 
+ // struct tm's BSD fields and timegm, which the Switch's newlib lacks (its
+ // local time is UTC there).
+-#if defined(__SWITCH__)
++#if defined(__SWITCH__) || defined(_WIN32)
+ inline long TmGmtOff(const std::tm&) { return 0; }
+ inline const char* TmZone(const std::tm&) { return "UTC"; }
+ inline std::time_t TimeGm(std::tm* t) {
++#if defined(_WIN32)
++  return _mkgmtime(t);
++#else
+   // Days from 1970-01-01 to y-m-d (Howard Hinnant's days_from_civil).
+   long y = t->tm_year + 1900L, m = t->tm_mon + 1L, d = t->tm_mday;
+   y -= m <= 2;
+@@ -29,6 +35,7 @@ inline std::time_t TimeGm(std::tm* t) {
+   const long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+   const long days = era * 146097 + doe - 719468;
+   return std::time_t(days * 86400L + t->tm_hour * 3600L + t->tm_min * 60L + t->tm_sec);
++#endif
+ }
+ #else
+ inline long TmGmtOff(const std::tm& t) { return t.tm_gmtoff; }
+@@ -39,14 +46,18 @@ inline std::time_t TimeGm(std::tm* t) { return timegm(t); }
+ 
+ // ---- files
+ inline timespec StatAccessTime(const struct stat& st) {
+-#if defined(__APPLE__)
++#if defined(_WIN32)
++  return {st.st_atime, 0};
++#elif defined(__APPLE__)
+   return st.st_atimespec;
+ #else
+   return st.st_atim;
+ #endif
+ }
+ inline timespec StatModifyTime(const struct stat& st) {
+-#if defined(__APPLE__)
++#if defined(_WIN32)
++  return {st.st_mtime, 0};
++#elif defined(__APPLE__)
+   return st.st_mtimespec;
+ #else
+   return st.st_mtim;
+@@ -54,7 +65,9 @@ inline timespec StatModifyTime(const struct stat& st) {
+ }
+ 
+ // Per-user data under $HOME (without XDG_DATA_HOME), with a trailing '/'.
+-#if defined(__APPLE__)
++#if defined(_WIN32)
++inline constexpr const char* kUserDataDir = "/AppData/Local/";
++#elif defined(__APPLE__)
+ inline constexpr const char* kUserDataDir = "/Library/Application Support/";
+ #else
+ inline constexpr const char* kUserDataDir = "/.local/share/";
+@@ -69,7 +82,7 @@ inline const char* HostFpProblem() {
+   if (std::fegetround() != FE_TONEAREST) return "rounding mode is not to nearest";
+   std::fenv_t env;
+   if (std::fegetenv(&env)) return "fegetenv failed";
+-#if defined(__x86_64__)
++#if defined(__x86_64__) && !defined(_WIN32)
+   // FTZ (15), RC (13-14), the exception masks (7-12, all set), DAZ (6).
+   if ((env.__mxcsr & 0xFFC0u) != 0x1F80u) return "MXCSR is not the default";
+ #elif defined(__aarch64__)
+@@ -123,7 +136,7 @@ FaultContext ReadFaultContext(const void* uc);
+ // the signal frame into the interrupted code. glibc's unwinder steps
+ // through the kernel's signal trampoline; Darwin's does not. Android's
+ // LLVM libunwind is not relied on to: it takes the Darwin path.
+-#if defined(__APPLE__) || defined(__ANDROID__)
++#if defined(__APPLE__) || defined(__ANDROID__) || defined(_WIN32)
+ inline constexpr bool kThrowThroughSignalFrames = false;
+ #else
+ inline constexpr bool kThrowThroughSignalFrames = true;
+diff --git a/src/runtime/process.cpp b/src/runtime/process.cpp
+index 30d1621..e8e668e 100644
+--- a/src/runtime/process.cpp
++++ b/src/runtime/process.cpp
+@@ -1,12 +1,19 @@
+ // Process and thread bring-up: arena, image, PEB/TEB, TLS, stacks, and the
+ // host threads that run guest code.
+ 
++#if defined(_WIN32)
++#include <windows.h>
++#include <direct.h>
++#else
+ #include <pthread.h>
++#endif
+ #if !defined(__SWITCH__)
+ #include <sys/mman.h>
+ #endif
+ #include <sys/stat.h>
++#if !defined(_WIN32)
+ #include <unistd.h>
++#endif
+ 
+ #include <thread>
+ #include <algorithm>
+@@ -82,7 +89,13 @@ std::string DataDir() {
+ 
+ void MakeDirs(const std::string& path) {
+   for (size_t i = 1; i <= path.size(); i++)
+-    if (i == path.size() || path[i] == '/') mkdir(path.substr(0, i).c_str(), 0755);
++    if (i == path.size() || path[i] == '/') {
++#if defined(_WIN32)
++      _mkdir(path.substr(0, i).c_str());
++#else
++      mkdir(path.substr(0, i).c_str(), 0755);
++#endif
++    }
+ }
+ 
+ std::string ReportPath(const char* kind) {
+@@ -91,7 +104,13 @@ std::string ReportPath(const char* kind) {
+   MakeDirs(dir);
+   char name[64];
+   std::snprintf(name, sizeof name, "/%s-%ld-%d.txt", kind, long(std::time(nullptr)),
+-                int(getpid()));
++                int(
++#if defined(_WIN32)
++                    GetCurrentProcessId()
++#else
++                    getpid()
++#endif
++                    ));
+   return dir + name;
+ }
+ 
+diff --git a/src/runtime/watchdog.cpp b/src/runtime/watchdog.cpp
+index ac68677..cbb3762 100644
+--- a/src/runtime/watchdog.cpp
++++ b/src/runtime/watchdog.cpp
+@@ -1,4 +1,4 @@
+-#if defined(__SWITCH__)
++#if defined(__SWITCH__) || defined(_WIN32)
+ // The Switch: no signals to sample or dump other threads with; no watchdog.
+ #include "runtime/watchdog.h"
+ namespace recomp {
+diff --git a/src/sys/mman.h b/src/sys/mman.h
+new file mode 100644
+index 0000000..2dea7c4
+--- /dev/null
++++ b/src/sys/mman.h
+@@ -0,0 +1,63 @@
++// Small POSIX mmap facade for the Windows build of x86recomp.  It covers the
++// anonymous reservation/commit/protection paths used by the guest arena and
++// host stacks.  File mappings deliberately remain unsupported for now: their
++// Win32 implementation belongs in kernel32_sync.cpp.
++#pragma once
++
++#if !defined(_WIN32)
++// This path is also searched by the native host build used for lifting.
++// Keep the shim transparent there instead of shadowing the system header.
++#include_next <sys/mman.h>
++#else
++
++#include <windows.h>
++#include <cstddef>
++#include <cstdint>
++
++#define PROT_NONE 0x0
++#define PROT_READ 0x1
++#define PROT_WRITE 0x2
++#define PROT_EXEC 0x4
++#define MAP_SHARED 0x01
++#define MAP_PRIVATE 0x02
++#define MAP_FIXED 0x10
++#define MAP_ANONYMOUS 0x20
++#define MAP_NORESERVE 0x4000
++#define MAP_FIXED_NOREPLACE 0x100000
++#define MAP_FAILED reinterpret_cast<void*>(intptr_t(-1))
++
++inline DWORD recomp_win_prot(int p) {
++  if (p == PROT_NONE) return PAGE_NOACCESS;
++  if ((p & (PROT_READ | PROT_WRITE | PROT_EXEC)) == (PROT_READ | PROT_WRITE | PROT_EXEC)) return PAGE_EXECUTE_READWRITE;
++  if ((p & (PROT_READ | PROT_EXEC)) == (PROT_READ | PROT_EXEC)) return PAGE_EXECUTE_READ;
++  if (p & PROT_WRITE) return PAGE_READWRITE;
++  if (p & PROT_READ) return PAGE_READONLY;
++  return PAGE_NOACCESS;
++}
++
++inline void* mmap(void* addr, size_t length, int prot, int flags, int fd, intptr_t) {
++  (void)fd;
++  if (!(flags & MAP_ANONYMOUS)) return MAP_FAILED;
++  const DWORD protect = recomp_win_prot(prot);
++  if (flags & MAP_FIXED) {
++    // A fixed remap replaces an earlier reservation, as mmap(MAP_FIXED) does.
++    VirtualFree(addr, 0, MEM_RELEASE);
++    return VirtualAlloc(addr, length, MEM_RESERVE | MEM_COMMIT, protect) ?: MAP_FAILED;
++  }
++  const DWORD kind = prot == PROT_NONE ? MEM_RESERVE : (MEM_RESERVE | MEM_COMMIT);
++  void* p = VirtualAlloc(addr, length, kind, protect);
++  if (!p && (flags & MAP_FIXED_NOREPLACE)) return MAP_FAILED;
++  if (!p && addr) p = VirtualAlloc(nullptr, length, kind, protect);
++  return p ? p : MAP_FAILED;
++}
++
++inline int mprotect(void* addr, size_t length, int prot) {
++  DWORD old = 0;
++  if (VirtualProtect(addr, length, recomp_win_prot(prot), &old)) return 0;
++  // A reserved arena becomes committed on its first accessible mapping.
++  if (VirtualAlloc(addr, length, MEM_COMMIT, recomp_win_prot(prot))) return 0;
++  return -1;
++}
++
++inline int munmap(void* addr, size_t) { return VirtualFree(addr, 0, MEM_RELEASE) ? 0 : -1; }
++#endif

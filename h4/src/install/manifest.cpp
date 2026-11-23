@@ -3,8 +3,13 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/statvfs.h>
 #include <unistd.h>
+#if defined(_WIN32)
+#include <direct.h>
+#include <windows.h>
+#else
+#include <sys/statvfs.h>
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -81,7 +86,13 @@ std::vector<std::string> VerifyDir(const std::string& dir,
 
 bool MakeDirs(const std::string& p) {
   for (size_t i = 1; i <= p.size(); i++)
-    if (i == p.size() || p[i] == '/') mkdir(p.substr(0, i).c_str(), 0755);
+    if (i == p.size() || p[i] == '/') {
+#if defined(_WIN32)
+      _mkdir(p.substr(0, i).c_str());
+#else
+      mkdir(p.substr(0, i).c_str(), 0755);
+#endif
+    }
   return IsDirectory(p);
 }
 
@@ -96,14 +107,25 @@ bool IsFile(const std::string& p) {
 }
 
 long long FreeBytes(const std::string& dir) {
+#if defined(_WIN32)
+  ULARGE_INTEGER available{};
+  return GetDiskFreeSpaceExA(dir.c_str(), &available, nullptr, nullptr)
+             ? static_cast<long long>(available.QuadPart)
+             : -1;
+#else
   struct statvfs s;
   if (statvfs(dir.c_str(), &s) != 0) return -1;
   return (long long)s.f_bavail * (long long)s.f_frsize;
+#endif
 }
 
 bool RemoveTree(const std::string& p) {
   struct stat st;
+#if defined(_WIN32)
+  if (stat(p.c_str(), &st) != 0) return true;
+#else
   if (lstat(p.c_str(), &st) != 0) return true;
+#endif
   if (S_ISDIR(st.st_mode)) {
     if (DIR* d = opendir(p.c_str())) {
       while (dirent* e = readdir(d)) {

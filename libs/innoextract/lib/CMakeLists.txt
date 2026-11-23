@@ -66,6 +66,13 @@ endif()
 target_include_directories(recomp_innoextract PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${src})
 target_include_directories(recomp_innoextract SYSTEM PRIVATE ${BOOST_SRC} ${LZMA_INCLUDE})
+if(WIN32)
+  # MinGW has no zlib development files in its base toolchain; platforms/deps.sh supplies it.
+  target_include_directories(recomp_innoextract SYSTEM PRIVATE ${CMAKE_INSTALL_PREFIX}/include)
+  target_sources(recomp_innoextract PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/windows_console.cpp
+    ${BOOST_SRC}/libs/filesystem/src/windows_file_codecvt.cpp)
+endif()
 target_compile_definitions(recomp_innoextract PRIVATE
   # Boost built into this library, without auto-linking or DLL markup.
   BOOST_ALL_NO_LIB BOOST_FILESYSTEM_STATIC_LINK=1 BOOST_IOSTREAMS_STATIC_LINK=1

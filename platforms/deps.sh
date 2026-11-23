@@ -8,6 +8,7 @@
 #   platforms/deps.sh android    arm64-v8a, API 29+ (Vulkan 1.1), NDK from ANDROID_NDK or the newest in the SDK
 #   platforms/deps.sh linux      x86-64 (Steam Deck), glibc 2.36+, cross-built against a Debian sysroot
 #   platforms/deps.sh linux-arm64  the same for 64-bit ARM
+#   platforms/deps.sh windows-x86_64  64-bit Windows, cross-built with Homebrew mingw-w64
 #   platforms/deps.sh macos-arm64    the Mac app, Apple Silicon, macOS 13+
 #   platforms/deps.sh macos-x86_64   the Mac app, Intel, macOS 13+
 #   platforms/deps.sh switch     Nintendo Switch homebrew (devkitPro's SDL3 branch, no SDL_GPU)
@@ -32,6 +33,8 @@ XZ_V=5.8.1
 XZ_SHA=507825b599356c10dca1cd720c9d0d0c9d5400b9de300af00e4d1ea150795543
 BZIP2_V=1.0.8
 BZIP2_SHA=ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269
+ZLIB_V=1.3.1
+ZLIB_SHA=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23
 # The Switch: devkitPro's SDL 3.4 with its Switch backend (video, OpenGL ES, audio, Joy-Cons, touch).
 SDL_SWITCH_COMMIT=c329016c0e338ab4397ad930f83330c9fe058348
 
@@ -65,9 +68,12 @@ cmake_dep() {  # name srcdir extra-args...
 }
 
 say "SDL3 $SDL_V"
-if ! done_or_force "$PREFIX/lib/cmake/SDL3/SDL3Config.cmake"; then
+SDL_SWITCH2_PATCH="$ROOT/platforms/switch/sdl-switch2-display.patch"
+SDL_SWITCH2_STAMP="$PREFIX/share/sdl-switch2-display.patch"
+if ! done_or_force "$PREFIX/lib/cmake/SDL3/SDL3Config.cmake" ||
+   { [[ $TARGET == switch2 ]] && ! cmp -s "$SDL_SWITCH2_PATCH" "$SDL_SWITCH2_STAMP"; }; then
   SDL_SRC="$SRC/SDL3-$SDL_V"
-  if [[ $TARGET == switch ]]; then
+  if [[ $TARGET == switch* ]]; then
     SDL_SRC="$SRC/SDL-$SDL_SWITCH_COMMIT"
     [[ -d "$SDL_SRC" ]] || {
       curl -fsSL -o "$SRC/sdl-switch.tar.gz" "https://github.com/devkitPro/SDL/archive/$SDL_SWITCH_COMMIT.tar.gz"
@@ -77,8 +83,16 @@ if ! done_or_force "$PREFIX/lib/cmake/SDL3/SDL3Config.cmake"; then
     curl -fsSL -o "$SRC/SDL3-$SDL_V.tar.gz" \
       "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_V/SDL3-$SDL_V.tar.gz"
     tar -xzf "$SRC/SDL3-$SDL_V.tar.gz" -C "$SRC" && rm "$SRC/SDL3-$SDL_V.tar.gz"; }
+  if [[ $TARGET == switch2 ]]; then
+    SDL_SWITCH2_SRC="$MOBILE_CACHE/sdl-source"
+    mkdir -p "$SDL_SWITCH2_SRC"
+    cp -R "$SDL_SRC/." "$SDL_SWITCH2_SRC/"
+    SDL_SRC="$SDL_SWITCH2_SRC"
+    cp "$SDL_SWITCH2_PATCH" "$SDL_SRC/rehomm4-switch2-display.patch"
+    patch -s -p1 -d "$SDL_SRC" < "$SDL_SRC/rehomm4-switch2-display.patch"
+  fi
   # iOS: static (an app's frameworks need their own bundle); Android: libSDL3.so, which SDLActivity loads.
-  if [[ $TARGET == ios || $TARGET == macos-* || $TARGET == switch ]]; then sdl_shared=(-DSDL_SHARED=OFF -DSDL_STATIC=ON)
+  if [[ $TARGET == ios || $TARGET == macos-* || $TARGET == switch* ]]; then sdl_shared=(-DSDL_SHARED=OFF -DSDL_STATIC=ON)
   else sdl_shared=(-DSDL_SHARED=ON -DSDL_STATIC=OFF); fi
   if [[ $TARGET == linux* ]]; then
     # X11 (Game Mode's gamescope runs games on Xwayland; the desktop has Xwayland too), Vulkan,
@@ -94,11 +108,14 @@ if ! done_or_force "$PREFIX/lib/cmake/SDL3/SDL3Config.cmake"; then
     fi
     cmake_dep sdl3 "$SDL_SRC" "${sdl_shared[@]}" -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
     -DSDL_TEST_LIBRARY=OFF )
+  if [[ $TARGET == switch2 ]]; then
+    cp "$SDL_SRC/rehomm4-switch2-display.patch" "$SDL_SWITCH2_STAMP"
+  fi
 fi
 echo "sdl3: ok"
 
 say "glslang $GLSLANG_V"
-if [[ $TARGET == switch ]]; then
+if [[ $TARGET == switch* ]]; then
   echo "glslang: not used (no SDL_GPU on the Switch)"
 elif ! done_or_force "$PREFIX/lib/cmake/glslang/glslang-config.cmake"; then
   fetch_git glslang https://github.com/KhronosGroup/glslang.git "$GLSLANG_V"
@@ -106,7 +123,7 @@ elif ! done_or_force "$PREFIX/lib/cmake/glslang/glslang-config.cmake"; then
     -DGLSLANG_TESTS=OFF -DGLSLANG_ENABLE_INSTALL=ON -DENABLE_GLSLANG_BINARIES=OFF \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 fi
-[[ $TARGET == switch ]] || echo "glslang: ok"
+[[ $TARGET == switch* ]] || echo "glslang: ok"
 
 if [[ $TARGET == ios || $TARGET == macos-* ]]; then
   say "SPIRV-Cross $SPIRV_CROSS_V"
@@ -146,6 +163,13 @@ if ! done_or_force "$PREFIX/lib/libavcodec.a"; then
   rm -rf "$BLD/ffmpeg"
 fi
 echo "ffmpeg: ok"
+if [[ $TARGET == windows-* ]] && ! done_or_force "$PREFIX/include/zlib.h"; then
+  say "zlib $ZLIB_V"
+  fetch_sha "https://zlib.net/fossils/zlib-$ZLIB_V.tar.gz" "$ZLIB_SHA"
+  [[ -d "$SRC/zlib-$ZLIB_V" ]] || tar -xzf "$SRC/zlib-$ZLIB_V.tar.gz" -C "$SRC"
+  cmake_dep zlib "$SRC/zlib-$ZLIB_V" -DBUILD_SHARED_LIBS=OFF -DZLIB_BUILD_EXAMPLES=OFF
+  echo "zlib: ok"
+fi
 say "innoextract $INNO_V (library)"
 if ! done_or_force "$PREFIX/lib/librecomp_innoextract.a"; then
   fetch_sha "https://constexpr.org/innoextract/files/innoextract-$INNO_V.tar.gz" "$INNO_SHA"
@@ -163,12 +187,15 @@ if ! done_or_force "$PREFIX/lib/librecomp_innoextract.a"; then
   [[ -d "$SRC/$BOOST_DIR/libs/iostreams/src" ]] || tar -xjf "$SRC/$BOOST_DIR.tar.bz2" -C "$SRC" \
     "$BOOST_DIR/boost" "$BOOST_DIR/libs/filesystem/src" "$BOOST_DIR/libs/iostreams/src" "$BOOST_DIR/LICENSE_1_0.txt"
   [[ -d "$SRC/xz-$XZ_V" ]] || tar -xzf "$SRC/xz-$XZ_V.tar.gz" -C "$SRC"
+  xz_threads=posix
+  [[ $TARGET == switch* ]] && xz_threads=no
+  [[ $TARGET == windows-* ]] && xz_threads=win95
   cmake_dep xz "$SRC/xz-$XZ_V" -DBUILD_SHARED_LIBS=OFF -DXZ_NLS=OFF -DXZ_DOC=OFF -DXZ_TOOL_XZ=OFF \
     -DXZ_TOOL_XZDEC=OFF -DXZ_TOOL_LZMADEC=OFF -DXZ_TOOL_LZMAINFO=OFF -DXZ_TOOL_SCRIPTS=OFF \
-    -DXZ_SANDBOX=no -DXZ_THREADS=$([[ $TARGET == switch ]] && echo no || echo posix) -DBUILD_TESTING=OFF \
+    -DXZ_SANDBOX=no -DXZ_THREADS="$xz_threads" -DBUILD_TESTING=OFF \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
   bz=()
-  if [[ $TARGET == android || $TARGET == linux* ]]; then  # no libbz2 in the NDK or the sysroot
+  if [[ $TARGET == android || $TARGET == linux* || $TARGET == windows-* ]]; then  # no libbz2 in the NDK, sysroot or mingw prefix
     fetch_sha "https://sourceware.org/pub/bzip2/bzip2-$BZIP2_V.tar.gz" "$BZIP2_SHA"
     [[ -d "$SRC/bzip2-$BZIP2_V" ]] || tar -xzf "$SRC/bzip2-$BZIP2_V.tar.gz" -C "$SRC"
     bz=(-DBZIP2_SRC="$SRC/bzip2-$BZIP2_V")

@@ -5,6 +5,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#if defined(_WIN32)
+#include <io.h>
+#endif
 
 #include <algorithm>
 #include <cstdint>
@@ -116,9 +119,26 @@ bool ReadFiles(SDL_IOStream* io, std::vector<File>* out) {
   return true;
 }
 
-bool PRead(int fd, void* p, size_t n, uint64_t at) { return pread(fd, p, n, off_t(at)) == ssize_t(n); }
+bool PRead(int fd, void* p, size_t n, uint64_t at) {
+#if defined(_WIN32)
+  return _lseeki64(fd, static_cast<__int64>(at), SEEK_SET) >= 0 && _read(fd, p, unsigned(n)) == int(n);
+#else
+  return pread(fd, p, n, off_t(at)) == ssize_t(n);
+#endif
+}
 bool PWrite(int fd, const void* p, size_t n, uint64_t at) {
+#if defined(_WIN32)
+  return _lseeki64(fd, static_cast<__int64>(at), SEEK_SET) >= 0 && _write(fd, p, unsigned(n)) == int(n);
+#else
   return pwrite(fd, p, n, off_t(at)) == ssize_t(n);
+#endif
+}
+void SyncFile(int fd) {
+#if defined(_WIN32)
+  _commit(fd);
+#else
+  fsync(fd);
+#endif
 }
 
 struct Pack {
@@ -177,14 +197,14 @@ bool TakeOut(Pack& p, const std::string& game_dir, std::map<std::string, Fd>& fi
       }
     }
     if (data && truncate && english) {
-      fsync(f.fd);
+      SyncFile(f.fd);
       if (ftruncate(f.fd, off_t(a.size)) != 0) {
         *error = "cannot write Data/" + a.name;
         return false;
       }
       std::printf("h4: language: %s taken out of Data/%s\n", p.path.c_str(), a.name.c_str());
     }
-    fsync(f.fd);
+    SyncFile(f.fd);
   }
   return true;
 }
@@ -524,7 +544,7 @@ bool SetGameLanguage(const std::string& game_dir, const std::string& code, const
       }
       done += n;
     }
-    fsync(files[i].fd);
+    SyncFile(files[i].fd);
   }
   // 3. The entries.
   for (size_t i = 0; i < archives.size(); i++) {
@@ -536,7 +556,7 @@ bool SetGameLanguage(const std::string& game_dir, const std::string& code, const
         return false;
       }
     }
-    fsync(files[i].fd);
+    SyncFile(files[i].fd);
   }
   return true;
 }

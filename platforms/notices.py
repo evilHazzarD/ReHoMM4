@@ -3,7 +3,7 @@
 """THIRD_PARTY_NOTICES.txt for an app made by platforms/build.sh: the project's license and every
 third-party part linked into it, with the license each is used under.
 
-    python3 -I platforms/notices.py <target> <build dir> <out.txt>     (target: ios android macos linux switch)
+    python3 -I platforms/notices.py <target> <build dir> <out.txt>     (target: ios android macos linux windows switch)
 
 The parts come from the build's own link line (the Ninja build's h4 command; the Xcode project for
 iOS), so a linked library always has its notice and nothing unlinked is listed (as platforms/macos-dmg/notices.py
@@ -39,7 +39,7 @@ def ffmpeg_offer(shared):
 
 
 def sdl_license(target):
-    if target == 'switch':
+    if target in ('switch', 'switch2'):
         return glob.glob(os.path.join(SRC, 'SDL-*', 'LICENSE.txt'))[:1]
     return sorted(glob.glob(os.path.join(SRC, 'SDL3-*', 'LICENSE.txt')))[-1:]
 
@@ -65,16 +65,18 @@ def table(target):
          glob.glob(os.path.join(SRC, 'boost_*', 'LICENSE_1_0.txt'))[:1], ''),
         ('liblzma from XZ Utils (used by innoextract) - 0BSD', lambda l: l == 'liblzma.a',
          glob.glob(os.path.join(SRC, 'xz-*', 'COPYING.0BSD'))[:1], ''),
+        ('zlib - zlib license', lambda l: l == 'libzlibstatic.a',
+         glob.glob(os.path.join(SRC, 'zlib-*', 'LICENSE'))[:1], ''),
         ('ffmpeg (libav*, libsw*) - LGPL-2.1-or-later', lambda l: l.startswith(('libav', 'libsw')),
          [os.path.join(SRC, 'ffmpeg-9.0.2', 'COPYING.LGPLv2.1')], ffmpeg_offer(shared_ff)),
     ]
-    if target in ('android', 'linux'):  # built into librecomp_innoextract (platforms/deps.sh)
+    if target in ('android', 'linux', 'windows'):  # built into librecomp_innoextract (platforms/deps.sh)
         t.append(('bzip2 (used by innoextract) - bzip2 license', lambda l: l == 'librecomp_innoextract.a',
                   glob.glob(os.path.join(SRC, 'bzip2-*', 'LICENSE'))[:1], ''))
     if target == 'android':
         t.append(('LLVM libc++ (libc++_shared.so) - Apache-2.0 WITH LLVM-exception', lambda l: l == 'libc++_shared.so',
                   [os.path.join(LIC, 'LLVM-Apache-2.0-with-LLVM-exception.txt')], ''))
-    if target == 'switch':
+    if target in ('switch', 'switch2'):
         pl = os.path.join(DKP, 'portlibs', 'switch', 'licenses')
         t += [
             ('zlib - zlib', lambda l: l == '-lz', [os.path.join(pl, 'switch-zlib', 'LICENSE')], ''),
@@ -87,12 +89,25 @@ def table(target):
             ('newlib and the GCC runtime (devkitA64)', lambda l: l in ('-lstdc++', 'libm.a'),
              [os.path.join(LIC, 'newlib.txt')], ''),
         ]
+    if target == 'switch2':
+        sdk = os.path.join(DKP, 'libounce', 'licenses')
+        vk = os.path.join(DKP, 'portlibs', 'switch2', 'share', 'licenses', 'ouncevk')
+        t += [
+            ('libounce and bundled runtime', lambda l: l in ('-lnx', '-lounce'),
+             [os.path.join(sdk, f) for f in ('libounce-ISC.txt', 'libnx-ISC.txt', 'mimalloc-MIT.txt')], ''),
+            ('OunceVK', lambda l: l in ('-lEGL', '-lglapi', '-ldrm_nouveau', '-lGLESv2',
+                                        '-lvulkan', '-louncevk', '-louncevk-gl'),
+             [os.path.join(vk, f) for f in ('README.md', 'mesa-license.rst', 'zlib-license.txt')], ''),
+        ]
     return t
 
 
 # The system's own libraries (not shipped with the app) and the app's own parts.
 SYSTEM = {'-lm', '-lpthread', '-ldl', '-latomic', '-l:libatomic.a', '-liconv', '-lobjc', '-leaf', '-llog',
-          '-landroid', 'libandroid.so', 'libmediandk.so', 'libm.so', 'libmain.so', 'libh4_lifted.a'}
+          '-landroid', 'libandroid.so', 'libmediandk.so', 'libm.so', 'libmain.so', 'libh4_lifted.a',
+          '-lkernel32', '-luser32', '-lgdi32', '-lwinmm', '-limm32', '-lole32', '-loleaut32',
+          '-lshell32', '-lversion', '-lsetupapi', '-lcfgmgr32', '-lwinspool', '-luuid', '-lws2_32',
+          '-ladvapi32', '-lshcore', '-lbcrypt', '-ldinput8', '-ldxguid', '-lwinhttp', '-lcomdlg32'}
 
 
 def linked(target, build):
@@ -110,7 +125,7 @@ def linked(target, build):
         b = os.path.basename(w)
         if re.match(r'^-l[:A-Za-z0-9_+.]+$', w) or re.search(r'\.(a|so)(\.[0-9.]+)?$', b):
             libs.add(w if w.startswith('-l') else b)
-    if target in ('macos', 'linux', 'android'):
+    if target in ('macos', 'linux', 'android', 'windows'):
         libs -= {'-lz', '-lbz2'}  # the system's
     if target == 'android':
         libs.add('libc++_shared.so')  # shipped beside libmain.so (platforms/android/package.sh)
@@ -118,7 +133,7 @@ def linked(target, build):
 
 
 def main():
-    if len(sys.argv) != 4 or sys.argv[1] not in ('ios', 'android', 'macos', 'linux', 'switch'):
+    if len(sys.argv) != 4 or sys.argv[1] not in ('ios', 'android', 'macos', 'linux', 'windows', 'switch', 'switch2'):
         print(__doc__)
         return 2
     target, build, out = sys.argv[1:]

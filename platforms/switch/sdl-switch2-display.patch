@@ -1,0 +1,152 @@
+--- a/src/video/switch/SDL_switchvideo.c
++++ b/src/video/switch/SDL_switchvideo.c
+@@ -22,7 +22,8 @@
+ #if SDL_VIDEO_DRIVER_SWITCH
+ 
+ #include "../../events/SDL_keyboard_c.h"
+ #include "../../events/SDL_mouse_c.h"
++#include "../../events/SDL_windowevents_c.h"
+ #include "../SDL_sysvideo.h"
+ 
+ #include "SDL_switchkeyboard.h"
+@@ -129,8 +130,22 @@
+ /*****************************************************************************/
+ /* SDL Video and Display initialization/handling functions                   */
+ /*****************************************************************************/
+-bool SWITCH_VideoInit(SDL_VideoDevice *_this)
+-{
++#ifdef __SWITCH2__
++static bool SWITCH_ReadOutputSize(int *w, int *h)
++{
++    s32 width = 0, height = 0;
++    if (R_FAILED(appletGetDefaultDisplayResolution(&width, &height)) ||
++        width <= 0 || height <= 0) {
++        return false;
++    }
++    *w = width;
++    *h = height;
++    return true;
++}
++#endif
++
++bool SWITCH_VideoInit(SDL_VideoDevice *_this)
++{
+     SDL_DisplayMode current_mode;
+ 
+     (void)_this;
+@@ -145,7 +160,10 @@
+         current_mode.h = 1080;
+     }
+ 
+-    current_mode.refresh_rate = 60.0f;
++#ifdef __SWITCH2__
++    SWITCH_ReadOutputSize(&current_mode.w, &current_mode.h);
++#endif
++    current_mode.refresh_rate = 60.0f;
+     current_mode.format = SDL_PIXELFORMAT_RGBA8888;
+ 
+     if (SDL_AddBasicVideoDisplay(&current_mode) == 0) {
+@@ -197,7 +215,13 @@
+     mode.refresh_rate = 60;
+     mode.format = SDL_PIXELFORMAT_RGBA8888;
+ 
+-    // 1280x720 RGBA8888
++#ifdef __SWITCH2__
++    if (SWITCH_ReadOutputSize(&mode.w, &mode.h)) {
++        SDL_AddFullscreenDisplayMode(display, &mode);
++        return true;
++    }
++#endif
++    // 1280x720 RGBA8888
+     mode.w = 1280;
+     mode.h = 720;
+     SDL_AddFullscreenDisplayMode(display, &mode);
+@@ -312,21 +336,32 @@
+ 
+ static void SWITCH_SetWindowSize(SDL_VideoDevice *_this, SDL_Window *window)
+ {
+-    u32 w = 0, h = 0;
++#ifdef __SWITCH2__
++    const int w = window->pending.w, h = window->pending.h;
++#else
++    const int w = window->w, h = window->h;
++#endif
+     SDL_WindowData *data = (SDL_WindowData *)window->internal;
+     SDL_GLContext ctx = SDL_GL_GetCurrentContext();
+     NWindow *nWindow = nwindowGetDefault();
+ 
+-    if (window->w != w || window->h != h) {
++#ifdef __SWITCH2__
++    if ((window->w != w || window->h != h) && w > 0 && h > 0) {
++#else
++    if (w > 0 && h > 0) {
++#endif
+         if (data != NULL && data->egl_surface != EGL_NO_SURFACE) {
+             SDL_EGL_MakeCurrent(_this, NULL, NULL);
+             SDL_EGL_DestroySurface(_this, data->egl_surface);
+-            nwindowSetDimensions(nWindow, window->w, window->h);
++            nwindowSetDimensions(nWindow, w, h);
+             data->egl_surface = SDL_EGL_CreateSurface(_this, window, nWindow);
+             SDL_EGL_MakeCurrent(_this, data->egl_surface, ctx);
+         }
++#ifdef __SWITCH2__
++        SDL_SendWindowEvent(window, SDL_EVENT_WINDOW_RESIZED, w, h);
++#endif
+     }
+ }
+ 
+ static void SWITCH_ShowWindow(SDL_VideoDevice *_this, SDL_Window *window)
+ {
+@@ -354,8 +389,10 @@
+ 
+ static void SWITCH_PumpEvents(SDL_VideoDevice *_this)
+ {
+-    AppletOperationMode om;
+-    Uint64 timestamp = SDL_GetTicksNS();
++#ifndef __SWITCH2__
++    AppletOperationMode om;
++#endif
++    Uint64 timestamp = SDL_GetTicksNS();
+ 
+     if (!appletMainLoop()) {
+         SDL_Event ev;
+@@ -372,7 +409,27 @@
+     }
+     SWITCH_PollSwkb(timestamp);
+ 
+-    // handle docked / un-docked modes
++#ifdef __SWITCH2__
++    // The applet's resolution can change independently of operation mode.
++    static Uint64 next_display_query;
++    if (timestamp >= next_display_query) {
++        next_display_query = timestamp + SDL_MS_TO_NS(500);
++        SDL_VideoDisplay *display = SDL_GetVideoDisplay(SDL_GetPrimaryDisplay());
++        if (display) {
++            SDL_DisplayMode mode = display->desktop_mode;
++            if (SWITCH_ReadOutputSize(&mode.w, &mode.h) &&
++                (mode.w != display->desktop_mode.w || mode.h != display->desktop_mode.h)) {
++                SDL_ResetFullscreenDisplayModes(display);
++                SDL_SetDesktopDisplayMode(display, &mode);
++                SDL_SetCurrentDisplayMode(display, &mode);
++                if (switch_window) {
++                    SDL_SetWindowSize(switch_window, mode.w, mode.h);
++                }
++            }
++        }
++    }
++#else
++    // handle docked / un-docked modes
+     // note that SDL_WINDOW_RESIZABLE is only possible in windowed mode,
+     // so we don't care about current fullscreen/windowed status
+     if (switch_window != NULL && switch_window->flags & SDL_WINDOW_RESIZABLE) {
+@@ -386,6 +443,7 @@
+             }
+         }
+     }
+-}
+-
+-#endif /* SDL_VIDEO_DRIVER_SWITCH */
++#endif
++}
++
++#endif /* SDL_VIDEO_DRIVER_SWITCH */

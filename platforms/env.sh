@@ -1,12 +1,13 @@
 #!/bin/bash
-# Sourced by the mobile scripts: `source platforms/env.sh <ios|android|linux|linux-arm64>` (linux:
-# x86-64, the Steam Deck; linux-arm64: 64-bit ARM; both cross-built against platforms/linux/sysroot.py's
+# Sourced by the platform scripts: `source platforms/env.sh <ios|android|linux-x86_64|linux-arm64|windows-x86_64>`
+# (linux-x86_64, also called linux: x86-64, the Steam Deck; linux-arm64: 64-bit ARM; both cross-built against platforms/linux/sysroot.py's
 # Debian sysroot). Sets TARGET, MOBILE_CACHE,
 # PREFIX (the cross-built libraries), JOBS, CMAKE_TARGET_ARGS (toolchain flags for any CMake project)
 # and FFMPEG_TARGET_ARGS (ffmpeg's configure).
 TARGET="${1:-}"
-case "$TARGET" in ios|android|linux|linux-arm64|macos-arm64|macos-x86_64|switch) ;;
-  *) echo "usage: $0 ios|android|linux|linux-arm64|macos-arm64|macos-x86_64|switch" >&2; exit 2 ;; esac
+[[ $TARGET == linux ]] && TARGET=linux-x86_64  # its old name
+case "$TARGET" in ios|android|linux-x86_64|linux-arm64|windows-x86_64|macos-arm64|macos-x86_64|switch|switch2) ;;
+  *) echo "usage: $0 ios|android|linux-x86_64|linux-arm64|windows-x86_64|macos-arm64|macos-x86_64|switch|switch2" >&2; exit 2 ;; esac
 ROOT="${ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # Homebrew first: an older cmake (MacPorts) cannot read the x86recomp presets.
 [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -50,7 +51,7 @@ elif [[ $TARGET == macos-* ]]; then
   fi
   FFMPEG_TARGET_ARGS+=(--extra-cflags="-arch $MAC_ARCH -mmacosx-version-min=$MAC_MIN"
     --extra-ldflags="-arch $MAC_ARCH -mmacosx-version-min=$MAC_MIN")
-elif [[ $TARGET == switch ]]; then
+elif [[ $TARGET == switch* ]]; then
   # Nintendo Switch homebrew (an .nro for Atmosphere's homebrew menu): devkitPro (/opt/devkitpro:
   # the installer from github.com/devkitPro/pacman, then dkp-pacman -S switch-dev switch-mesa
   # switch-libdrm_nouveau switch-zlib switch-bzip2 switch-liblzma switch-curl switch-mbedtls).
@@ -61,11 +62,20 @@ elif [[ $TARGET == switch ]]; then
     -DPKG_CONFIG_EXECUTABLE="$ROOT/platforms/switch/pkg-config")
   SW="$DEVKITA64/bin/aarch64-none-elf-"
   SWFLAGS="-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE -D__SWITCH__ -I$DEVKITPRO/libnx/include -I$DEVKITPRO/portlibs/switch/include"
+  SDK_ROOT="$DEVKITPRO/libnx"
+  if [[ $TARGET == switch2 ]]; then
+    SDK_ROOT="$DEVKITPRO/libounce"
+    [[ -f "$SDK_ROOT/cmake/Switch2.cmake" ]] || { echo 'Install ounce-devkit first' >&2; exit 2; }
+    export H4_SWITCH2=1
+    SWFLAGS="-mcpu=cortex-a78c+crypto -mtp=soft -fPIE -D__SWITCH__ -D__SWITCH2__ -I$SDK_ROOT/include -I$DEVKITPRO/portlibs/switch2/include -I$DEVKITPRO/portlibs/switch/include"
+  else
+    export H4_SWITCH2=0
+  fi
   FFMPEG_TARGET_ARGS=(--enable-cross-compile --target-os=none --arch=aarch64 --cross-prefix="$SW"
     --disable-pic --disable-runtime-cpudetect --disable-pthreads --disable-asm
-    --extra-cflags="$SWFLAGS" --extra-ldflags="-specs=$DEVKITPRO/libnx/switch.specs -L$DEVKITPRO/libnx/lib")
+    --extra-cflags="$SWFLAGS" --extra-ldflags="-specs=$SDK_ROOT/switch.specs -L$SDK_ROOT/lib")
 elif [[ $TARGET == linux* ]]; then
-  # x86-64 (linux): the Steam Deck's Zen 2 and any x86-64 from 2013 on (AVX2); arm64: ARMv8-A.
+  # x86-64 (linux-x86_64): the Steam Deck's Zen 2 and any x86-64 from 2013 on (AVX2); arm64: ARMv8-A.
   if [[ $TARGET == linux-arm64 ]]; then
     export H4_LINUX_TRIPLE=aarch64-linux-gnu H4_LINUX_CPU=aarch64 H4_LINUX_DEB=arm64 H4_LINUX_MARCH=armv8-a
     LINUX_FFMPEG_ARCH=(--arch=aarch64)
@@ -89,6 +99,18 @@ elif [[ $TARGET == linux* ]]; then
     --ld="$LCC --ld-path=$H4_LINUX_LLD" --nm="$H4_LINUX_LLVM/bin/llvm-nm" --ar="$H4_LINUX_LLVM/bin/llvm-ar"
     --ranlib="$H4_LINUX_LLVM/bin/llvm-ranlib" --strip="$H4_LINUX_LLVM/bin/llvm-strip"
     --extra-cflags="-march=$H4_LINUX_MARCH" --host-cc=/usr/bin/clang)
+elif [[ $TARGET == windows-x86_64 ]]; then
+  # Portable 64-bit Windows build, cross-compiled with Homebrew's mingw-w64.
+  export H4_WINDOWS_TRIPLE=x86_64-w64-mingw32
+  MINGW="${H4_WINDOWS_MINGW:-$H4_WINDOWS_TRIPLE}"
+  command -v "$MINGW-gcc" >/dev/null ||
+    { echo "no $MINGW-gcc (brew install mingw-w64)" >&2; exit 2; }
+  CMAKE_TARGET_ARGS=(-DCMAKE_TOOLCHAIN_FILE="$ROOT/platforms/windows/toolchain.cmake"
+    -DCMAKE_PREFIX_PATH="$PREFIX")
+  FFMPEG_TARGET_ARGS=(--enable-cross-compile --target-os=mingw32 --arch=x86_64
+    --cross-prefix="$MINGW-" --cc="$MINGW-gcc" --cxx="$MINGW-g++"
+    --nm="$MINGW-nm" --ar="$MINGW-ar" --ranlib="$MINGW-ranlib" --strip="$MINGW-strip"
+    --disable-x86asm --extra-cflags="-march=x86-64-v3")
 else
   if [[ -z "${ANDROID_NDK:-}" ]]; then
     ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"

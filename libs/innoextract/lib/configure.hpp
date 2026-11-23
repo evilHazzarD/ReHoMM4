@@ -65,4 +65,23 @@
 #define INNOEXTRACT_HAVE_ICONV 0  // newlib has the header, not the functions: the built-in converters
 #endif
 
+// MinGW has the Win32 console APIs, not the POSIX ioctl header.  The
+// innoextract library only needs console output for diagnostic progress.
+#ifdef _WIN32
+#undef INNOEXTRACT_HAVE_ISATTY
+#define INNOEXTRACT_HAVE_ISATTY 0
+#undef INNOEXTRACT_HAVE_IOCTL
+#define INNOEXTRACT_HAVE_IOCTL 0
+#undef INNOEXTRACT_HAVE_ICONV
+#define INNOEXTRACT_HAVE_ICONV 0
+#undef INNOEXTRACT_HAVE_WIN32_CONV
+#define INNOEXTRACT_HAVE_WIN32_CONV 1
+#undef INNOEXTRACT_HAVE_UTIMENSAT
+#define INNOEXTRACT_HAVE_UTIMENSAT 0
+#undef INNOEXTRACT_HAVE_AT_FDCWD
+#define INNOEXTRACT_HAVE_AT_FDCWD 0
+#undef INNOEXTRACT_HAVE_UTIMES
+#define INNOEXTRACT_HAVE_UTIMES 0
+#endif
+
 #endif // INNOEXTRACT_CONFIGURE_HPP

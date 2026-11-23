@@ -9,10 +9,10 @@
 # (the folder with heroes4.exe) to sdmc:/switch/ReHoMM4/game, and start it from the homebrew menu in title takeover (hold R
 # while starting a game: the album applet has too little memory for the game).
 #
-#   platforms/switch/package.sh <build dir>
+#   platforms/switch/package.sh <build dir> [switch|switch2]
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-source "$ROOT/platforms/env.sh" switch
+source "$ROOT/platforms/env.sh" "${2:-switch}"
 B="$1"
 OUT="$MOBILE_CACHE/dist"
 RF="$MOBILE_CACHE/romfs"
@@ -30,5 +30,17 @@ bash "$ROOT/assets/icon/icon.sh" switch "$ICON" >/dev/null
 "$T/nacptool" --create "Heroes IV" "ReHoMM4" "$H4_VERSION" "$MOBILE_CACHE/heroes4.nacp" >/dev/null
 "$T/elf2nro" "$MOBILE_CACHE/heroes4.stripped.elf" "$OUT/HeroesIV.nro" --icon="$ICON" \
   --nacp="$MOBILE_CACHE/heroes4.nacp" --romfsdir="$RF" >/dev/null
+if [[ $TARGET == switch2 ]]; then
+  python3 -I - "$OUT/HeroesIV.nro" <<'PY'
+import struct
+import sys
+
+with open(sys.argv[1], 'rb') as f:
+    header = f.read(4096)
+switch2_record = struct.pack('<4sII', b'OUN0', 2, 1)
+if header[16:20] != b'NRO0' or switch2_record not in header:
+    sys.exit('Expected a Switch 2 NRO with a libounce startup record')
+PY
+fi
 rm -f "$MOBILE_CACHE/heroes4.stripped.elf"
-echo "switch: $OUT/HeroesIV.nro ($(du -sh "$OUT/HeroesIV.nro" | cut -f1))"
+echo "$TARGET: $OUT/HeroesIV.nro ($(du -sh "$OUT/HeroesIV.nro" | cut -f1))"

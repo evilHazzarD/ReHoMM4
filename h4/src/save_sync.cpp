@@ -15,9 +15,14 @@
 // game wrote beside it (<data>/data/h4/install).
 #include "save_sync.h"
 
+#if defined(_WIN32)
+#include <windows.h>
+#include <shlobj.h>
+#else
 #include <spawn.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include <cerrno>
 #include <chrono>
@@ -33,7 +38,9 @@
 #include <thread>
 #include <vector>
 
+#if !defined(_WIN32)
 extern char** environ;
+#endif
 
 namespace fs = std::filesystem;
 
@@ -48,12 +55,30 @@ std::string Trim(std::string s) {
   return s.substr(i);
 }
 
-bool IEquals(const std::string& a, const char* b) { return !strcasecmp(a.c_str(), b); }
+bool IEquals(const std::string& a, const char* b) {
+#if defined(_WIN32)
+  return _stricmp(a.c_str(), b) == 0;
+#else
+  return !strcasecmp(a.c_str(), b);
+#endif
+}
 
 bool IsSave(const fs::path& p) {
   std::string e = p.extension().string();
   return IEquals(e, ".h4s");
 }
+
+#if defined(_WIN32)
+std::string WindowsDocuments() {
+  PWSTR p = nullptr;
+  if (FAILED(SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &p))) return ".";
+  const int n = WideCharToMultiByte(CP_UTF8, 0, p, -1, nullptr, 0, nullptr, nullptr);
+  std::string out(n > 0 ? n - 1 : 0, '\0');
+  if (n > 1) WideCharToMultiByte(CP_UTF8, 0, p, -1, out.data(), n, nullptr, nullptr);
+  CoTaskMemFree(p);
+  return out;
+}
+#endif
 
 }  // namespace
 
@@ -82,6 +107,9 @@ SyncConfig ReadSyncConfig(const std::string& data_dir) {
 
 // rclone: the one in PATH, else where Homebrew and the install script put it (a Mac app
 // started from Finder does not have the shell's PATH).
+#if defined(_WIN32)
+std::string RcloneBinary() { return ""; }
+#else
 std::string RcloneBinary() {
   std::vector<std::string> dirs;
   if (const char* p = std::getenv("PATH"))
@@ -97,10 +125,17 @@ std::string RcloneBinary() {
     if (!d.empty() && access((d + "/rclone").c_str(), X_OK) == 0) return d + "/rclone";
   return "";
 }
+#endif
 
 // `rclone copy from to --update`: files newer on `from` (or missing on `to`) copied, with their
 // times; nothing deleted. False when rclone is missing or failed.
 bool RcloneCopy(const std::string& from, const std::string& to, std::string* err) {
+#if defined(_WIN32)
+  (void)from;
+  (void)to;
+  *err = "rclone remote sync is not available in this Windows build";
+  return false;
+#else
   const std::string bin = RcloneBinary();
   if (bin.empty()) {
     *err = "rclone is not installed";
@@ -124,6 +159,7 @@ bool RcloneCopy(const std::string& from, const std::string& to, std::string* err
   if (WIFEXITED(st) && WEXITSTATUS(st) == 0) return true;
   *err = "rclone failed (exit " + std::to_string(WIFEXITED(st) ? WEXITSTATUS(st) : -1) + ")";
   return false;
+#endif
 }
 
 std::string RcloneAround(const std::string& remote, const std::string& folder, bool down) {
@@ -231,8 +267,12 @@ void StartSaveSync(const std::string& data_dir) {
     return;
   }
   if (g_conf.folder.empty()) {
+#if defined(_WIN32)
+    g_conf.folder = WindowsDocuments() + "/ReHOMM4";
+#else
     const char* home = std::getenv("HOME");
     g_conf.folder = std::string(home ? home : ".") + "/ReHOMM4";
+#endif
   }
   std::fprintf(stderr, "h4: save sync with %s%s%s\n", g_conf.folder.c_str(),
                g_conf.rclone.empty() ? "" : " and rclone ", g_conf.rclone.c_str());

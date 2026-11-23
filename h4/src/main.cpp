@@ -24,6 +24,13 @@
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif
+#if defined(_WIN32)
+#include <shlobj.h>
+#include <direct.h>
+// MinGW exposes the Microsoft spellings only. Keep the app code below POSIX-shaped.
+static int setenv(const char* name, const char* value, int) { return _putenv_s(name, value); }
+static int mkdir(const char* path, int) { return _mkdir(path); }
+#endif
 // The Linux (Steam Deck) and Mac app builds (H4_DESKTOP_APP, platforms/build.sh linux|macos-*) work
 // the same way: the game installed by the app into ~/.local/share/ReHoMM4 (Linux) or
 // ~/Library/Application Support/ReHoMM4 (Mac).
@@ -269,7 +276,18 @@ void MobileDirs(std::string* user_files, std::string* data) {
   // .../ReHoMM4: the game in game/, saves and settings in player/. Linux:
   // $XDG_DATA_HOME (~/.local/share); Mac: ~/Library/Application Support.
   const char* home = std::getenv("HOME");
-#if defined(__APPLE__)
+#if defined(_WIN32)
+  PWSTR known = nullptr;
+  if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &known))) {
+    const int n = WideCharToMultiByte(CP_UTF8, 0, known, -1, nullptr, 0, nullptr, nullptr);
+    std::string base(n > 0 ? n - 1 : 0, '\0');
+    if (n > 1) WideCharToMultiByte(CP_UTF8, 0, known, -1, base.data(), n, nullptr, nullptr);
+    CoTaskMemFree(known);
+    *user_files = base + "/ReHoMM4";
+  } else {
+    *user_files = "./ReHoMM4";
+  }
+#elif defined(__APPLE__)
   *user_files = std::string(home ? home : ".") + "/Library/Application Support/ReHoMM4";
 #else
   const char* xdg = std::getenv("XDG_DATA_HOME");
@@ -376,14 +394,14 @@ std::string MobileSetup() {
 
 }  // namespace
 
-#if defined(H4_DESKTOP_APP)
+#if defined(H4_DESKTOP_APP) && !defined(H4_WINDOWS_APP)
 namespace h4 {
 void KeepStartArgs(int argc, char** argv);
 }
 #endif
 
 int main(int argc, char** argv) {
-#if defined(H4_DESKTOP_APP)
+#if defined(H4_DESKTOP_APP) && !defined(H4_WINDOWS_APP)
   h4::KeepStartArgs(argc, argv);  // for RestartApp (menu_button.h)
 #endif
 #if defined(H4_SWITCH_APP)
@@ -473,7 +491,7 @@ const std::string& GameFolder() { return g_game_folder; }
 void SetGameFolder(const std::string& path) { g_game_folder = path; }
 }  // namespace h4
 
-#if defined(H4_DESKTOP_APP)
+#if defined(H4_DESKTOP_APP) && !defined(H4_WINDOWS_APP)
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #endif
