@@ -14,6 +14,8 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
 - Wide screen and a sharp picture on high-resolution displays.
 - Smooth animation on the adventure map and in combat.
 - Touch controls on phones and tablets; saves can follow you between devices.
+- A random map generator: new maps from 32 templates, with your choice of size, players, factions,
+  teams, starting heroes, water, underground, monsters and treasures ([Random maps](#random-maps)).
 
 **What you need:**
 
@@ -316,6 +318,21 @@ game's player folder:
 `~/Library/Application Support/ReHoMM4`, on Linux `~/.local/share/ReHoMM4` (the game files and
 saves).
 
+## Random maps
+
+New Game → **Scenario** → **Random map** (the button under the list of scenarios) opens the
+generator. At the top choose the **template**, the map's layout of zones and roads: Classic or one
+of 31 more (rings, spiders, mirrors, team maps, labyrinths…). A template made for other numbers of
+players or map sizes sets them when picked. Then the map size, the players (each human or
+computer, with faction, team and starting hero; the hero's card shows the skills, army and
+biography), water, underground, monsters, obelisks, treasures and the seed. Most can be
+**Random**. **Create** makes the map and selects it in the list of scenarios.
+
+A random map in the list can be edited (its settings come back) and made again in its place, or
+deleted. Each map keeps its full settings in its description, so the same seed and settings make
+the same map on every device. Templates are text files in `Maps/RandomMaps/Templates` (beside the
+game files): change them or add your own; `example.txt` explains the format.
+
 ## Controls
 
 As in the original game; on touch screens a tap is a click and a long press a right-click. In
@@ -472,6 +489,8 @@ Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузе�
 - Широкий екран і чітка картинка на дисплеях високої роздільності.
 - Плавна анімація на карті й у бою.
 - Керування дотиком на телефонах і планшетах; збереження можуть переходити між пристроями.
+- Генератор випадкових карт: нові карти за 32 шаблонами, з вибором розміру, гравців, фракцій,
+  команд, стартових героїв, води, підземелля, монстрів і скарбів ([Випадкові карти](#випадкові-карти)).
 
 **Що потрібно:**
 
@@ -771,6 +790,22 @@ Magic IV: Complete з GOG (англійський інсталятор для Wi
 
 **Видалити гру:** видаліть програму; на Маці також теку `~/Library/Application Support/ReHoMM4`, на
 Linux — `~/.local/share/ReHoMM4` (файли гри й збереження).
+
+### Випадкові карти
+
+Нова гра → **Scenario** → **Random map** (кнопка під списком сценаріїв) відкриває генератор. Угорі
+оберіть **шаблон** — розташування зон і доріг карти: Classic або один з 31 інших (кільця, павуки,
+дзеркала, командні карти, лабіринти…). Шаблон для іншої кількості гравців чи розміру карти сам їх
+виставляє. Далі — розмір карти, гравці (кожен — людина чи комп'ютер, із фракцією, командою й
+стартовим героєм; картка героя показує навички, армію й біографію), вода, підземелля, монстри,
+обеліски, скарби й зерно (seed). Майже все може бути **Random**. **Create** створює карту й обирає
+її в списку сценаріїв.
+
+Випадкову карту зі списку можна змінити (її налаштування повертаються) і створити заново на тому ж
+місці або видалити. Кожна карта зберігає всі свої налаштування в описі, тож те саме зерно й
+налаштування дають ту саму карту на кожному пристрої. Шаблони — текстові файли в
+`Maps/RandomMaps/Templates` (поруч із файлами гри): змінюйте їх чи додавайте свої; формат пояснено
+в `example.txt`.
 
 ### Керування
 
