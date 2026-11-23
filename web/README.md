@@ -56,7 +56,7 @@ Cross-Origin-Embedder-Policy: require-corp
 with every file (`serve.py` does). Where the server cannot (GitHub Pages), the page registers
 `coi-sw.js`, a service worker that adds them, and reloads once.
 
-Browsers: current desktop Chrome, Edge, Firefox and Safari, 64-bit (the page needs 2.5-3 GB of
+Browsers: current Chrome, Edge, Firefox and Safari, 64-bit, on computers, phones and tablets (the page needs 2.5-3 GB of
 memory of the 4 GB a tab may have). WebAssembly tail calls are required (Chrome 112, Firefox 121,
 Safari 18.2).
 
