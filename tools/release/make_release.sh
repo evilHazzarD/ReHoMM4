@@ -55,7 +55,7 @@ TARGETS=(
   "macos-x86_64 HeroesIV-macos-x86_64.dmg      reHoMM4-v$V-macos-x86_64.dmg"
   "ios          HeroesIV-ios.ipa               reHoMM4-v$V-ios.ipa"
   "android      HeroesIV-android_arm64.apk     reHoMM4-v$V-android_arm64.apk"
-  "windows-x86_64 HeroesIV-windows-x86_64.zip  reHoMM4-v$V-windows-x86_64.zip"
+  # windows-x86_64 HeroesIV-windows-x86_64.zip reHoMM4-v$V-windows-x86_64.zip   (not released yet)
   "linux-x86_64 HeroesIV-linux-x86_64.tar.gz   reHoMM4-v$V-linux-x86_64.tar.gz"
   "linux-arm64  HeroesIV-linux-arm64.tar.gz    reHoMM4-v$V-linux-arm64.tar.gz"
   "switch       HeroesIV.nro                   reHoMM4-v$V-switch.nro"
@@ -86,6 +86,7 @@ EXTRA=("$OUT/HOMM4-extra-assets.zip")
 fi
 
 say "Checking"
+WIN=(); for f in "$OUT"/*-windows-x86_64.zip; do [[ -f "$f" ]] && WIN+=("$f"); done  # (when built)
 # The APK must be signed with the release key (platforms/android/app/build.gradle), or it will not
 # install over the old version.
 apksigner="$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
@@ -103,7 +104,7 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/linux" "$T/linux-arm64"
 tar -xzf "$OUT/reHoMM4-v$V-linux-x86_64.tar.gz" -C "$T/linux"
 tar -xzf "$OUT/reHoMM4-v$V-linux-arm64.tar.gz" -C "$T/linux-arm64"
-for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-windows-x86_64.zip; do
+for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk ${WIN[@]+"${WIN[@]}"}; do
   case "$f" in
     *.dmg) bash tools/release/release_check.sh "$f" 2>/dev/null ;;
     *-windows-x86_64.zip) bash tools/release/release_check.sh "$f" | sed "s#$OUT/##" ;;  # (its name: the exe allowed)
@@ -112,9 +113,9 @@ for f in "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-windows-x86_64.zip; do
 done
 bash tools/release/release_check.sh "$T/linux" | sed "s#$T/linux#linux tar.gz#"
 bash tools/release/release_check.sh "$T/linux-arm64" | sed "s#$T/linux-arm64#linux-arm64 tar.gz#"
-python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-windows-x86_64.zip "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} |
+python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk ${WIN[@]+"${WIN[@]}"} "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} |
   grep -E '^(FAIL|publish_check)' | sed "s#$T/##"
-python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk "$OUT"/*-windows-x86_64.zip "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} >/dev/null ||
+python3 tools/release/publish_check.py --release "$OUT"/*.dmg "$OUT"/*.ipa "$OUT"/*.apk ${WIN[@]+"${WIN[@]}"} "$T/linux" "$T/linux-arm64" "$OUT"/*.nro ${EXTRA[@]+"${EXTRA[@]}"} >/dev/null ||
   die "publish_check failed (above)"
 
 say "Release $V: $OUT"

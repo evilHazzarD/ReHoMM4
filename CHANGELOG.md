@@ -4,12 +4,11 @@ Each release's notes on GitHub are its section here (tools/release/make_release.
 
 ## 0.4
 
-Random maps, a Windows app, a new icon, and fixes.
+Random maps, a new icon, and fixes.
 
 | Device | File |
 |---|---|
 | Mac, macOS 13+ | `reHoMM4-v0.4-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v0.4-macos-x86_64.dmg` (Intel) |
-| Windows 10+, 64-bit | `reHoMM4-v0.4-windows-x86_64.zip` |
 | iPhone, iPad, iOS / iPadOS 17+ | `reHoMM4-v0.4-ios.ipa` (install with AltStore or Sideloadly) |
 | Android 10+, 64-bit | `reHoMM4-v0.4-android_arm64.apk` |
 | Linux, Steam Deck | `reHoMM4-v0.4-linux-x86_64.tar.gz` (x86-64) or `reHoMM4-v0.4-linux-arm64.tar.gz` (64-bit ARM) |
@@ -18,12 +17,11 @@ Random maps, a Windows app, a new icon, and fixes.
 **New**
 - **Random maps**: New Game → Scenario → **Random map**. Choose the template, the map size, the number of players (each human or computer, with faction, team and starting hero), water, underground, monsters, obelisks, treasures and the seed; most can be **Random**. The hero's card shows the starting hero's skills, statistics, army and biography. A random map in the list can be edited and made again.
 - **32 templates**: Classic and 31 more, our own layouts of the kinds popular in Heroes 3 (Ring, Spider, Mirror, Allies, Three on three, Labyrinth, Checkerboard, …). They are text files in `Maps/RandomMaps/Templates`: change them or add your own (`example.txt` explains the format).
-- **Windows**: a portable app, `reHoMM4-v0.4-windows-x86_64.zip`.
 - **A new icon** on every platform.
 - **Black side panels** can be chosen in the settings (from the next start).
 
 **Changed**
-- The Windows and Linux archives unpack into a `ReHoMM4` folder, and the Mac app is `ReHoMM4.app` (was `Heroes IV`). On the Mac, move the old **Heroes IV** from Applications to the Bin after installing; saves and settings are kept.
+- The Linux archives unpack into a `ReHoMM4` folder, and the Mac app is `ReHoMM4.app` (was `Heroes IV`). On the Mac, move the old **Heroes IV** from Applications to the Bin after installing; saves and settings are kept.
 - The installer scrolls when it is taller than the screen (a phone on its side).
 
 **Fixed**
@@ -32,7 +30,6 @@ Random maps, a Windows app, a new icon, and fixes.
 
 **Known limits**
 - The Mac app is not signed: the first time, right-click it → **Open** → **Open**.
-- The Windows app is new and has had little testing.
 - The Switch app has been tested only in the Astris emulator, not on a real console.
 
 ## 0.3

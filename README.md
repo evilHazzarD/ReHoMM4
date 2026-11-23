@@ -1,6 +1,6 @@
 # ReHoMM4: Heroes of Might and Magic IV, native
 
-Native port of Heroes of Might and Magic IV (including both expansions) for Windows, macOS, iOS, iPadOS, Android (including Android TV), Linux, Steam Deck, and Nintendo Switch. Runs directly on hardware—no Wine, emulators, or VMs.
+Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android (including Android TV), Linux, Steam Deck, and Nintendo Switch. Runs directly on hardware—no Wine, emulators, or VMs.
 
 [Українською — нижче](#українською)
 
@@ -25,7 +25,6 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   - an iPhone or iPad with iOS / iPadOS 17 or later;
   - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
   - a Linux PC (x86-64 or 64-bit ARM) or a Steam Deck;
-  - a 64-bit Windows 10 or later PC;
   - a Nintendo Switch that runs homebrew.
 - An internet connection and about 3 GB of free space.
 
@@ -44,22 +43,11 @@ below is the release's number (for example `0.3`; releases before 0.3 named them
 | Mac | `reHoMM4-v<version>-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
-| Windows PC | `reHoMM4-v<version>-windows-x86_64.zip` |
 | Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-bit ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 
 Not sure which Mac you have:  → **About This Mac**; "Chip: Apple M…" is an Apple chip,
 "Processor: … Intel" is Intel.
-
-### Windows
-
-1. Download `reHoMM4-v<version>-windows-x86_64.zip` and extract it anywhere, for example in
-   `Downloads`.
-2. Install **Heroes of Might and Magic IV: Complete** from GOG. In the extracted folder, right-click
-   `Heroes IV.exe` → **Create shortcut**; open the shortcut's **Properties** and add
-   ` --game-dir "C:\\GOG Games\\Heroes of Might and Magic 4 Complete"` after the quoted program path
-   in **Target** (replace it with your actual GOG folder).
-3. Start that shortcut. The portable Windows build keeps game files where GOG installed them.
 
 ### Mac
 
