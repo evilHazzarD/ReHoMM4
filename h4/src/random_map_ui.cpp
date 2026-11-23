@@ -196,6 +196,8 @@ void LoadTemplates(const std::string& list_folder) {
   g_panel.SetTemplates(std::move(list));
 }
 
+void WakeIdleGame();  // (below)
+
 void Load() {
   auto* d = new Data;
   std::string err;
@@ -208,6 +210,7 @@ void Load() {
   }
   g_data = d;
   g_load = 2;
+  WakeIdleGame();  // the button can show now
   std::vector<uint8_t> exe;
   random_map::ReadFile(GuestToHost("heroes4.exe"), exe);
   const uint64_t t0 = SDL_GetTicks();
@@ -220,6 +223,7 @@ void Load() {
   if (!d->art.Load(d->res)) std::fprintf(stderr, "h4: random map: no skills or creatures for the hero card\n");
   std::printf("h4: random map: the game's data read (%llu ms)\n", (unsigned long long)(SDL_GetTicks() - t0));
   g_load = 3;
+  WakeIdleGame();
 }
 
 // A point of the window (the event's) in the frame's pixels.
@@ -277,6 +281,23 @@ void WakeGame(const SDL_Event& e) {
                                                                                                     : e.key.windowID;
   m.motion.which = e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP ? e.button.which : 0;
   if (m.motion.which == kTestPointer) return;  // (a test's input: its own pace)
+  float x = 0, y = 0;
+  SDL_GetMouseState(&x, &y);
+  m.motion.x = x;
+  m.motion.y = y;
+  SDL_PushEvent(&m);
+}
+
+// Something changed on the panel's side with no input (the game's data read, a map made, the
+// scenario list just opened): the game, idle and waiting for input (the phones), would show it
+// only after a touch. A pointer move where the pointer is has it draw a frame. Any thread.
+void WakeIdleGame() {
+  SDL_Window* w = SDL_GetMouseFocus();
+  if (!w) w = SDL_GetKeyboardFocus();
+  if (!w) return;
+  SDL_Event m{};
+  m.type = SDL_EVENT_MOUSE_MOTION;
+  m.motion.windowID = SDL_GetWindowID(w);
   float x = 0, y = 0;
   SDL_GetMouseState(&x, &y);
   m.motion.x = x;
@@ -377,6 +398,7 @@ void StartJob(const random_map::MapSetup& setup, const std::string& path, bool r
     job->ok = ok && !job->cancel;
     job->message = job->ok ? created : failed + err;
     job->done = true;
+    WakeIdleGame();  // its message, and the map in the list
   }).detach();
 }
 
@@ -642,6 +664,7 @@ bool RandomMapPass(bool shown, int l, int t, int r, int b, const std::string& fo
   x = std::clamp(x, 0, std::max(0, fw - w));
   y = std::clamp(y, 0, std::max(0, fh - h));
   g_x = x, g_y = y, g_w = w, g_h = h;
+  if (!g_shown) WakeIdleGame();  // (one more frame: the button on screen now, not after a touch)
   g_shown = true;
   recomp::gfx::SetPresentBadgePos(x, y, true);
   return written;
