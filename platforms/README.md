@@ -159,7 +159,12 @@ Other languages GOG sells (de, fr, es, it, pl) are not offered yet: each has its
 The installer screen turns with the device (portrait or landscape); the game itself is landscape
 only.
 
-The side panels beside the centred screens (main menu, towns, combat) are the Mac build's wings,
+Open **Settings** (⚙) on the native game's main menu and turn **Black side panels** on or off.
+The game applies the saved choice on the next start. Automatic wings are the default.
+When launching from a shell, `H4_SIDE_PANELS=black` or `H4_SIDE_PANELS=wings` overrides the saved choice.
+The browser build offers both modes on its start screen.
+
+The automatic side panels beside the centred screens (main menu, towns, combat) are the Mac build's wings,
 as JPEGs (quality 90; `H4_WINGS_QUALITY`):
 `platforms/build.sh` takes them from `art/combat_wings` (or `HOMM4-extra-assets.zip`, downloaded by `platforms/extra-assets.sh` from release 0.1, or in
 Downloads, as `tools/build.sh`) through `platforms/wings.sh` and puts them in the app (iOS bundle;

@@ -379,6 +379,10 @@ void ShowSettings() {
     h4::SetFullscreen(on);
     return on;
   });
+  check(uk ? "Чорні бічні поля (з наступного запуску)" : "Black side panels (from the next start)",
+        h4::ReadBlackSidePanels(h4::SidePanelsPath()), [](bool on) {
+          return h4::SaveBlackSidePanels(on) ? on : h4::ReadBlackSidePanels(h4::SidePanelsPath());
+        });
   check(uk ? "Пропускати вступні відео (з наступного запуску)" : "Skip the intro movies (from the next start)",
         h4::SkipIntro(), [](bool on) {
           h4::SetSkipIntro(on);

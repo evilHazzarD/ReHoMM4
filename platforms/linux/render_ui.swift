@@ -128,6 +128,8 @@ if CommandLine.arguments.count > 2 && !CommandLine.arguments[2].isEmpty {
 // The intro setting's row, off and on (menu_button_linux.cpp).
 render("skip_off", "☐  Skip the intro movies (from the next start)", size: 12, maxWidth: 400)
 render("skip_on", "☑  Skip the intro movies (from the next start)", size: 12, maxWidth: 400)
+render("sides_off", "☐  Black side panels (from the next start)", size: 12, maxWidth: 400)
+render("sides_on", "☑  Black side panels (from the next start)", size: 12, maxWidth: 400)
 // The gamepad's settings: the settings' row, and the labels its panel is put together from at run
 // time (menu_button_linux.cpp, the gamepad panel: the boxes, sliders and plates are drawn there).
 // The actions and the buttons' names: keep in step with h4/src/pad_config.cpp (its order and ids).

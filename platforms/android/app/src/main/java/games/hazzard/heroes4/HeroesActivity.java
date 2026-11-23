@@ -78,7 +78,7 @@ public class HeroesActivity extends SDLActivity {
     private static int kofiX;
     private static int gearX, gearH;
 
-    private static String settingsPath, introPath;  // the language's file, the intro setting's (intro.h)
+    private static String settingsPath, introPath, sidePanelsPath;
 
     private static boolean readFlag(String path) {
         try (java.io.FileInputStream f = new java.io.FileInputStream(path)) {
@@ -549,6 +549,26 @@ public class HeroesActivity extends SDLActivity {
             });
             box.addView(ci);
         }
+        if (sidePanelsPath != null && !sidePanelsPath.isEmpty()) {
+            android.widget.CheckBox sides = new android.widget.CheckBox(a);
+            sides.setText(uk ? "Чорні бічні поля (з наступного запуску)"
+                            : "Black side panels (from the next start)");
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(sidePanelsPath))) {
+                String mode = reader.readLine();
+                sides.setChecked(mode != null && mode.trim().equals("black"));
+            } catch (java.io.IOException ignored) {
+            }
+            sides.setOnClickListener(v -> {
+                try (java.io.FileWriter writer = new java.io.FileWriter(sidePanelsPath)) {
+                    writer.write(sides.isChecked() ? "black\n" : "wings\n");
+                } catch (java.io.IOException e) {
+                    sides.setChecked(!sides.isChecked());
+                    android.widget.Toast.makeText(a, uk ? "Не вдалося зберегти налаштування"
+                            : "Could not save the setting", android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+            box.addView(sides);
+        }
         {  // the folders, as on the Mac: the title, the path under it (selectable, to copy)
             java.io.File saves = SaveSync.savesFolder();
             String game = "";
@@ -891,7 +911,8 @@ public class HeroesActivity extends SDLActivity {
     // savedPath "": no languages in the settings (no translation). languages: a line per language
     // the app offers, English first: "code<TAB>name<TAB>restart note" (h4/src/language.h).
     public static void h4LanguageButton(final boolean show, final float x, final float y, final float lx,
-            final String lang, final String savedPath, final String languages, final String skipPath) {
+            final String lang, final String savedPath, final String languages, final String skipPath,
+            final String sidesPath) {
         final HeroesActivity a = self();
         if (a == null) return;
         a.runOnUiThread(() -> {
@@ -929,6 +950,7 @@ public class HeroesActivity extends SDLActivity {
                 android.widget.Button b = icon(a, "\u2699\uFE0E", 20);
                 settingsPath = savedPath;
                 introPath = skipPath;
+                sidePanelsPath = sidesPath;
                 b.setOnClickListener(v -> showSettings(a, savedPath));
                 langButton = b;
                 langPopup = popup(b);

@@ -344,6 +344,7 @@ std::string MobileSetup() {
     std::printf("h4: safe area: %.1f%% of the width kept clear on each side\n", margin * 100);
   }
 #endif
+  setenv("H4_SIDE_PANELS_FILE", (data + "/side-panels.txt").c_str(), 0);
   // The player's own wings/ folder first, else the app's.
   if (IsDir(files + "/wings")) setenv("H4_WINGS_DIR", (files + "/wings").c_str(), 0);
   else if (const std::string w = AppWings(); !w.empty()) setenv("H4_WINGS_DIR", w.c_str(), 0);

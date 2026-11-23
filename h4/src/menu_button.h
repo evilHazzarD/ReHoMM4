@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "side_panels.h"
+
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif

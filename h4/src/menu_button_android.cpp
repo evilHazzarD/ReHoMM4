@@ -112,7 +112,7 @@ void ShowLanguageButton(bool shown, int x, int y, int left) {
     return;
   }
   static jmethodID m =
-      env->GetStaticMethodID(cls, "h4LanguageButton", "(ZFFFLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+      env->GetStaticMethodID(cls, "h4LanguageButton", "(ZFFFLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
   if (!m) {
     std::fprintf(stderr, "h4: language button: no h4LanguageButton\n");
     env->ExceptionClear();
@@ -125,7 +125,9 @@ void ShowLanguageButton(bool shown, int x, int y, int left) {
     for (const LanguageInfo& lang : Languages()) list += lang.code + "\t" + lang.name + "\t" + lang.note + "\n";
   jstring l = env->NewStringUTF(g_lang.c_str()), p = env->NewStringUTF(g_saved.c_str()),
           all = env->NewStringUTF(list.c_str()), skip = env->NewStringUTF(SkipIntroPath().c_str());
-  env->CallStaticVoidMethod(cls, m, jboolean(shown), jfloat(vx), jfloat(vy), jfloat(lx), l, p, all, skip);
+  jstring sides = env->NewStringUTF(SidePanelsPath());
+  env->CallStaticVoidMethod(cls, m, jboolean(shown), jfloat(vx), jfloat(vy), jfloat(lx), l, p, all, skip, sides);
+  env->DeleteLocalRef(sides);
   env->DeleteLocalRef(skip);
   env->DeleteLocalRef(l);
   env->DeleteLocalRef(p);

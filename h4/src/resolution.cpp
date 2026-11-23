@@ -46,6 +46,7 @@
 #include "runtime/gfx/device.h"
 #include "runtime/display.h"
 #include "runtime/guest_alloc.h"
+#include "runtime/hle/ddraw_impl.h"
 #include "runtime/hle/present.h"
 #include "runtime/log.h"
 #include "runtime/runtime.h"
@@ -214,7 +215,7 @@ void InvalidateWhole(::recomp::Ctx& c, uint32_t window, int w, int h) {
 }
 
 uint32_t g_widened = 0;  // the adventure frame laid out across the screen
-std::set<uint32_t> g_tiled;  // bitmap layers drawn repeated across their width
+std::set<uint32_t> g_tiled;  // horizontal frame layers extended through their middle
 std::map<uint32_t, Rect> g_layout_rects;  // the widened frame's children, as laid out
 int g_refresh_map = 0;       // main loop passes until the map is repainted whole
 
@@ -321,6 +322,12 @@ void WideAdventure(::recomp::Ctx& c) {
     const Rect r = RectOf(w);
     g_layout_rects[w] = r;
     const int rl = r.l - f.l, rr = r.r - f.l;  // in the 1280 layout
+    const int rt = r.t - f.t, rb = r.b - f.t;
+    // The transparent dragon borders are separate from the thin Top/Bottom
+    // strips in layers.adventure.1280. Both must reach the shifted right edge.
+    const bool horizontal_border = rr == 880 &&
+        ((rl == 0 && rt == 16 && rb == 80) ||
+         (rl == 58 && rt == 964 && rb == 1016));
     static const bool dump = Env("DUMP_WINDOWS") != nullptr;
     if (dump)
       WarnF("h4: widen %08X vt %08X %d,%d-%d,%d vis %u\n", w, Rd32(w), rl, r.t, rr, r.b,
@@ -334,7 +341,8 @@ void WideAdventure(::recomp::Ctx& c) {
       MoveWindow(c, w, {r.l + dx, r.t, r.r + dx, r.b});
     } else if (rr <= 58) {  // the left edge
       MoveWindow(c, w, {r.l - dx, r.t, r.r - dx, r.b});
-    } else if (r.b - r.t <= 16) {  // the thin top and bottom bars: repeated
+    } else if (horizontal_border || (rt == 0 && rb == 16 && rl == 0) ||
+               (rt == 1016 && rb == 1024 && rl == 58)) {
       g_tiled.insert(w);
       MoveWindow(c, w, {r.l - dx, r.t, r.r + dx, r.b});
     } else {  // the ornaments by the left corners
@@ -351,7 +359,15 @@ void WideAdventure(::recomp::Ctx& c) {
 // the constructors pick their art by their parent's width (800, 1024 or
 // 1280) and use an unset layout for any other (the town screen crashed).
 int g_narrowed = 0;  // screen constructors running narrowed (KeepWide waits)
+int g_presents = 0;  // the game's presents so far
+uint32_t g_building_town = 0, g_building_town_window = 0;  // a town screen being made
+bool g_wings_primary = false;  // the wings must go onto the primary surface again
 
+// A constructor that shows something meanwhile (an event's message as a
+// loaded game opens a town) has it drawn with the top window narrowed, its
+// origin the layout's: the offscreen then holds it shifted by the layout's
+// left edge, and only changes are repainted after. Then the whole screen is
+// painted again (the wings too) once the windows are wide again.
 void Narrowed(::recomp::Ctx& c, void (*lifted)(::recomp::Ctx&)) {
   const uint32_t top = Rd32(kTopWindow);
   std::vector<std::pair<uint32_t, Rect>> saved;
@@ -365,10 +381,19 @@ void Narrowed(::recomp::Ctx& c, void (*lifted)(::recomp::Ctx&)) {
     narrow(top);
     ForChildren(top, narrow);
   }
+  const int presents = g_presents;
   g_narrowed++;
   lifted(c);
   g_narrowed--;
   for (const auto& [w, r] : saved) SetRectRaw(w, r);
+  if (!saved.empty() && g_presents != presents && !g_narrowed) {
+    const Rect t = RectOf(top);
+    const uint32_t eax = c.eax;
+    InvalidateWhole(c, top, t.r - t.l, t.b - t.t);
+    c.eax = eax;
+    g_wings_primary = true;
+    WarnF("h4: shown while narrowed: the screen painted again\n");
+  }
 }
 
 // ---- wings: the side areas left by the centred 1280 screens (main menu,
@@ -487,8 +512,8 @@ void ShowWingsSharp(const Wings& wings, const Image& l, const Image& r) {
 }
 
 // The wings shown: H4_WINGS_DIR/<name>.jpg, the right one mirrored when
-// `mirror_right` (combat's faction wings face the battle). The main menu and
-// towns: paradise and hell.
+// `mirror_right` (faction wings face the screen). The main menu and other
+// centred screens: paradise and hell.
 std::string g_wing_left = "paradise", g_wing_right = "hell";
 bool g_mirror_right = false;
 
@@ -500,17 +525,45 @@ void Mirror(Image* im) {
                   im->rgb[(size_t(y) * im->w + (im->w - 1 - x)) * 3 + k]);
 }
 
+bool BlackSidePanels() {
+  static const bool enabled = [] {
+    const char* mode = Env("SIDE_PANELS");
+    if (mode && *mode) return std::strcmp(mode, "black") == 0;
+    const char* legacy = Env("BLACK_SIDE_PANELS");
+    if (legacy && std::strcmp(legacy, "1") == 0) return true;
+    const char* config = Env("SIDE_PANELS_FILE");
+    const std::string path = config ? config : ::recomp::DataDir() + "/side-panels.txt";
+    return h4::ReadBlackSidePanels(path.c_str());
+  }();
+  return enabled;
+}
+
 const Wings& TheWings(int w, int h) {
   static Wings wings;
   static std::string shown;  // the pair wings holds
   const std::string want = g_wing_left + "|" + g_wing_right + (g_mirror_right ? "|m" : "");
-  if (shown == want && wings.tried) return wings;
+  if (shown == want && wings.tried && wings.w == w && wings.h == h) return wings;
   shown = want;
+  wings = {};
   wings.tried = true;
+  wings.w = w;
+  wings.h = h;
   const char* dir = Env("WINGS_DIR");
+  // Decoded once each: a town or battle switching collages would otherwise
+  // decode two JPEGs as it opens.
+  static std::map<std::string, Image> decoded;
+  auto load = [&](const std::string& name, Image* out) {
+    auto it = decoded.find(name);
+    if (it == decoded.end()) {
+      Image im;
+      if (!LoadJpg(std::string(dir) + "/" + name + ".jpg", &im)) return false;
+      it = decoded.emplace(name, std::move(im)).first;
+    }
+    *out = it->second;
+    return true;
+  };
   Image l, r;
-  if (dir && LoadJpg(std::string(dir) + "/" + g_wing_left + ".jpg", &l) &&
-      LoadJpg(std::string(dir) + "/" + g_wing_right + ".jpg", &r) && w > 0) {
+  if (dir && load(g_wing_left, &l) && load(g_wing_right, &r) && w > 0 && h > 0) {
     if (g_mirror_right) Mirror(&r);
     wings.w = w;
     wings.h = h;
@@ -524,24 +577,33 @@ const Wings& TheWings(int w, int h) {
   return wings;
 }
 
-// Draws the wings onto a surface (locked through its own vtable).
+// Draws the side panels onto a surface (locked through its own vtable).
 // (ox, oy): where the surface's origin is on the screen; `hole`: a screen
 // area left alone, or where `black_in_hole`, painted only where black.
-void PaintWingsOn(::recomp::Ctx& c, uint32_t prim, int ox, int oy, const Rect& hole,
+bool PaintWingsOn(::recomp::Ctx& c, uint32_t prim, int ox, int oy, const Rect& hole,
                   bool black_in_hole = false);
+
+// A surface the game has locked: a Lock and Unlock of ours in between would
+// end its lock too, and what it then draws there would never be shown.
+bool SurfaceBusy(uint32_t surf) {
+  const auto* s = ::recomp::com::As<::recomp::ddraw::Surface>(surf);
+  return !s || s->locked;
+}
 
 // The wings go into the game's offscreen, which its present and its cursor
 // restore copy to the screen (its origin is the top window's), and with
 // `primary` straight onto the primary surface: the sides of a centred
 // screen lie outside the top window, which the game never presents.
-void PaintWings(::recomp::Ctx& c, bool primary) {
+// False when the primary surface could not be painted (locked by the game).
+bool PaintWings(::recomp::Ctx& c, bool primary) {
   const uint32_t eax = c.eax, ecx = c.ecx, edx = c.edx;
   const uint32_t top = Rd32(kTopWindow);
+  bool done = true;
   if (top) PaintWingsOn(c, Rd32(kBackSurface), RectOf(top).l, RectOf(top).t, Rect{});
   if (primary && top) {
     // All of it (a hole round the cursor kept whatever was there, the
     // adventure panel say), then the cursor drawn again over it.
-    PaintWingsOn(c, Rd32(kPrimarySurface), 0, 0, Rect{});
+    done = PaintWingsOn(c, Rd32(kPrimarySurface), 0, 0, Rect{});
     ForChildren(top, [&](uint32_t w) {
       if (Rd32(w) != kCursorWindowVtable) return;
       const Rect r = RectOf(w);
@@ -551,14 +613,19 @@ void PaintWings(::recomp::Ctx& c, bool primary) {
   c.eax = eax;
   c.ecx = ecx;
   c.edx = edx;
+  return done;
 }
 
-void PaintWingsOn(::recomp::Ctx& c, uint32_t prim, int ox, int oy, const Rect& hole,
+bool PaintWingsOn(::recomp::Ctx& c, uint32_t prim, int ox, int oy, const Rect& hole,
                   bool black_in_hole) {
   const Screen& s = TheScreen();
   const Rect lay = Layout();
-  const Wings& wings = TheWings(lay.l, lay.b - lay.t);
-  if (!wings.ok || !prim) return;
+  if (!prim) return true;
+  const Wings* wings = BlackSidePanels() ? nullptr : &TheWings(lay.l, lay.b - lay.t);
+  if (wings && !wings->ok) return true;
+  const int width = wings ? wings->w : lay.l;
+  const int height = wings ? wings->h : lay.b - lay.t;
+  if (SurfaceBusy(prim)) return false;
   const uint32_t vt = Rd32(prim);
   const gaddr desc = ScratchRect() + 0x100;
   std::memset(GPtr(desc), 0, 124);
@@ -570,18 +637,19 @@ void PaintWingsOn(::recomp::Ctx& c, uint32_t prim, int ox, int oy, const Rect& h
     const int32_t pitch = int32_t(Rd32(desc + 16));
     const int bpp = int(Rd32(desc + 72 + 12));
     const int sw = int(Rd32(desc + 12)), sh = int(Rd32(desc + 8));
+    constexpr uint8_t black[3] = {};
     for (int side = 0; side < 2; side++) {
-      const std::vector<uint8_t>& img = side ? wings.right : wings.left;
-      const int x0 = side ? s.w - wings.w : 0;
-      for (int y = 0; y < wings.h; y++) {
+      const uint8_t* img = wings ? (side ? wings->right : wings->left).data() : nullptr;
+      const int x0 = side ? s.w - width : 0;
+      for (int y = 0; y < height; y++) {
         const int sy = lay.t + y - oy;
         if (sy < 0 || sy >= sh) continue;
         uint8_t* row = bits + int64_t(sy) * pitch;
         const bool in_hole_rows = lay.t + y >= hole.t && lay.t + y < hole.b;
-        for (int x = 0; x < wings.w; x++) {
+        for (int x = 0; x < width; x++) {
           const int sx = x0 + x - ox;
           if (sx < 0 || sx >= sw) continue;
-          const uint8_t* p = &img[(size_t(y) * wings.w + x) * 3];
+          const uint8_t* p = img ? img + (size_t(y) * width + x) * 3 : black;
           if (in_hole_rows && x0 + x >= hole.l && x0 + x < hole.r) {
             if (!black_in_hole) continue;
             uint32_t v = 0;
@@ -602,6 +670,7 @@ void PaintWingsOn(::recomp::Ctx& c, uint32_t prim, int ox, int oy, const Rect& h
   }
   c.ecx = ecx;
   c.eax = eax;
+  return true;
 }
 
 // Dev aid: H4_DUMP_WINDOWS=1 logs the window tree (vtable, rectangle,
@@ -633,23 +702,103 @@ uint32_t CentredScreen(uint32_t top) {
   if (const uint32_t frame = AdventureFrame(top)) ForChildren(frame, check);
   return found;
 }
-bool g_wings_primary = false;  // and must go onto the primary surface again
 
-// ---- combat wings by the battlefield: a light field gets dark wings, a dark
-// one light wings, both sides the same picture (the right one mirrored),
-// one of the faction collages (tools/re/collage) picked at random per battle.
+// ---- faction wings: a battle shows its armies' collages (tools/re/collage),
+// the attacker's on the left and the defender's on the right (mirrored to face
+// the field); a town its faction's on both sides. A light screen gets the dark
+// collage, a dark one the light collage (life has only a light one, death only
+// a dark one). A side with no faction (neutral creatures) gets a random one.
 constexpr uint32_t kCombatBattlefield = 0x104;  // t_combat_window -> t_battlefield
-constexpr const char* kLightWings[] = {"life_light", "order_light", "nature_light", "chaos_light",
-                                       "might_light"};
-constexpr const char* kDarkWings[] = {"death_dark", "order_dark", "nature_dark", "chaos_dark",
-                                      "might_dark"};
+constexpr uint32_t kCombatContext = 0x140;      // t_combat_window -> the battle's setup
+constexpr uint32_t kContextArmies = 0x08;       // setup -> attacker, defender t_creature_array*
+constexpr uint32_t kArraySlots = 0x10;          // t_creature_array: 7 t_creature_stack*
+constexpr uint32_t kStackSlots = 7;
+// A stack's alignment (its interface at +8, virtual +4): a creature's from
+// its type's traits, a hero's own; anything else (an empty slot) has none.
+constexpr uint32_t kCreatureStackVtable = 0x984624;  // t_creature, at +8
+constexpr uint32_t kHeroStackVtable = 0x989298;      // t_hero, at +8
+constexpr uint32_t kCreatureType = 0x9C;             // t_creature -> t_creature_type
+constexpr uint32_t kHeroAlignment = 0xA8;            // t_hero -> t_town_type
+constexpr uint32_t kCreatureTraits = 0xAB1F30, kTraitsSize = 0xE0, kTraitsAlignment = 0x44;
+constexpr uint32_t kTownOfWindow = 0x6D0;  // t_town_window -> t_town
+constexpr uint32_t kTownVtable = 0x995F4C;
+constexpr uint32_t kTownType = 0x118;      // t_town -> t_town_type
+// t_town_type: the alignments.
+constexpr const char* kFactions[] = {"life", "order", "death", "chaos", "nature", "might"};
+constexpr int kFactionCount = 6;
 
-// The battlefield's mean luma (0..255) on the primary surface, sampled over
-// the layout's left four fifths (the right one is the combat panel); -1
+bool Mapped(uint32_t p, uint32_t n = 4) {
+  return p >= 0x10000 && g_proc->mem.IsCommitted(p) && g_proc->mem.IsCommitted(p + n - 1);
+}
+
+// The faction of a stack, -1 if none.
+int StackFaction(uint32_t stack) {
+  if (!Mapped(stack, 0x100)) return -1;
+  const uint32_t vt = Rd32(stack + 8);
+  int a = -1;
+  if (vt == kHeroStackVtable) {
+    a = int(Rd32(stack + kHeroAlignment));
+  } else if (vt == kCreatureStackVtable) {
+    const uint32_t type = Rd32(stack + kCreatureType);
+    const uint32_t traits = kCreatureTraits + type * kTraitsSize;
+    if (type < 512 && Mapped(traits + kTraitsAlignment)) a = int(Rd32(traits + kTraitsAlignment));
+  }
+  return a >= 0 && a < kFactionCount ? a : -1;
+}
+
+// An army's faction: the one most of its stacks (the hero too) have, on a tie
+// the first in it; -1 if none has one.
+int ArmyFaction(uint32_t army) {
+  if (!Mapped(army + kArraySlots, kStackSlots * 4)) return -1;
+  int count[kFactionCount] = {}, first[kFactionCount];
+  std::fill(first, first + kFactionCount, int(kStackSlots));
+  for (uint32_t i = 0; i < kStackSlots; i++) {
+    const int f = StackFaction(Rd32(army + kArraySlots + i * 4));
+    if (f < 0) continue;
+    count[f]++;
+    first[f] = std::min(first[f], int(i));
+  }
+  int best = -1;
+  for (int f = 0; f < kFactionCount; f++)
+    if (count[f] && (best < 0 || count[f] > count[best] ||
+                     (count[f] == count[best] && first[f] < first[best])))
+      best = f;
+  return best;
+}
+
+// A town's faction, -1 if it cannot be read.
+int FactionOfTown(uint32_t town) {
+  if (!Mapped(town, kTownType + 4) || Rd32(town) != kTownVtable) return -1;
+  const int t = int(Rd32(town + kTownType));
+  return t >= 0 && t < kFactionCount ? t : -1;
+}
+int TownFaction(uint32_t town_window) { return FactionOfTown(Rd32(town_window + kTownOfWindow)); }
+
+bool WingFile(const std::string& name) {
+  const char* dir = Env("WINGS_DIR");
+  if (!dir) return false;
+  FILE* f = std::fopen((std::string(dir) + "/" + name + ".jpg").c_str(), "rb");
+  if (f) std::fclose(f);
+  return f != nullptr;
+}
+
+// The collage for a faction on a dark (light collage) or light screen; a
+// random faction for -1.
+std::string FactionWing(int faction, bool dark_screen) {
+  static std::mt19937 rng(std::random_device{}());
+  if (faction < 0) faction = int(rng() % kFactionCount);
+  const std::string base = kFactions[faction];
+  const std::string want = base + (dark_screen ? "_light" : "_dark");
+  const std::string other = base + (dark_screen ? "_dark" : "_light");
+  return WingFile(want) || !WingFile(other) ? want : other;
+}
+
+// The screen's mean luma (0..255) on the primary surface, sampled over the
+// layout's left four fifths (in combat the right one is the panel); -1
 // when it cannot be read.
 int FieldLuma(::recomp::Ctx& c) {
   const uint32_t prim = Rd32(kPrimarySurface);
-  if (!prim) return -1;
+  if (!prim || SurfaceBusy(prim)) return -1;
   const Rect lay = Layout();
   const uint32_t vt = Rd32(prim);
   const gaddr desc = ScratchRect() + 0x100;
@@ -687,33 +836,47 @@ int FieldLuma(::recomp::Ctx& c) {
   return luma;
 }
 
-// Once per battle, when its field is on screen: the wings for its armies.
-// Back to the default pair outside combat.
+uint32_t g_wings_for = 0;  // the combat or town window the wings were chosen for
+
+// Once per battle or town, when it is on screen: the wings for its armies or
+// its faction. Back to the default pair elsewhere.
 void ChooseWings(::recomp::Ctx& c) {
-  static uint32_t decided = 0;  // the combat window chosen for
   const uint32_t top = Rd32(kTopWindow);
-  uint32_t combat = 0;
-  if (Wide() && top)
+  uint32_t combat = 0, town = 0;
+  if (Wide() && top) {
     ForChildren(top, [&](uint32_t w) {
       if (Rd32(w) == kCombatWindowVtable && GPtr(w + kVisible)[0]) combat = w;
     });
+    if (!combat)
+      if (const uint32_t w = CentredScreen(top); w && Rd32(w) == kTownWindowVtable) town = w;
+  }
+  const uint32_t screen = combat ? combat : town;
   std::string left = "paradise", right = "hell";
   bool mirror = false;
-  if (!combat) {
-    decided = 0;
-  } else if (combat == decided) {
+  if (!screen) {
+    g_wings_for = 0;
+  } else if (screen == g_wings_for) {
     return;
   } else {
-    const uint32_t field = Rd32(combat + kCombatBattlefield);
-    if (!field) return;
+    if (combat && !Rd32(combat + kCombatBattlefield)) return;
     const int luma = FieldLuma(c);
-    if (luma < 12) return;  // not drawn yet
+    if (luma < 12) return;  // not drawn yet, or the screen locked: next pass
     const bool dark = luma < 110;
-    static std::mt19937 rng(std::random_device{}());
-    left = right = dark ? kLightWings[rng() % 5] : kDarkWings[rng() % 5];
+    int lf, rf;
+    if (combat) {
+      const uint32_t setup = Rd32(combat + kCombatContext);
+      const bool ok = Mapped(setup + kContextArmies, 8);
+      lf = ok ? ArmyFaction(Rd32(setup + kContextArmies)) : -1;
+      rf = ok ? ArmyFaction(Rd32(setup + kContextArmies + 4)) : -1;
+    } else {
+      lf = rf = TownFaction(town);
+    }
+    left = FactionWing(lf, dark);
+    right = lf == rf && lf >= 0 ? left : FactionWing(rf, dark);
     mirror = true;
-    decided = combat;
-    WarnF("h4: battle wings: field luma %d: %s\n", luma, left.c_str());
+    g_wings_for = screen;
+    WarnF("h4: %s wings: luma %d, factions %d, %d: %s, %s\n", combat ? "battle" : "town", luma,
+          lf, rf, left.c_str(), right.c_str());
   }
   if (left == g_wing_left && right == g_wing_right && mirror == g_mirror_right) return;
   g_wing_left = left;
@@ -728,7 +891,7 @@ void ChooseWings(::recomp::Ctx& c) {
 // when they appear or the screen was redone: painting them there over and
 // over made the cursor over them blink.
 void SideWings(::recomp::Ctx& c) {
-  ChooseWings(c);
+  if (!BlackSidePanels()) ChooseWings(c);
   static uint32_t last_primary = 0;
   const uint32_t top = Rd32(kTopWindow);
   const bool on = Wide() && top && (!AdventureFrame(top) || CentredScreen(top));
@@ -756,8 +919,7 @@ void SideWings(::recomp::Ctx& c) {
   if (!was || primary != last_primary) g_wings_primary = true;
   last_primary = primary;
   if (!g_wings_primary) return;
-  PaintWings(c, true);
-  g_wings_primary = false;
+  if (PaintWings(c, true)) g_wings_primary = false;  // else again next pass
 }
 
 // Screens and dialogs right under the top window, placed for a top window
@@ -1109,6 +1271,30 @@ void GpuCursorPlace() {
   ::recomp::hle::PresentAgain();  // the game drew nothing
 }
 
+// A town whose screen shows something while it is built (an event's message
+// as a loaded game opens it): its wings at once, beside the message, onto
+// the primary surface (the narrowed top window leaves the sides alone). The
+// main loop pass keeps them for the finished screen.
+void WingsWhileBuilding(::recomp::Ctx& c) {
+  if (!g_narrowed || !g_building_town || !Wide() || g_wings_for == g_building_town_window) return;
+  const uint32_t eax = c.eax, ecx = c.ecx, edx = c.edx, esp = c.esp;
+  const int luma = FieldLuma(c);
+  if (luma >= 12) {
+    const int f = FactionOfTown(g_building_town);
+    g_wing_left = g_wing_right = FactionWing(f, luma < 110);
+    g_mirror_right = true;
+    if (PaintWingsOn(c, Rd32(kPrimarySurface), 0, 0, Rect{})) {
+      g_wings_for = g_building_town_window;
+      WarnF("h4: town wings (while built): luma %d, faction %d: %s\n", luma, f,
+            g_wing_left.c_str());
+    }
+  }
+  c.eax = eax;
+  c.ecx = ecx;
+  c.edx = edx;
+  c.esp = esp;
+}
+
 }  // namespace
 
 // Paints the windows' dirty region into the offscreen and returns it
@@ -1127,6 +1313,56 @@ void PaintDirty(::recomp::Ctx& c) {
   const uint32_t top = Rd32(kTopWindow);
   if (!g_wings || !top) {
     f_00720530_lifted(c);
+    if (top && Wide() && AdventureFrame(top) == g_widened && g_widened) {
+      const auto* surface = ::recomp::com::As<::recomp::ddraw::Surface>(Rd32(kBackSurface));
+      if (!surface || !surface->mem || surface->fmt != gfx::Format::R5G6B5 ||
+          surface->kind != ::recomp::ddraw::Surface::Kind::Offscreen) return;
+      const Rect origin = RectOf(top);
+      const Rect frame = RectOf(g_widened);
+      if (frame.r - frame.l <= kLayoutW) return;
+      const int left = std::max(0, frame.l + 336 - origin.l);
+      const int right = std::min(surface->width, frame.r - 400 - origin.l);
+      if (left >= right) return;
+      std::vector<Rect> overlays;
+      auto collect = [&](uint32_t w) {
+        if (w != g_widened && GPtr(w + kVisible)[0] && !g_layout_rects.count(w))
+          overlays.push_back(RectOf(w));
+      };
+      ForChildren(top, collect);
+      ForChildren(g_widened, collect);
+      // Sample the intact frame immediately before the join, past the
+      // left dragon. Keep the original profile and texture for each row.
+      constexpr int sampleWidth = 8;
+      if (left < sampleWidth) return;
+      auto band = [&](int edge, int direction, int height) {
+        for (int i = 0; i < height; ++i) {
+          const int y = edge + direction * i;
+          if (y < 0 || y >= surface->height) continue;
+          auto* row = reinterpret_cast<uint16_t*>(GPtr(surface->mem + y * surface->pitch));
+          const bool sampleCovered = std::any_of(overlays.begin(), overlays.end(), [&](const Rect& r) {
+            return y + origin.t >= r.t && y + origin.t < r.b &&
+                   left - sampleWidth + origin.l < r.r && left + origin.l > r.l;
+          });
+          if (sampleCovered) continue;
+          int x = left;
+          while (x < right) {
+            int next = right, skip = x;
+            for (const Rect& r : overlays) {
+              if (y + origin.t < r.t || y + origin.t >= r.b || x + origin.l >= r.r) continue;
+              if (x + origin.l >= r.l) skip = std::max(skip, r.r - origin.l);
+              else next = std::min(next, r.l - origin.l);
+            }
+            if (skip > x) x = skip;
+            else {
+              for (; x < next; ++x)
+                row[x] = row[left - sampleWidth + (x - left) % sampleWidth];
+            }
+          }
+        }
+      };
+      band(frame.t - origin.t, 1, 17);
+      band(frame.b - origin.t - 1, -1, 15);
+    }
     return;
   }
   const uint32_t out = Rd32(c.esp + 4);
@@ -1205,9 +1441,11 @@ void f_0058D970(::recomp::Ctx& c) {
 
 // The game's present (dirty region to the screen).
 void f_008D0C70(::recomp::Ctx& c) {
+  g_presents++;
   KeepWide(c);
   KeepScreenKeyboard();
   f_008D0C70_lifted(c);
+  WingsWhileBuilding(c);
   if (GpuCursorOn()) GpuCursorPlace();  // its own loops (a drag) present here
 }
 
@@ -1218,36 +1456,22 @@ void f_008D1360(::recomp::Ctx& c) {
   f_008D1360_lifted(c);
 }
 
-// bitmap_layer_window::paint(paint_context*): draws the part of its bitmap
-// under the context's clip rectangle ([7..10], with the window's origin at
-// [2], [3], all in target coordinates). A repeated layer is drawn one
-// bitmap width at a time, each piece as if the window started there.
+// Clip the original horizontal artwork at the start of the plain band.
 void f_00598170(::recomp::Ctx& c) {
-  const uint32_t w = c.ecx;
-  if (!g_tiled.count(w) || !Rd32(w + 0xC4)) return f_00598170_lifted(c);
-  const uint32_t bitmap = Rd32(w + 0xC4);
-  const int period = int32_t(Rd32(bitmap + 0x20)) - int32_t(Rd32(bitmap + 0x18));
+  if (!g_tiled.count(c.ecx)) return f_00598170_lifted(c);
   const uint32_t ctx = Rd32(c.esp + 4);
-  if (period <= 0) return f_00598170_lifted(c);
-  const int ox = int32_t(Rd32(ctx + 8)), cl = int32_t(Rd32(ctx + 28)), cr = int32_t(Rd32(ctx + 36));
-  const int a = cl - ox, b = cr - ox;  // window-local columns to paint
-  const uint32_t esp = c.esp;
-  bool painted = false;
-  for (int k = a >= 0 ? a / period : -((-a + period - 1) / period); k * period < b; k++) {
-    const int l = std::max(a, k * period), r = std::min(b, (k + 1) * period);
-    if (l >= r) continue;
-    Wr32(ctx + 8, uint32_t(ox + k * period));
-    Wr32(ctx + 28, uint32_t(ox + l));
-    Wr32(ctx + 36, uint32_t(ox + r));
-    c.ecx = w;
-    c.esp = esp;
-    f_00598170_lifted(c);
-    painted = true;
+  const uint32_t top = Rd32(kTopWindow);
+  if (!top || !g_widened || RectOf(g_widened).r - RectOf(g_widened).l <= kLayoutW)
+    return f_00598170_lifted(c);
+  const int join = RectOf(g_widened).l - RectOf(top).l + 336;
+  const int right = int32_t(Rd32(ctx + 36));
+  if (int32_t(Rd32(ctx + 28)) >= join) {
+    c.esp += 8;  // ret 4
+    return;
   }
-  if (!painted) c.esp = esp + 8;  // its `ret 4`
-  Wr32(ctx + 8, uint32_t(ox));
-  Wr32(ctx + 28, uint32_t(cl));
-  Wr32(ctx + 36, uint32_t(cr));
+  Wr32(ctx + 36, uint32_t(std::min(right, join)));
+  f_00598170_lifted(c);
+  Wr32(ctx + 36, uint32_t(right));
 }
 
 // adventure_frame::layout(width), thiscall: its window's resize (vtable
@@ -1273,7 +1497,16 @@ void f_004A3450(::recomp::Ctx& c) { Narrowed(c, f_004A3450_lifted); }
 void f_004A37C0(::recomp::Ctx& c) { Narrowed(c, f_004A37C0_lifted); }
 void f_0062B6A0(::recomp::Ctx& c) { Narrowed(c, f_0062B6A0_lifted); }
 void f_0069FB50(::recomp::Ctx& c) { Narrowed(c, f_0069FB50_lifted); }
-void f_008AC0C0(::recomp::Ctx& c) { Narrowed(c, f_008AC0C0_lifted); }
+// town_window::town_window(town*, ..., window* parent), thiscall.
+void f_008AC0C0(::recomp::Ctx& c) {
+  const uint32_t window = c.ecx, town = Rd32(c.esp + 4);
+  const uint32_t building = g_building_town, building_window = g_building_town_window;
+  g_building_town = town;
+  g_building_town_window = window;
+  Narrowed(c, f_008AC0C0_lifted);
+  g_building_town = building;
+  g_building_town_window = building_window;
+}
 // main_menu::layout(int width): picks its art by the width it is given (a
 // rectangle's, the screen's when the top window spans it).
 void f_0076D9B0(::recomp::Ctx& c) {

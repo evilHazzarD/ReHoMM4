@@ -94,7 +94,7 @@ Picture g_kofi_gear;                  // Linux: ☕ (the author's Ko-fi page) an
 Picture g_list;                       // the open list: every button, one under the other
 std::vector<int> g_rows;              // where each one starts in it (pixels)
 // What each row is: a language (its index in g_choices, 0...) or one of these.
-enum { kRowVersion = -1, kRowUpd = -2, kRowFull = -3, kRowSkip = -4, kRowPad = -5, kRowLangs = -6, kRowSync = -7 };
+enum { kRowVersion = -1, kRowUpd = -2, kRowFull = -3, kRowSkip = -4, kRowPad = -5, kRowLangs = -6, kRowSync = -7, kRowSides = -8 };
 std::vector<int> g_row_what;
 bool g_langs_open = false;  // the language dropdown: all of them shown (else the chosen one, ▾)
 bool g_list_new = false;              // made again since it was last given to the frame
@@ -106,6 +106,8 @@ enum Upd { kChecking, kLatest, kNewer, kDownloading, kDone, kFailed, kUpdCount }
 Picture g_upd_button, g_upd_msg[kUpdCount];
 Picture g_skip_pic[2];   // the intro setting's row: off, on (intro.h)
 bool g_has_skip = false;
+Picture g_sides_pic[2];
+bool g_has_sides = false;
 Picture g_pad_button;  // "Gamepad": opens its panel (MakeGamepad)
 bool g_has_pad = false;
 Picture g_version;       // "ReHoMM4 v<version>", the list's last row (none: not shown)
@@ -513,17 +515,26 @@ bool LoadChoices() {
   }
   if (g_version.argb.empty() && !Load(UiDir(), "version", &g_version)) g_version = Picture{};
   if (!g_has_skip) g_has_skip = Load(UiDir(), "skip_off", &g_skip_pic[0]) && Load(UiDir(), "skip_on", &g_skip_pic[1]);
+#if !defined(H4_WEB_APP)
+  if (!g_has_sides)
+    g_has_sides = Load(UiDir(), "sides_off", &g_sides_pic[0]) &&
+                  Load(UiDir(), "sides_on", &g_sides_pic[1]);
+#endif
   if (!g_has_pad) g_has_pad = Load(UiDir(), "pad_button", &g_pad_button) && LoadGamepad();
 #if defined(H4_LINUX_APP)
   if (g_kofi_gear.argb.empty() && !Load(UiDir(), "kofi_gear", &g_kofi_gear)) g_kofi_gear = Picture{};
+#if !defined(H4_WEB_APP)  // the browser: the page's full screen; the saves stay in the browser
   if (!g_has_full) g_has_full = Load(UiDir(), "full_off", &g_full_pic[0]) && Load(UiDir(), "full_on", &g_full_pic[1]);
+#endif
   if (!g_has_upd) {
     static const char* const kMsg[kUpdCount] = {"upd_checking", "upd_latest", "upd_newer",
                                                 "upd_downloading", "upd_done", "upd_failed"};
     g_has_upd = Load(UiDir(), "upd_button", &g_upd_button);
     for (int i = 0; i < kUpdCount && g_has_upd; i++) g_has_upd = Load(UiDir(), kMsg[i], &g_upd_msg[i]);
   }
+#if !defined(H4_WEB_APP)
   if (!g_has_sync) g_has_sync = Load(UiDir(), "sync_button", &g_sync_button) && Load(UiDir(), "sync_help", &g_sync_help);
+#endif
 #endif
   std::vector<Choice> out;
   if (!g_saved.empty())
@@ -558,6 +569,7 @@ void MakeList() {
   }
   if (g_has_full) add(&g_full_pic[h4::Fullscreen() ? 1 : 0], kRowFull);
   if (g_has_skip) add(&g_skip_pic[h4::SkipIntro() ? 1 : 0], kRowSkip);
+  if (g_has_sides) add(&g_sides_pic[h4::ReadBlackSidePanels(h4::SidePanelsPath()) ? 1 : 0], kRowSides);
   if (g_has_sync) add(&g_sync_button, kRowSync);
   if (g_has_pad) add(&g_pad_button, kRowPad);
   int w = 0, h = 0;
@@ -772,6 +784,9 @@ void ShowLanguageButton(bool shown, int x, int y, int /*left: iOS only*/) {
         MakeList();
       } else if (what == kRowSkip) {
         h4::SetSkipIntro(!h4::SkipIntro());  // the box flips; the list stays
+        MakeList();
+      } else if (what == kRowSides) {
+        h4::SaveBlackSidePanels(!h4::ReadBlackSidePanels(h4::SidePanelsPath()));
         MakeList();
       } else if (what == kRowSync) {
         g_state = kSyncHelp;  // its help; a click closes it

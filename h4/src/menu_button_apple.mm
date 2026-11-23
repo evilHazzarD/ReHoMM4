@@ -178,6 +178,14 @@ void SetMenu(UIButton* b) {
                                         SetMenu(b);
                                       }];
   intro.state = h4::SkipIntro() ? UIMenuElementStateOn : UIMenuElementStateOff;
+  UIAction* sides = [UIAction actionWithTitle:Uk() ? @"Чорні бічні поля (з наступного запуску)"
+                                                  : @"Black side panels (from the next start)"
+                                         image:nil identifier:nil handler:^(UIAction*) {
+    h4::SaveBlackSidePanels(!h4::ReadBlackSidePanels(h4::SidePanelsPath()));
+    SetMenu(b);
+  }];
+  sides.state = h4::ReadBlackSidePanels(h4::SidePanelsPath()) ? UIMenuElementStateOn
+                                                           : UIMenuElementStateOff;
   UIAction* pad = [UIAction actionWithTitle:Str(h4::GamepadHelpTitle(Uk()))
                                       image:[UIImage systemImageNamed:@"gamecontroller"]
                                  identifier:nil
@@ -185,6 +193,7 @@ void SetMenu(UIButton* b) {
                                       Alert(Str(h4::GamepadHelpTitle(Uk())), Str(h4::GamepadHelp(Uk())), @[]);
                                     }];
   NSMutableArray<UIMenuElement*>* items = [NSMutableArray array];
+  [items addObject:sides];
   UIAction* upd = [UIAction actionWithTitle:Uk() ? @"Перевірити оновлення" : @"Check for updates"
                                       image:[UIImage systemImageNamed:@"arrow.down.circle"]
                                  identifier:nil
