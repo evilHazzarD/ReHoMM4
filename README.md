@@ -336,6 +336,8 @@ The iPhone/iPad, Android, Mac and Linux apps have been tested on real devices; t
 only under Rosetta on an Apple Silicon Mac. The Switch app has
 not been tested: the author has no Switch with custom firmware to run homebrew on. Reports from
 Switch owners are welcome in the [issues](https://github.com/evilHazzarD/ReHoMM4/issues).
+The Switch 2 app has not been tested on a console either. The browser version has been tested in
+Chrome on a Mac.
 
 ## Translations
 
@@ -789,6 +791,7 @@ Round Sync, FolderSync чи Nextcloud: гра тримає їх у папці `R
 з Intel поки що — лише через Rosetta на Маці з процесором Apple. Програма для
 Switch не перевірена: автор не має Switch з кастомною прошивкою, на якій запускається homebrew.
 Відгуки власників Switch — в [issues](https://github.com/evilHazzarD/ReHoMM4/issues).
+Програму для Switch 2 на консолі теж не перевірено. Версію для браузера перевірено в Chrome на Маці.
 
 ### Переклади
 
