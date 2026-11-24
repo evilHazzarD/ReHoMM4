@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {manifestPlan, parseManifest} from '../src/manifest.js';
 import {fileOffsetForVa, parsePe32, validateManifestAddresses} from '../src/pe.js';
 import {prepareConversion} from '../src/session.js';
-import {validateInstallerNames} from '../src/validate.js';
+import {SUPPORTED_GOG_30, validateInstallerNames} from '../src/validate.js';
 
 const valid = validateInstallerNames([
   {name: 'setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(76223).exe'},
@@ -17,6 +17,9 @@ const polish = validateInstallerNames([
 ]);
 assert.equal(polish.ok, false);
 assert.match(polish.error, /Polish/);
+
+assert.deepEqual(Object.values(SUPPORTED_GOG_30).map(v => v.language).sort(), ['de', 'en', 'es', 'fr', 'it']);
+assert.equal(Object.keys(SUPPORTED_GOG_30).length, 5);
 
 assert.equal(validateInstallerNames([]).ok, false);
 
