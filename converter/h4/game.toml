@@ -1,0 +1,34 @@
+# ReHoMM4's browser-converter target. This is deliberately independent of
+# GameRecomp's Heroes IV manifest: ReHoMM4 currently accepts English GOG 3.0
+# only, and never offers a Polish variant or alias.
+schema = 1
+
+[game]
+id = "rehomm4"
+title = "Heroes of Might and Magic IV (ReHoMM4)"
+title_de = "Heroes of Might and Magic IV (ReHoMM4)"
+engine = "h4"
+gog_id = "1207658915"
+
+[[variant]]
+id = "gog-en-76223"
+store = "gog"
+language = "en"
+content = ["base", "gathering-storm", "winds-of-war"]
+notes = "GOG Complete 3.0, win11 gog 0.2 (build 76223); English only."
+media = [
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(76223).exe", kind = "inno", size = 827904, sha256 = "933fa0285e9f08044e86946054a42236e0fe34a8a23709b6ba7101f84cd92f0e" },
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(76223)-1.bin", kind = "slice", size = 1132493510, sha256 = "bbf6fc0aca8dfb500e05881c47f69136732659769cfb5d71e58292aec6ec2970" },
+]
+
+[[binary]]
+name = "heroes4.exe"
+role = "main"
+treatment = "lift"
+size = 6885376
+sha256 = "b7c2f6caeeba640b1c5f1d812b172938bb4dd4ec62e34ec93ad827bd1ffaec87"
+variants = ["gog-en-76223"]
+[binary.discover]
+# An extra SEH entry that the existing native lifter receives from
+# h4/lifter.manifest. The adapter will import its replacement/resume rules.
+seeds = [0x008e3adc]
