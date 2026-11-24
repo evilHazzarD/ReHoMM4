@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {manifestPlan, parseManifest} from '../src/manifest.js';
+import {fileOffsetForVa, parsePe32, validateManifestAddresses} from '../src/pe.js';
 import {validateInstallerNames} from '../src/validate.js';
 
 const valid = validateInstallerNames([
@@ -23,4 +24,18 @@ const plan = manifestPlan(manifest);
 assert.ok(plan.replacements > 20);
 assert.ok(manifest.some(rule => rule.kind === 'replace' && rule.symbol === 'set_mode'));
 assert.throws(() => parseManifest('polish 008D3750 nope'), /unsupported directive/);
+
+const fixture = new Uint8Array(0x400);
+const view = new DataView(fixture.buffer);
+view.setUint16(0, 0x5a4d, true); view.setUint32(0x3c, 0x80, true);
+view.setUint32(0x80, 0x4550, true); view.setUint16(0x86, 1, true); view.setUint16(0x94, 0xe0, true);
+view.setUint16(0x98, 0x10b, true); view.setUint32(0xb4, 0x400000, true);
+fixture.set(new TextEncoder().encode('.text'), 0x178);
+view.setUint32(0x180, 0x200, true); view.setUint32(0x184, 0x1000, true);
+view.setUint32(0x188, 0x200, true); view.setUint32(0x18c, 0x200, true);
+const pe = parsePe32(fixture);
+assert.equal(fileOffsetForVa(pe, 0x401020), 0x220);
+assert.equal(fileOffsetForVa(pe, 0x402000), null);
+assert.equal(validateManifestAddresses(pe, [{address: 0x401020}]), true);
+assert.throws(() => validateManifestAddresses(pe, [{address: 0x402000}]), /outside executable/);
 console.log('converter validator: ok');
