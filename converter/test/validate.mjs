@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {manifestPlan, parseManifest} from '../src/manifest.js';
 import {validateInstallerNames} from '../src/validate.js';
 
 const valid = validateInstallerNames([
@@ -15,4 +17,10 @@ assert.equal(polish.ok, false);
 assert.match(polish.error, /Polish/);
 
 assert.equal(validateInstallerNames([]).ok, false);
+
+const manifest = parseManifest(await readFile(new URL('../../h4/lifter.manifest', import.meta.url), 'utf8'));
+const plan = manifestPlan(manifest);
+assert.ok(plan.replacements > 20);
+assert.ok(manifest.some(rule => rule.kind === 'replace' && rule.symbol === 'set_mode'));
+assert.throws(() => parseManifest('polish 008D3750 nope'), /unsupported directive/);
 console.log('converter validator: ok');

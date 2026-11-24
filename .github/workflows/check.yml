@@ -26,6 +26,8 @@ jobs:
         run: python3 tools/release/publish_check.py --release ${{ github.event.repository.private && '--private' || '' }}
       - name: python tools compile
         run: python3 -m py_compile tools/re/*.py tools/release/*.py platforms/*.py platforms/macos-dmg/*.py platforms/tools/*.py tools/re/collage/*.py
+      - name: browser converter contract
+        run: node converter/test/validate.mjs
       - name: shell scripts parse
         run: for f in tools/*.sh tools/release/*.sh platforms/*.sh platforms/*/*.sh assets/icon/*.sh tests/scripts/*.sh; do bash -n "$f"; done
       - name: collage tool compiles
