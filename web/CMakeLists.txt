@@ -46,7 +46,7 @@ add_executable(h4
   ${H4_SRC}/install/installer.cpp ${H4_SRC}/install/gog.cpp ${H4_SRC}/install/inno.cpp
   ${H4_SRC}/install/manifest.cpp ${H4_SRC}/install/json.cpp ${H4_SRC}/install/hash.cpp
   ${H4_SRC}/language.cpp ${H4_SRC}/intro.cpp ${H4_SRC}/window_mode.cpp ${H4_SRC}/pad_config.cpp
-  ${H4_SRC}/menu_button_linux.cpp ${H4_SRC}/random_map_ui.cpp ${H4_RANDOM_MAP}
+  ${H4_SRC}/menu_button_linux.cpp ${H4_SRC}/random_map_ui.cpp ${H4_SRC}/filter_notice.cpp ${H4_RANDOM_MAP}
   src/web_main.cpp src/web_platform.cpp
   $<TARGET_OBJECTS:h4_lifted>)
 set_target_properties(h4 PROPERTIES OUTPUT_NAME heroes4 SUFFIX ".js")
