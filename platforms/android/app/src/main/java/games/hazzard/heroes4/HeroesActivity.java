@@ -303,6 +303,8 @@ public class HeroesActivity extends SDLActivity {
 
     private static native String h4GameFolder();  // menu_button_android.cpp
     private static native String h4FilterLabel(boolean uk);  // the scaling filter (F10's)
+    private static native String h4RendererLabel(boolean uk);  // GPU or CPU (renderer.h)
+    private static native void h4NextRenderer();
     private static native void h4NextFilter();
 
     // A folder in the settings: its title (bold) with Open at the right (open: null, no button),
@@ -562,6 +564,17 @@ public class HeroesActivity extends SDLActivity {
             box.addView(scaling);
         } catch (UnsatisfiedLinkError e) {
         }
+        try {  // who draws the frame: each tap the next choice (Auto, GPU, CPU), from the next start
+            final android.widget.Button renderer = new android.widget.Button(a);
+            renderer.setAllCaps(false);
+            renderer.setText(h4RendererLabel(uk));
+            renderer.setOnClickListener(v -> {
+                h4NextRenderer();
+                renderer.setText(h4RendererLabel(uk));
+            });
+            box.addView(renderer);
+        } catch (UnsatisfiedLinkError e) {
+        }
         if (sidePanelsPath != null && !sidePanelsPath.isEmpty()) {
             android.widget.CheckBox sides = new android.widget.CheckBox(a);
             sides.setText(uk ? "Чорні бічні поля (з наступного запуску)"
@@ -797,6 +810,35 @@ public class HeroesActivity extends SDLActivity {
 
     // A gamepad's click at (x, y) (pixels of SDL's view; h4/src/menu_button_android.cpp): whether it is
     // on ⚙︎, ☕ or ☁️ (shown), and with `click` that button's tap. Called from the game's thread.
+    // The display cutout's (camera notch's) or rounded corners' side, a fraction of the screen's long side, for the
+    // game to keep clear of it (main.cpp, as iOS's safe area): 0 when there is none, or before
+    // Android 9, or while the view's insets are not known yet.
+    public static float h4CutoutMargin() {
+        final HeroesActivity a = self();
+        if (a == null || android.os.Build.VERSION.SDK_INT < 28) return 0;
+        final android.view.View v = a.getWindow().getDecorView();
+        final android.view.WindowInsets in = v.getRootWindowInsets();
+        if (in == null) return 0;
+        final android.view.DisplayCutout c = in.getDisplayCutout();
+        final int w = Math.max(v.getWidth(), v.getHeight());
+        int side = 0;
+        if (c != null)  // in portrait (not turned yet) the notch is at the top
+            side = v.getWidth() >= v.getHeight() ? Math.max(c.getSafeInsetLeft(), c.getSafeInsetRight())
+                                                 : Math.max(c.getSafeInsetTop(), c.getSafeInsetBottom());
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            // Rounded screen corners (Android 12+): half the biggest radius, so the game's corner
+            // buttons are clear of them (all of it would take too much; there only the frame's
+            // edge is cut).
+            int r = 0;
+            for (int pos = 0; pos < 4; pos++) {
+                final android.view.RoundedCorner rc = in.getRoundedCorner(pos);
+                if (rc != null) r = Math.max(r, rc.getRadius());
+            }
+            side = Math.max(side, r / 2);
+        }
+        return w > 0 ? (float) side / w : 0;
+    }
+
     public static boolean h4PadClick(final float x, final float y, final boolean click) {
         final HeroesActivity a = self();
         if (a == null || !menuShown) return false;

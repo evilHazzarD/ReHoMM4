@@ -52,6 +52,7 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 
 #if defined(H4_MOBILE)
 #include "filter_notice.h"
+#include "renderer.h"
 #include "install/installer.h"
 #include "intro.h"
 #include "window_mode.h"
@@ -68,6 +69,11 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 #if defined(__APPLE__) && TARGET_OS_IOS
 namespace h4 {
 bool IosSafeAreaMargin(float* fraction);
+}
+#endif
+#if defined(__ANDROID__)
+namespace h4 {
+bool AndroidSafeAreaMargin(float* fraction);  // menu_button_android.cpp: the camera notch's side
 }
 #endif
 
@@ -342,7 +348,24 @@ std::string MobileSetup() {
   setvbuf(stdout, nullptr, _IOLBF, 0);
   setvbuf(stderr, nullptr, _IOLBF, 0);
 #endif
+  // Testing on a device whose environment cannot be set (a phone): <player>/env, one KEY=VALUE a
+  // line (H4_GFX=soft, H4_FPS_REPORT=5...), read before anything looks at them.
+  if (FILE* f = std::fopen((data + "/env").c_str(), "r")) {
+    char line[256];
+    while (std::fgets(line, sizeof line, f)) {
+      std::string s(line);
+      while (!s.empty() && (s.back() == '\n' || s.back() == '\r' || s.back() == ' ')) s.pop_back();
+      const size_t eq = s.find('=');
+      if (s.empty() || s[0] == '#' || eq == std::string::npos || eq == 0) continue;
+      setenv(s.substr(0, eq).c_str(), s.substr(eq + 1).c_str(), 1);
+      std::printf("h4: env %s\n", s.c_str());
+    }
+    std::fclose(f);
+  }
   h4::LoadSkipIntro(data + "/skip_intro");
+#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
+  h4::LoadRenderer(data);  // before the graphics device is made
+#endif
   h4::LoadFilter(data + "/filter");  // before the default below
   h4::LoadPadConfig(data + "/gamepad.conf");
 #if defined(H4_DESKTOP_APP)
@@ -366,6 +389,18 @@ std::string MobileSetup() {
   if (!(sa && !std::strcmp(sa, "0")) && h4::IosSafeAreaMargin(&margin) && margin > 0) {
     recomp::gfx::SetOutputInsets(margin, margin);
     std::printf("h4: safe area: %.1f%% of the width kept clear on each side\n", margin * 100);
+  }
+#endif
+#if defined(__ANDROID__)
+  {  // The same off the camera notch (the app draws under it: windowLayoutInDisplayCutoutMode).
+    const char* sa = std::getenv("H4_SAFE_AREA");
+    float margin = 0;
+    if (!(sa && !std::strcmp(sa, "0")) && h4::AndroidSafeAreaMargin(&margin) && margin > 0) {
+      recomp::gfx::SetOutputInsets(margin, margin);
+      std::printf("h4: safe area: %.1f%% of the width kept clear on each side (the notch)\n", margin * 100);
+    } else {
+      std::printf("h4: safe area: no notch\n");
+    }
   }
 #endif
   setenv("H4_SIDE_PANELS_FILE", (data + "/side-panels.txt").c_str(), 0);

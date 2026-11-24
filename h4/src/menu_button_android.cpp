@@ -11,6 +11,7 @@
 
 #include "language.h"
 #include "filter_notice.h"
+#include "renderer.h"
 #include "intro.h"
 #include "menu_button.h"
 #include "pad_config.h"
@@ -66,6 +67,24 @@ bool PadEvent(const SDL_Event& e) {
   return hit;
 }
 }  // namespace
+
+// HeroesActivity.h4CutoutMargin: the camera notch's side, a fraction of the screen's width.
+bool AndroidSafeAreaMargin(float* fraction) {
+  auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
+  jclass cls = env ? Activity(env) : nullptr;
+  jmethodID m = cls ? env->GetStaticMethodID(cls, "h4CutoutMargin", "()F") : nullptr;
+  if (!m) {
+    if (env) env->ExceptionClear();
+    return false;
+  }
+  const float f = env->CallStaticFloatMethod(cls, m);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  *fraction = f;
+  return f > 0;
+}
 
 void SetLanguageChoice(const std::string& lang, const std::string& saved_path) {
   g_lang = lang;
@@ -164,6 +183,15 @@ extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h
 }
 extern "C" JNIEXPORT void JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4NextFilter(JNIEnv*, jclass) {
   h4::NextFilter();
+}
+
+extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4RendererLabel(JNIEnv* env, jclass,
+                                                                                               jboolean uk) {
+  return env->NewStringUTF(h4::RendererLabel(uk).c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4NextRenderer(JNIEnv*, jclass) {
+  h4::NextRenderer();
 }
 
 // The game's folder (GameFolder, main.cpp), shown in the settings; "" before it is found.

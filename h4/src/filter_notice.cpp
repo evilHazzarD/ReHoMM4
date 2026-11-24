@@ -78,10 +78,11 @@ std::vector<uint32_t> Picture(const random_map::Font& font, const std::string& t
   return px;
 }
 
-// Shows `name` for two seconds (on a thread of its own: the font may still be being read).
-void Show(const std::string& name) {
+// Shows `name`'s notice (or, with `en` set, that text: `uk` in Ukrainian) for `seconds`, on a
+// thread of its own (the font may still be being read).
+void Show(const std::string& name, const std::string& en = "", const std::string& uk = "", int seconds = 2) {
   const uint32_t number = ++g_shown;
-  std::thread([name, number] {
+  std::thread([name, en, uk, seconds, number] {
     const recomp::gfx::Presentation p = recomp::gfx::LastPresentation();
     // Screen pixels per frame pixel: the notice drawn that fine, in the biggest of the game's
     // fonts (prose_antique 16 ... 36) that is no bigger there than 16 in the frame.
@@ -98,13 +99,14 @@ void Show(const std::string& name) {
     const char* lang = std::getenv("H4_LANG");
     locale.Set(lang ? lang : "");
     const Name* n = Find(name);
-    const std::string text = locale.Text("Scaling") + Number(n) + ": " + locale.Text(n ? n->shown : name.c_str());
+    const std::string text = !en.empty() ? (lang && !std::strcmp(lang, "uk") ? uk : en)
+                                         : locale.Text("Scaling") + Number(n) + ": " + locale.Text(n ? n->shown : name.c_str());
     int w = 0, h = 0;
     const std::vector<uint32_t> px = Picture(*font, text, d, &w, &h);
     const int fw = p.src_w > 0 ? p.src_w : 1024;
     recomp::gfx::SetPresentNoticeDense(px.data(), w, h, d);
     recomp::gfx::SetPresentNoticePos(std::max(0, (fw - int(float(w) / d)) / 2), 12, true);
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(seconds));
     if (number == g_shown) recomp::gfx::SetPresentNoticePos(0, 0, false);
   }).detach();
 }
@@ -154,6 +156,8 @@ std::string FilterLabel(bool uk) {
   const Name* n = Find(id);
   return std::string(uk ? "Масштабування" : "Scaling") + Number(n) + ": " + (n ? (uk ? n->uk : n->shown) : id);
 }
+
+void ShowNotice(const std::string& en, const std::string& uk, int seconds) { Show("", en, uk, seconds); }
 
 void NextFilter() {
   {

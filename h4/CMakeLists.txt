@@ -44,7 +44,7 @@ if(TARGET h4_lifted)
       src/random_map/resources.cpp src/random_map/scenario.cpp src/random_map/translations.cpp
       src/random_map/storage.cpp src/random_map/template.cpp src/random_map/templates_shipped.cpp src/random_map/tiles.cpp src/random_map/transitions.cpp)
   set_source_files_properties(${_h4_random_map} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
-  list(APPEND _h4_sources src/random_map_ui.cpp src/filter_notice.cpp ${_h4_random_map})
+  list(APPEND _h4_sources src/random_map_ui.cpp src/filter_notice.cpp src/renderer.cpp ${_h4_random_map})
   set(_h4_libs recomp_runtime recomp_mss32 recomp_dsound recomp_bink recomp_d3d7)
   # H4_DESKTOP_APP: the Linux (Steam Deck) and Mac app builds, made like the mobile ones
   # (platforms/build.sh linux|macos-*): one binary with the in-app installer, the translation and the

@@ -16,4 +16,7 @@ void LoadFilter(const std::string& path);
 std::string FilterLabel(bool uk);
 void NextFilter();
 
+// Any notice the same way, for `seconds`: `en`, or `uk` (UTF-8) when the game is in Ukrainian.
+void ShowNotice(const std::string& en, const std::string& uk, int seconds);
+
 }  // namespace h4
