@@ -126,14 +126,16 @@ and sticks run 32-bit Android and cannot install it.
 A 64-bit PC with Windows 10 or 11 and graphics drivers with Vulkan (the current NVIDIA, AMD and Intel
 drivers have it).
 
-1. Unpack `reHoMM4-v<version>-windows-x86_64.zip` where the game should live, for example
-   `C:\Games` (right-click the archive → **Extract All…**): it makes the folder `ReHoMM4`.
-2. Start `ReHoMM4\ReHoMM4.exe`. The app is not signed, so Windows may say "Windows protected your
+1. Open the folder of your installed GOG copy — the one containing `heroes4.exe`, `Data` and `maps`
+   (for example `C:\GOG Games\Heroes of Might and Magic IV`). Unpack
+   `reHoMM4-v<version>-windows-x86_64.zip` **into that folder** and allow it to merge files. It adds
+   `ReHoMM4.exe`, its DLLs and support folders; it does not replace the game's files.
+2. Start `ReHoMM4.exe`. The app is not signed, so Windows may say "Windows protected your
    PC": **More info** → **Run anyway**.
 
-**Update:** unpack the new archive over the old folder (the app has no update check on Windows
-yet). Saves and settings are in `%LOCALAPPDATA%\ReHoMM4` (paste it into Explorer's address bar),
-not in this folder.
+**Update:** unpack the new archive over the same game folder. Saves and settings are in
+`%LOCALAPPDATA%\ReHoMM4` (paste it into Explorer's address bar), not in the game folder. The older
+preview location `%LOCALAPPDATA%\ReHoMM4\game` continues to work too.
 
 ### Linux
 
@@ -654,14 +656,16 @@ Vulkan: багато ТВ-приставок і стіків працюють н
 64-бітний ПК з Windows 10 або 11 і драйверами відеокарти з Vulkan (актуальні драйвери NVIDIA, AMD та
 Intel його мають).
 
-1. Розпакуйте `reHoMM4-v<version>-windows-x86_64.zip` туди, де житиме гра, наприклад у `C:\Games`
-   (правою кнопкою по архіву → **«Видобути все…»**): з'явиться тека `ReHoMM4`.
-2. Запустіть `ReHoMM4\ReHoMM4.exe`. Програма не підписана, тож Windows може написати «Windows
+1. Відкрийте теку встановленої копії GOG — ту, де є `heroes4.exe`, `Data` та `maps`
+   (наприклад `C:\GOG Games\Heroes of Might and Magic IV`). Розпакуйте
+   `reHoMM4-v<version>-windows-x86_64.zip` **прямо в неї** і дозвольте об'єднати файли. Архів додає
+   `ReHoMM4.exe`, його DLL і допоміжні теки, але не замінює файли гри.
+2. Запустіть `ReHoMM4.exe`. Програма не підписана, тож Windows може написати «Windows
    захистила ваш ПК»: **«Докладніше»** → **«Однаково запустити»**.
 
-**Оновлення:** розпакуйте новий архів поверх старої теки (перевірки оновлень у програмі на Windows
-поки немає). Збереження й налаштування — у `%LOCALAPPDATA%\ReHoMM4` (вставте в адресний рядок
-Провідника), не в цій теці.
+**Оновлення:** розпакуйте новий архів поверх тієї самої теки гри. Збереження й налаштування — у
+`%LOCALAPPDATA%\ReHoMM4` (вставте в адресний рядок Провідника), не в теці гри. Старе місце
+попередньої версії `%LOCALAPPDATA%\ReHoMM4\game` також продовжує працювати.
 
 #### Linux
 

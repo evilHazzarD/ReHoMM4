@@ -32,8 +32,9 @@ platforms/build.sh windows-x86_64     # -> .cache/outputs/windows-x86_64/dist/He
 ```
 
 The Windows build is cross-compiled on the Mac with Homebrew's MinGW-w64 (`brew install mingw-w64`).
-It is a portable folder containing `ReHoMM4.exe` and `SDL3.dll`; it uses an existing GOG game
-installation passed with `--game-dir` (or `H4_GAME_DIR`).
+Its ZIP is intentionally flat: unpack its contents into an existing GOG game directory (beside
+`heroes4.exe`) and start `ReHoMM4.exe`. The older preview game location
+`%LOCALAPPDATA%\ReHoMM4\game` is still detected; `--game-dir` and `H4_GAME_DIR` remain overrides.
 
 `tools/build.sh` also builds the Mac DMG; for the mobile builds only its first steps are needed
 (stop it after "Recompiling the game" if you like). It applies every `patches/x86recomp-*.patch`,
