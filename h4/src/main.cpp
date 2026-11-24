@@ -49,10 +49,14 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 #if defined(H4_SWITCH_APP)
 #include <switch.h>
 #endif
+#if defined(H4_WEB_APP)
+#include <emscripten.h>
+#endif
 
 #if defined(H4_MOBILE)
 #include "filter_notice.h"
 #include "renderer.h"
+#include "ui_text.h"
 #include "install/installer.h"
 #include "intro.h"
 #include "window_mode.h"
@@ -69,12 +73,23 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 #if defined(__APPLE__) && TARGET_OS_IOS
 namespace h4 {
 bool IosSafeAreaMargin(float* fraction);
+bool IosPhone();     // an iPhone (not an iPad)
+bool IosIpadMini();  // an iPad mini
+bool IosBigPhone();  // a Plus or Pro Max iPhone
 }
 #endif
 #if defined(__ANDROID__)
 namespace h4 {
 bool AndroidSafeAreaMargin(float* fraction);  // menu_button_android.cpp: the camera notch's side
+bool AndroidSmallScreen();  // a phone's screen (smallest width under 600 dp)
 }
+#endif
+
+#if defined(H4_SWITCH_APP)
+namespace h4 {
+// In the hands (not in the dock): resolution.cpp follows a change while the game runs.
+bool SwitchHandheld() { return appletGetOperationMode() == AppletOperationMode_Handheld; }
+}  // namespace h4
 #endif
 
 namespace {
@@ -223,7 +238,7 @@ void ChooseLanguage(const std::string& game, const std::string& data) {
   }
   if (IsFile(data + "/uk.h4p")) all.push_back(data + "/uk.h4p");
   auto downloaded = [&](const h4::LanguageInfo& l) {
-    return packs + "/" + l.code + "-" + l.sha256.substr(0, 12) + ".h4p";
+    return h4::DownloadedPack(data, l);
   };
   std::string lang = "en";
   if (FILE* f = std::fopen(saved_path.c_str(), "r")) {
@@ -331,7 +346,9 @@ void MobileDirs(std::string* user_files, std::string* data) {
   *user_files = (xdg && *xdg ? std::string(xdg) : std::string(home ? home : ".") + "/.local/share") +
                 "/ReHoMM4";
 #endif
+#if !defined(H4_WINDOWS_APP)
   *data = *user_files + "/player";
+#endif
 #elif defined(__ANDROID__)
   // The app's external files dir: adb push/pull reach it (a release build's internal storage is
   // closed to adb), and it is removed with the app like the internal one.
@@ -389,11 +406,12 @@ std::string MobileSetup() {
     std::fclose(f);
   }
   h4::LoadSkipIntro(data + "/skip_intro");
-#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
+  h4::LoadUiLanguageChoice(data);  // the interface's language, if not the game's (ui_text.h)
+#if defined(__ANDROID__) || defined(__APPLE__)
   h4::LoadRenderer(data);  // before the graphics device is made
 #endif
   // The layout when none is chosen: 800x600 on phones (in their browsers too), 1024x768 on
-  // the big iPhones (Plus, Pro Max), Android tablets and the iPad mini, 1280x1024 on the other iPads and on desktops with room for it (else 1024x768); the Switch 800x600 in the
+  // the big iPhones (Plus, Pro Max), Android tablets and the iPad mini, 1280x1024 on the other iPads and on desktops whose screen has the pixels for it (else 1024x768); the Switch 800x600 in the
   // hands and 1024x768 on the TV, each kept apart.
 #if defined(__ANDROID__)
   h4::LoadLayout(data, h4::AndroidSmallScreen() ? "800" : "1024");
@@ -411,7 +429,8 @@ std::string MobileSetup() {
       const short_side = Math.min(screen.width, screen.height);
       return touch && short_side < 600 ? 0 : touch ? 1 : 2;  // a phone, a tablet, a computer
     });
-    h4::LoadLayout(data, kind == 0 ? "800" : kind == 1 ? "1024" : "desktop");
+    // (a computer: 1280x1024, as it always was; the window is scaled to the page anyway)
+    h4::LoadLayout(data, kind == 0 ? "800" : kind == 1 ? "1024" : "1280");
   }
 #else  // the desktop apps
   h4::LoadLayout(data, "desktop");
@@ -454,6 +473,12 @@ std::string MobileSetup() {
   }
 #endif
   setenv("H4_SIDE_PANELS_FILE", (data + "/side-panels.txt").c_str(), 0);
+  // H4_SIDE_PANELS (black, wings) with no setting yet: the browser page's choice of older versions
+  // (or its default, black), kept as the setting.
+  if (const char* sp = std::getenv("H4_SIDE_PANELS"); sp && *sp) {
+    if (FILE* f = std::fopen(h4::SidePanelsPath(), "r")) std::fclose(f);
+    else h4::SaveBlackSidePanels(std::strcmp(sp, "black") == 0);
+  }
   // The player's own wings/ folder first, else the app's.
   if (IsDir(files + "/wings")) setenv("H4_WINGS_DIR", (files + "/wings").c_str(), 0);
   else if (const std::string w = AppWings(); !w.empty()) setenv("H4_WINGS_DIR", w.c_str(), 0);
@@ -584,6 +609,10 @@ int main(int argc, char** argv) {
   // (smooth.cpp) is updated at most every 16 ms, so faster only costs GPU
   // work and battery. H4_MAX_FPS=0 shows every refresh.
   game.max_frame_rate = 60;
+#if H4_WEB_DYNAMIC
+  extern bool h4_prepare_dynamic_game(const char* path);
+  if (!h4_prepare_dynamic_game(exe.c_str())) return 2;
+#endif
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }
 

@@ -83,16 +83,6 @@
   <div class="setup">
   <div class="settings">
     <div class="settings-row">
-      <label class="fs"><input type="checkbox" id="fullscreen" checked> Full screen</label>
-      <label class="fs"><input type="checkbox" id="skip-intro"> Skip the intro movies</label>
-    </div>
-    <div class="settings-row">
-      <label class="fs">Side panels
-      <select id="side-panels">
-        <option value="black">Black</option>
-        <option value="wings">Automatic wings</option>
-      </select>
-    </label>
       <label class="fs">Language
         <select id="language"><option value="en">English</option></select>
       </label>
@@ -125,6 +115,19 @@ function updateOrientation() {
 }
 portrait.addEventListener('change', updateOrientation);
 updateOrientation();
+
+// The canvas's own pixels: the screen's (its CSS size times devicePixelRatio, so a Retina screen
+// shows the frame at its own sharpness). SDL sets them when the game's window is made, from the
+// window's size, not the page's, and again only on a resize: at the start the canvas was a fraction
+// of the screen's pixels, stretched (pixelated) until the first full-screen switch. A resize event
+// whenever they disagree has SDL size it from the page (once: then they agree).
+let canvasFixes = 0;  // (a few: SDL setting the same size again must not loop)
+setInterval(() => { canvasFixes = 0; }, 2000);
+new MutationObserver(() => {
+  const want = Math.round(canvas.clientWidth * devicePixelRatio);
+  if (canvas.clientWidth > 0 && Math.abs(canvas.width - want) > 1 && canvasFixes++ < 3)
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
+}).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
 
 // Shared memory (threads) needs cross-origin isolation. A server that does not send the headers
 // gets them from the service worker (coi-sw.js), which needs one reload to take over.
@@ -186,16 +189,55 @@ if (typeof BroadcastChannel === 'function')
 
 // What the game's threads tell the page (web_main.cpp, web_pre.js).
 let exited = false;
+let compilingLiftedCode = false;
+async function compileLiftedCode(digest) {
+  if (compilingLiftedCode) return;
+  compilingLiftedCode = true;
+  $('panel').classList.remove('hidden');
+  $('loading').hidden = false;
+  $('intro').hidden = true;
+  $('loadtext').textContent = 'Preparing the game’s code locally…';
+  $('loadbar').removeAttribute('value');
+  $('start').disabled = true;
+  let worker;
+  try {
+    const root = await navigator.storage.getDirectory();
+    const app = await root.getDirectoryHandle('ReHoMM4');
+    const game = await app.getDirectoryHandle('game');
+    const exe = await (await game.getFileHandle('heroes4.exe')).getFile();
+    worker = new Worker('./converter/emit_worker.mjs', {type: 'module'});
+    await new Promise((resolve, reject) => {
+      worker.onmessage = ({data}) => {
+        if (data.type === 'done') resolve();
+        else if (data.type === 'error') reject(new Error(data.message));
+      };
+      worker.onerror = () => reject(new Error('The browser converter failed to load.'));
+      worker.postMessage({type: 'emit', exe, expectedDigest: digest});
+    });
+    sessionStorage.setItem('h4-start-after-compile', '1');
+    location.reload();
+  } catch (error) {
+    $('loading').hidden = true;
+    problem(error.message);
+    $('start').textContent = 'Try again';
+    $('start').onclick = () => location.reload();
+    $('start').disabled = false;
+  } finally {
+    worker?.terminate();
+  }
+}
+
 function status(kind, a, b) {
   if (kind === 'copy') toast(`Copying ${b} into the browser's storage… ${Math.floor(a * 100)}%`);
   else if (kind === 'copy-done') toast('');
   else if (kind === 'error') toast(a, 15000);
+  else if (kind === 'compile') void compileLiftedCode(a);
   // The game's Options dialog: its "full screen" box (resolution.cpp).
   else if (kind === 'fullscreen') { if (a) enterFullscreen(); else leaveFullscreen(); }
   else if (kind === 'storage' && !a)
     toast('This browser gives no storage to the page (a private window?): nothing will be kept.', 12000);
   else if (kind === 'exit') {
-    if (exited) return;
+    if (exited || compilingLiftedCode) return;
     exited = true;
     // Its sound stops with it; out of full screen, back to the page.
     if (window.h4Module && h4Module.recompAudio) h4Module.recompAudio.close().catch(() => {});
@@ -221,7 +263,14 @@ function status(kind, a, b) {
 // streams: Safari's refused those with "the state had changed since it was read from disk").
 const COPY_WORKER = `
 onmessage = async (e) => {
-  const { path, url } = e.data;
+  for (let i = 0; ; i++) {  // (Safari's stale handles: tried again from the root)
+    const err = await copy(e.data);
+    if (!err) return postMessage({ end: true });
+    if (err.name !== 'InvalidStateError' || i >= 3) return postMessage({ error: String(err.message || err) });
+    await new Promise((r) => setTimeout(r, 300 * (i + 1)));
+  }
+};
+const copy = async ({ path, url }) => {
   let h = null;
   try {
     let d = await navigator.storage.getDirectory();
@@ -242,32 +291,60 @@ onmessage = async (e) => {
     await h.flush();
     await h.close();
     h = null;
-    postMessage({ end: true });
+    return null;
   } catch (err) {
     try { if (h) await h.close(); } catch (e2) { /* closed */ }
-    postMessage({ error: String((err && err.message) || err) });
+    return err || new Error('failed');
   }
 };`;
 
+// A folder of the origin private file system, from its root each time: Safari's handles go stale
+// once something below them changed ("...the state had changed since it was read from disk"),
+// and that refusal is tried again a few times.
+async function opfsDir(parts, create) {
+  for (let i = 0; ; i++) {
+    try {
+      let d = await navigator.storage.getDirectory();
+      for (const p of parts) d = await d.getDirectoryHandle(p, { create });
+      return d;
+    } catch (e) {
+      if (!e || e.name !== 'InvalidStateError' || i >= 4) throw e;
+      await new Promise((r) => setTimeout(r, 250 * (i + 1)));
+    }
+  }
+}
+
 async function copyServedGame(served) {
   const base = new URL(served.replace(/\/?$/, '/'), location.href).href;
-  const list = await (await fetch(base + 'index.json', { cache: 'no-store' })).json();
-  const root = await navigator.storage.getDirectory();
-  const app = await root.getDirectoryHandle('ReHoMM4', { create: true });
+  const step = async (what, fn) => {
+    try { return await fn(); } catch (e) { throw new Error(`${what}: ${(e && e.message) || e}`); }
+  };
+  const list = await step('its list (index.json)',
+                          async () => (await fetch(base + 'index.json', { cache: 'no-store' })).json());
   // (game.part: earlier pages' copy, moved into game/ at its end)
-  try { await app.removeEntry('game.part', { recursive: true }); } catch (e) { /* none */ }
-  const game = await app.getDirectoryHandle('game', { create: true });
+  try { await (await opfsDir(['ReHoMM4'], true)).removeEntry('game.part', { recursive: true }); } catch (e) { /* none */ }
+  await step('the browser storage', () => opfsDir(['ReHoMM4', 'game'], true));
   const total = list.files.reduce((n, f) => n + f.size, 0);
   let done = 0;
   const todo = [];
+  $('loadtext').textContent = 'Checking the game files in this browser…';
+  // Each folder opened once (from the root again only when Safari found its handle stale).
+  const dirs = new Map();
+  const sizeOf = async (parts) => {
+    for (let i = 0; i < 2; i++) {
+      const key = parts.slice(0, -1).join('/');
+      try {
+        if (!dirs.has(key)) dirs.set(key, await opfsDir(['ReHoMM4', 'game', ...parts.slice(0, -1)], false));
+        return (await (await dirs.get(key).getFileHandle(parts[parts.length - 1])).getFile()).size;
+      } catch (e) {
+        dirs.delete(key);
+        if (!e || e.name !== 'InvalidStateError') return -1;  // not there
+      }
+    }
+    return -1;
+  };
   for (const f of list.files) {
-    const parts = f.path.split('/');
-    let size = -1;
-    try {
-      let d = game;
-      for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
-      size = (await (await d.getFileHandle(parts[parts.length - 1])).getFile()).size;
-    } catch (e) { /* not there */ }
+    const size = await sizeOf(f.path.split('/'));
     if (size === f.size) done += f.size;
     else todo.push(f);
   }
@@ -345,18 +422,11 @@ document.addEventListener('keydown', (e) => {
   if (document.fullscreenElement) leaveFullscreen();
   else enterFullscreen();
 }, true);
-const fsBox = $('fullscreen');
-fsBox.checked = localStorage.getItem('h4-fullscreen') !== '0';
-fsBox.onchange = () => localStorage.setItem('h4-fullscreen', fsBox.checked ? '1' : '0');
-const sidePanels = $('side-panels');
-const savedSidePanels = localStorage.getItem('h4-side-panels');
-sidePanels.value = savedSidePanels === 'wings' ? 'wings' : 'black';  // black unless wings were chosen
-sidePanels.onchange = () => localStorage.setItem('h4-side-panels', sidePanels.value);
-// The game's language and the intro movies: chosen here, before the game starts (the game's own
-// settings have them in the apps). Given to the game as H4_LANG and H4_SKIP_INTRO.
-const skipIntro = $('skip-intro');
-skipIntro.checked = localStorage.getItem('h4-skip-intro') === '1';
-skipIntro.onchange = () => localStorage.setItem('h4-skip-intro', skipIntro.checked ? '1' : '0');
+// The game's language: chosen here, before the game starts (given to it as H4_LANG). The intro
+// movies and the side panels are in the game's settings (⚙); this page's earlier choices of them
+// (older versions) are given to it once, while it has none of its own (H4_SKIP_INTRO,
+// H4_SIDE_PANELS: main.cpp keeps them as its settings).
+const earlier = {};
 const language = $('language');
 language.onchange = () => localStorage.setItem('h4-language', language.value);
 async function readOpfs(path) {  // a small text file in the origin private file system, or null
@@ -390,8 +460,10 @@ async function loadLanguages() {
   if ([...language.options].some((o) => o.value === saved)) language.value = saved;
 }
 async function loadSettings() {
-  if (localStorage.getItem('h4-skip-intro') === null)  // the game's own setting in earlier versions
-    skipIntro.checked = ((await readOpfs('ReHoMM4/player/skip_intro')) || '')[0] === '1';
+  if ((await readOpfs('ReHoMM4/player/skip_intro')) === null && localStorage.getItem('h4-skip-intro') !== null)
+    earlier.H4_SKIP_INTRO = localStorage.getItem('h4-skip-intro') === '1' ? '1' : '0';
+  if ((await readOpfs('ReHoMM4/player/side-panels.txt')) === null)  // (black, unless wings were chosen)
+    earlier.H4_SIDE_PANELS = localStorage.getItem('h4-side-panels') === 'wings' ? 'wings' : 'black';
   await loadLanguages();
 }
 const settingsLoaded = loadSettings();
@@ -400,7 +472,7 @@ async function start() {
   if (portraitBlocked()) return;
   $('start').disabled = true;
   // In the click itself: browsers allow full screen only in answer to the user.
-  const fs = fsBox.checked ? enterFullscreen() : Promise.resolve();
+  const fs = enterFullscreen();
   $('loading').hidden = false;
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   const served = new URLSearchParams(location.search).get('game');
@@ -431,8 +503,7 @@ async function start() {
         canvas,
         h4Status: status,
         h4Env: {
-          H4_SIDE_PANELS: sidePanels.value,
-          H4_SKIP_INTRO: skipIntro.checked ? '1' : '0',
+          ...earlier,
           ...(language.disabled ? {} : { H4_LANG: language.value }),
           ...Object.fromEntries((new URLSearchParams(location.search).get('env') || '').split(',')
             .filter((kv) => kv.includes('=')).map((kv) => [kv.slice(0, kv.indexOf('=')), kv.slice(kv.indexOf('=') + 1)])),
@@ -554,7 +625,12 @@ $('reset').onclick = () => reset().catch((e) => toast('Not deleted: ' + e.messag
 // A tap on the game keeps the on-screen keyboard's field focused while it is wanted (the canvas
 // taking the focus would close the keyboard at every tap).
 canvas.addEventListener('pointerdown', () => (kbdWanted ? kbd : canvas).focus({ preventScroll: true }));
-check();
+void check().then(() => {
+  if (!$('start').disabled && sessionStorage.getItem('h4-start-after-compile')) {
+    sessionStorage.removeItem('h4-start-after-compile');
+    void start();
+  }
+});
 </script>
 </body>
 </html>

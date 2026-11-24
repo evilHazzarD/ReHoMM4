@@ -1,8 +1,7 @@
 #!/bin/bash
 # Packs the Switch build (platforms/build.sh switch) into a homebrew .nro:
 #
-#   ReHoMM4.nro        heroes4.elf (stripped) + its romfs: wings/, ui/ (the language button's
-#                       pictures), the translations built in (<code>.h4p), THIRD_PARTY_NOTICES.txt; the shield icon (assets/icon).
+#   ReHoMM4.nro        heroes4.elf (stripped) + its romfs: wings/, the translations built in (<code>.h4p), THIRD_PARTY_NOTICES.txt; the shield icon (assets/icon).
 #   THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py), beside it too
 #
 # On the Switch (Atmosphere): copy it to sdmc:/switch/ReHoMM4/ReHoMM4.nro, an installed game
@@ -22,7 +21,6 @@ rm -rf "$OUT" "$RF"; mkdir -p "$OUT" "$RF"
 for p in "$MOBILE_CACHE"/res/*.h4p; do [[ -f "$p" ]] || continue; cp "$p" "$RF/"; done  # the translations in the app
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$RF/THIRD_PARTY_NOTICES.txt"
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$OUT/THIRD_PARTY_NOTICES.txt"
-swift "$ROOT/platforms/linux/render_ui.swift" "$RF/ui" "${H4_VERSION:-}"
 "${SW}strip" -o "$MOBILE_CACHE/heroes4.stripped.elf" "$B/heroes4.elf"
 # The icon: 256x256 JPEG.
 ICON="$MOBILE_CACHE/icon.jpg"

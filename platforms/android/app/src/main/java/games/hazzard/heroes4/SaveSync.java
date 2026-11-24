@@ -1,7 +1,6 @@
 package games.hazzard.heroes4;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -305,31 +304,9 @@ final class SaveSync {
         return FOLDER.equalsIgnoreCase(n) ? n : n + "/" + FOLDER;
     }
 
-    // The ☁️ button's dialog.
-    static void showDialog(Activity a, boolean uk) {
-        new Thread(() -> {
-            final String folder = folderLabel();  // a provider query: off the UI thread
-            a.runOnUiThread(() -> dialog(a, uk, folder));
-        }).start();
-    }
-
-    private static void dialog(Activity a, boolean uk, String folder) {
-        AlertDialog.Builder b = new AlertDialog.Builder(a).setTitle(uk ? "Синхронізація збережень" : "Save sync");
-        if (folder.isEmpty()) {
-            b.setMessage(uk ? "Оберіть папку, яку синхронізує Syncthing, Round Sync (rclone), Nextcloud чи інша "
-                            + "програма: гра створить у ній папку ReHOMM4 і копіюватиме збереження туди й звідти."
-                            : "Pick a folder that Syncthing, Round Sync (rclone), Nextcloud or another app keeps in "
-                            + "sync: the game makes a ReHOMM4 folder in it and copies saved games there and back.");
-        } else {
-            b.setMessage((uk ? "Папка: " : "Folder: ") + folder + "\n" + status);
-            b.setNeutralButton(uk ? "Синхронізувати зараз" : "Sync now", (d, w) -> soon());
-            b.setNegativeButton(uk ? "Припинити" : "Stop syncing", (d, w) -> {
-                stop();
-                if (a instanceof HeroesActivity) HeroesActivity.syncChanged((HeroesActivity) a);  // ☁️ goes
-            });
-        }
-        b.setPositiveButton(folder.isEmpty() ? (uk ? "Обрати папку…" : "Choose a folder…")
-                                             : (uk ? "Інша папка…" : "Another folder…"), (d, w) -> pick(a));
-        b.show();
+    // What the ☁️ panel shows (HeroesActivity.h4SyncState, from the game's thread): the folder
+    // ("" when off), then the last pass's status.
+    static String state() {
+        return folderLabel() + "\n" + status;
     }
 }

@@ -4,7 +4,6 @@
 #   ReHoMM4/ReHoMM4            the game (with the in-app installer)
 #   ReHoMM4/lib/libSDL3.so.0   SDL3 (found through the binary's $ORIGIN/lib)
 #   ReHoMM4/wings/, <code>.h4p the side panels and the translations built in (platforms/languages.py)
-#   ReHoMM4/ui/                the language button's pictures (platforms/linux/render_ui.swift)
 #   ReHoMM4/ReHoMM4.png        the shield icon (assets/icon)
 #   ReHoMM4/THIRD_PARTY_NOTICES.txt   the licenses (platforms/notices.py)
 #   ReHoMM4/install-desktop-entry.sh   adds it to the desktop's menu (Steam Deck: Desktop Mode)
@@ -24,8 +23,6 @@ cp -L "$PREFIX/lib/libSDL3.so.0" "$D/lib/libSDL3.so.0"
 [[ -d "$MOBILE_CACHE/res/wings" ]] && cp -R "$MOBILE_CACHE/res/wings" "$D/wings"
 for p in "$MOBILE_CACHE"/res/*.h4p; do [[ -f "$p" ]] || continue; cp "$p" "$D/"; done  # the translations in the app
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$D/THIRD_PARTY_NOTICES.txt"
-# The language button and its note, drawn into the frame (h4/src/menu_button_linux.cpp).
-swift "$ROOT/platforms/linux/render_ui.swift" "$D/ui" "${H4_VERSION:-}"
 bash "$ROOT/assets/icon/icon.sh" linux "$D/ReHoMM4.png" >/dev/null
 cat > "$D/install-desktop-entry.sh" <<'SH'
 #!/bin/sh

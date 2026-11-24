@@ -18,11 +18,9 @@ WINPTHREAD="$(x86_64-w64-mingw32-g++ -print-sysroot)/x86_64-w64-mingw32/bin/libw
 [[ -f "$WINPTHREAD" ]] || { echo "no libwinpthread-1.dll in the MinGW toolchain" >&2; exit 1; }
 cp "$WINPTHREAD" "$D/libwinpthread-1.dll"
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$D/THIRD_PARTY_NOTICES.txt"
-# As the Linux app: the side panels, the translations built in, and the menu's buttons (⚙, ☕, the
-# settings' rows) drawn into the frame (h4/src/menu_button_linux.cpp).
+# As the Linux app: the side panels and the translations built in.
 [[ -d "$MOBILE_CACHE/res/wings" ]] && cp -R "$MOBILE_CACHE/res/wings" "$D/wings"
 for p in "$MOBILE_CACHE"/res/*.h4p; do [[ -f "$p" ]] || continue; cp "$p" "$D/"; done
-swift "$ROOT/platforms/linux/render_ui.swift" "$D/ui" "${H4_VERSION:-}"
 cat > "$D/README.txt" <<'TXT'
 Heroes of Might and Magic IV for Windows (ReHoMM4)
 

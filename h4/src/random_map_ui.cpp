@@ -341,8 +341,12 @@ void WakeIdleGame() {
   SDL_PushEvent(&m);
 }
 
+std::atomic<bool (*)(const SDL_Event&)> g_menu_input{nullptr};  // SetMenuInputHook's
+
 bool OnInput(const SDL_Event& e) {
-  const bool taken = OnInputLocked(e);
+  bool taken = false;
+  if (const auto menu = g_menu_input.load()) taken = menu(e);
+  if (!taken) taken = OnInputLocked(e);
   if (taken && (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP ||
                 e.type == SDL_EVENT_KEY_DOWN))
     WakeGame(e);
@@ -583,6 +587,28 @@ const random_map::Image* AdventureRightBorder() {
 const random_map::Image* AdventureTopStrip() {
   StartLoading();
   return g_load >= 2 && g_data->top_strip.w > 0 ? &g_data->top_strip : nullptr;
+}
+
+void SetMenuInputHook(bool (*hook)(const SDL_Event&)) {
+  g_menu_input = hook;
+  recomp::SetAppInputHook(OnInput);  // (RandomMapPass sets it too)
+}
+
+const GameDialogArt* DialogArt() {
+  StartLoading();
+  if (g_load < 2) return nullptr;
+  static GameDialogArt art = [] {
+    GameDialogArt a;
+    if (g_data->parchment.w > 0) a.parchment = &g_data->parchment;
+    if (g_data->dialog.w > 0) a.dialog = &g_data->dialog;
+    const auto up = g_data->button.find("released"), down = g_data->button.find("pressed");
+    if (up != g_data->button.end() && down != g_data->button.end()) {
+      a.button_up = &up->second;
+      a.button_down = &down->second;
+    }
+    return a;
+  }();
+  return &art;
 }
 
 const random_map::Font* GameFont(int size) {

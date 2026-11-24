@@ -1,6 +1,7 @@
 // filter_notice.h: the scaling filter F10 chose, kept and shown.
 
 #include "filter_notice.h"
+#include "ui_text.h"
 
 #include <algorithm>
 #include <atomic>
@@ -33,17 +34,16 @@ namespace {
 // In the runtime's order (F10's).
 struct Name {
   const char* id;
-  const char* shown;  // English; translated by random_map/translations.cpp
-  const char* uk;     // the same in UTF-8, for the native settings
+  const char* shown;  // English; translated by ui_text.h
 };
 constexpr Name kNames[] = {
-    {"nearest", "Nearest", "Без згладжування"},
-    {"bilinear", "Bilinear", "Білінійне"},
-    {"sharp", "Sharp bilinear", "Чітке білінійне"},
-    {"bicubic", "Bicubic", "Бікубічне"},
-    {"lanczos", "Lanczos", "Ланцош"},
-    {"bicubic-sharp", "Sharp bicubic", "Чітке бікубічне"},
-    {"fsr", "FSR", "FSR"},
+    {"nearest", "Nearest"},
+    {"bilinear", "Bilinear"},
+    {"sharp", "Sharp bilinear"},
+    {"bicubic", "Bicubic"},
+    {"lanczos", "Lanczos"},
+    {"bicubic-sharp", "Sharp bicubic"},
+    {"fsr", "FSR"},
 };
 constexpr int kCount = int(sizeof kNames / sizeof kNames[0]);
 
@@ -78,11 +78,11 @@ std::vector<uint32_t> Picture(const random_map::Font& font, const std::string& t
   return px;
 }
 
-// Shows `name`'s notice (or, with `en` set, that text: `uk` in Ukrainian) for `seconds`, on a
-// thread of its own (the font may still be being read).
-void Show(const std::string& name, const std::string& en = "", const std::string& uk = "", int seconds = 2) {
+// Shows `name`'s notice (or, with `english` set, that text in the game's language) for `seconds`,
+// on a thread of its own (the font may still be being read).
+void Show(const std::string& name, const std::string& english = "", int seconds = 2) {
   const uint32_t number = ++g_shown;
-  std::thread([name, en, uk, seconds, number] {
+  std::thread([name, english, seconds, number] {
     const recomp::gfx::Presentation p = recomp::gfx::LastPresentation();
     // Screen pixels per frame pixel: the notice drawn that fine, in the biggest of the game's
     // fonts (prose_antique 16 ... 36) that is no bigger there than 16 in the frame.
@@ -99,8 +99,8 @@ void Show(const std::string& name, const std::string& en = "", const std::string
     const char* lang = std::getenv("H4_LANG");
     locale.Set(lang ? lang : "");
     const Name* n = Find(name);
-    const std::string text = !en.empty() ? (lang && !std::strcmp(lang, "uk") ? uk : en)
-                                         : locale.Text("Scaling") + Number(n) + ": " + locale.Text(n ? n->shown : name.c_str());
+    const std::string text = !english.empty() ? locale.Text(english.c_str())
+                                              : locale.Text("Scaling") + Number(n) + ": " + locale.Text(n ? n->shown : name.c_str());
     int w = 0, h = 0;
     const std::vector<uint32_t> px = Picture(*font, text, d, &w, &h);
     const int fw = p.src_w > 0 ? p.src_w : 1024;
@@ -143,34 +143,33 @@ void LoadFilter(const std::string& path) {
   recomp::gfx::SetPresentFilterHook(OnFilter);
 }
 
-std::string FilterLabel(bool uk) {
-  std::string id;
-  {
-    std::lock_guard<std::mutex> l(g_mu);
-    id = g_current;
-  }
-  if (id.empty()) {
-    const char* env = std::getenv("H4_FILTER");
-    id = env ? env : "bilinear";  // (the runtime's own default)
-  }
-  const Name* n = Find(id);
-  return std::string(uk ? "Масштабування" : "Scaling") + Number(n) + ": " + (n ? (uk ? n->uk : n->shown) : id);
+void ShowNotice(const std::string& english, int seconds) { Show("", english, seconds); }
+
+std::vector<std::string> FilterIds() {
+  std::vector<std::string> out;
+  for (const Name& n : kNames) out.push_back(n.id);
+  return out;
 }
 
-void ShowNotice(const std::string& en, const std::string& uk, int seconds) { Show("", en, uk, seconds); }
+std::string CurrentFilter() {
+  std::lock_guard<std::mutex> l(g_mu);
+  if (!g_current.empty()) return g_current;
+  const char* env = std::getenv("H4_FILTER");
+  return env && Find(env) ? env : "bilinear";  // (the runtime's own default)
+}
 
-void NextFilter() {
+std::string FilterName(const std::string& id, const std::string& lang) {
+  const Name* n = Find(id);
+  return n ? TrIn(lang, n->shown) : id;
+}
+
+void SetFilter(const std::string& id) {
+  if (!Find(id)) return;
   {
     std::lock_guard<std::mutex> l(g_mu);
-    std::string id = g_current;
-    if (id.empty())
-      if (const char* env = std::getenv("H4_FILTER")) id = env;
-    int i = 0;
-    while (i < kCount && id != kNames[i].id) i++;
-    if (i == kCount) i = 1;  // none or unknown: the runtime's bilinear
-    g_current = kNames[(i + 1) % kCount].id;  // shown at once; the runtime's hook agrees
+    g_current = id;  // shown at once; the runtime's hook agrees
   }
-  recomp::gfx::RequestNextPresentFilter();
+  recomp::gfx::RequestPresentFilter(id.c_str());
 }
 
 }  // namespace h4

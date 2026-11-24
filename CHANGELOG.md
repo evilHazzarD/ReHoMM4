@@ -2,6 +2,45 @@
 
 Each release's notes on GitHub are its section here (tools/release/make_release.sh). Newest first.
 
+## 0.5
+
+Settings drawn in the game's style on every device, "What's new" and update checks, more readable layouts on small screens, and more GOG editions.
+
+| Device | File |
+|---|---|
+| Mac, macOS 13+ | `reHoMM4-v0.5-macos-arm64.dmg` (Apple Silicon) or `reHoMM4-v0.5-macos-x86_64.dmg` (Intel) |
+| iPhone and iPad, iOS / iPadOS 17+ | `reHoMM4-v0.5-ios.ipa` |
+| Android 10+, 64-bit | `reHoMM4-v0.5-android_arm64.apk` |
+| Windows 10 or 11, 64-bit | `reHoMM4-v0.5-windows-x86_64.zip` |
+| Linux and Steam Deck | `reHoMM4-v0.5-linux-x86_64.tar.gz` or `reHoMM4-v0.5-linux-arm64.tar.gz` |
+| Switch (homebrew) | `reHoMM4-v0.5-switch.nro` |
+| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.5-switch2.nro` |
+| Web browser | `reHoMM4-v0.5-web.zip` |
+
+**New**
+
+- **Settings in the game's style everywhere.** Mac, iPhone, iPad and Android now use the same ⚙ panel as Linux, Windows and the web, drawn with the game's frame and parchment. Above the main menu: ☁ (save sync, when on), ☕ and ⚙, each with a tooltip.
+- **What's new.** ⚙ → **What's new?** shows the notes of the releases newer than yours (or this one's), page by page, with a link to the releases.
+- **Update check.** ⚙ → **Check for updates** on Mac, Android, Linux and Windows (iPhone and iPad: the release page). The Mac app opens the downloaded .dmg; Android installs the APK.
+- **Folders.** On Mac, iPhone, iPad and Android, ⚙ → **Folders** shows where the saves and the game are (Mac and Android: **Open**).
+- **Screen layouts.** Choose 800×600, 1024×768 or 1280×1024 in the game's Options. Smaller layouts make text and controls larger, and the adventure map widens to fit the screen. Switch keeps separate handheld and docked choices.
+- **Interface language.** The app's settings can follow the game's language or use a separate language. App text is available in English, Ukrainian, German, French, Italian, Spanish, Polish and Russian.
+- **More GOG editions.** Supported English, German, French, Italian and Spanish editions install directly. The Polish edition requires the executable from the supported English edition. See the README for the supported GOG build.
+- **Renderer setting** (Mac, iPhone, iPad, Android). Choose Auto, GPU or CPU. On Android, Auto can fall back to CPU rendering on the next launch when it detects a slow GPU.
+
+**Changed**
+
+- Web: the start page keeps only the language; **Skip the intro movies** and **Black side panels** are in ⚙ (your earlier choice is kept), and **Start** always opens full screen. The ☕ button opens Ko-fi in a new tab.
+- Changing the game's language restarts the app on Linux, Mac and Android.
+
+**Fixed**
+
+- Web: copying the game into the browser's storage failed in Safari ("An operation that depends on state cached in an interface object…").
+- The game's fullscreen option now controls the app window or the browser's fullscreen mode where available.
+- Android keeps the game clear of display cutouts and rounded corners.
+- The Windows launcher starts the game from its game directory.
+- Switch 2 uses SDL's OpenGL ES renderer.
+
 ## 0.4.1
 
 Windows, the scaling filter's name on screen, better random maps, and fixes.

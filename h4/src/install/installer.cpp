@@ -30,6 +30,7 @@ static int setenv(const char* name, const char* value, int overwrite) {
 #include <set>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "install/gog.h"
@@ -534,13 +535,35 @@ class Installer {
         if (out && fclose(out) != 0) ok = false;
         if (!ok) return *error = "Could not copy " + rel + " (is there space left?).", false;
       }
-      return CheckExe(Unpack(), t, error);
+      // A German, French, Italian or Spanish install (by its heroes4.exe): played in its language.
+      std::string lang;
+      if (!CheckExe(Unpack(), t, error, &lang)) return false;
+      if (!lang.empty()) {
+        fprintf(stderr, "installer: the game in %s\n", lang.c_str());
+        if (FILE* f = fopen((Unpack() + "/" + kGameLanguage).c_str(), "w")) {
+          fputs(lang.c_str(), f);
+          fclose(f);
+        }
+      }
+      return true;
     }, Unpack());
   }
 
-  // heroes4.exe in `dir` is the English GOG 3.0 one: the app's code is made from it, and the game
-  // loads its data sections from the file (the data of another language works with it).
-  static bool CheckExe(const std::string& dir, Task* t, std::string* error) {
+  // GOG's German, French, Italian and Spanish heroes4.exe of the same build (3.0 win11 GOG 0.2):
+  // the English one but for the PE header and bytes after a ret that no code reaches (none in the
+  // lifted code; their .rdata and .data the same), so they run the app's code as it is. The Polish
+  // one is another build (other addresses) and is not among them.
+  static constexpr std::pair<const char*, const char*> kExeAliases[] = {
+      {"b171788633a63c38e28016b379ae97e033c880d259a5103fd006adcfcd4e4c57", "de"},
+      {"a6f8d14af6add9e630addd37df29a7803f074f88fbc58a744817ae860cfa5701", "fr"},
+      {"6a3c699d2d3d6e96d8f6fdc9c17fde6e03126a3073d1b7a754cb51bd5b32a023", "it"},
+      {"bfc9eb079fbc3c74c879a9e90486479970f2a7cd450a6adad31ca12372809e93", "es"},
+  };
+
+  // heroes4.exe in `dir` is the English GOG 3.0 one or one of its aliases (kExeAliases): the app's
+  // code is made from it, and the game loads its data sections from the file (the data of another
+  // language works with it). `lang`: "" for the English one, else the alias's language.
+  static bool CheckExe(const std::string& dir, Task* t, std::string* error, std::string* lang = nullptr) {
     t->SetPhase("Checking heroes4.exe");
     const ManifestFile* exe = FindInManifest("heroes4.exe");
     Sha256 h;
@@ -549,13 +572,18 @@ class Installer {
       for (size_t n; (n = fread(buf.data(), 1, buf.size(), f)) > 0;) h.Update(buf.data(), n);
       fclose(f);
     }
-    if (!exe || h.HexDigest() != exe->sha256) {
-      *error = "This heroes4.exe is not the one of GOG's English Heroes IV: Complete 3.0, which the app "
-               "is made for. Other versions do not work (a translated game's data does: only its "
-               "heroes4.exe must be the English one).";
-      return false;
-    }
-    return true;
+    const std::string got = h.HexDigest();
+    if (lang) lang->clear();
+    if (exe && got == exe->sha256) return true;
+    for (const auto& [sha, code] : kExeAliases)
+      if (got == sha) {
+        if (lang) *lang = code;
+        return true;
+      }
+    *error = "This heroes4.exe is not one of GOG's Heroes IV: Complete 3.0 (win11 GOG 0.2) in English, "
+             "German, French, Italian or Spanish, which the app is made for. Other versions do not "
+             "work (another language's data does: then only heroes4.exe must be one of those).";
+    return false;
   }
 
   // A GOG installer in any language: its data with the English heroes4.exe (the one it has, if it is
@@ -569,27 +597,26 @@ class Installer {
       RemoveTree(Unpack());  // an earlier, unfinished unpack (can take a while)
       if (!EnoughSpace(Unpack(), error)) return false;
       if (!inno::Extract(exe, bin, ScratchDir() + "/installer-links", Unpack(), t, error)) return false;
-      std::string exe_error;
-      if (!CheckExe(Unpack(), t, &exe_error)) {
+      std::string exe_error, exe_lang;
+      if (!CheckExe(Unpack(), t, &exe_error, &exe_lang)) {
         if (english.path.empty() || !CopyFile(english.path, Unpack() + "/heroes4.exe")) {
-          *error = "This installer's heroes4.exe is not the one of GOG's English version, which the "
-                   "app is made for. Put heroes4.exe from GOG's English version beside the "
+          *error = "This installer's heroes4.exe is not one the app is made for (GOG's English, German, "
+                   "French, Italian or Spanish one). Put heroes4.exe from GOG's English version beside the "
                    "installer files (or pick it with them), and the game plays in the "
                    "installer's language.";
           return false;
         }
         if (!CheckExe(Unpack(), t, error)) {
-          *error = "The heroes4.exe beside the installer is not the one of GOG's English Heroes IV: "
-                   "Complete 3.0 either.";
+          *error = "The heroes4.exe beside the installer is not one of those either.";
           return false;
         }
       }
       // Only heroes4.exe is checked: the installer checks its own files as it unpacks, and another
       // language's has a set of its own (GOG's Polish one: fewer contest maps, no ddraw.dll...).
-      // English, or the installer's language (by its name; "xx" when the name does not say and its
-      // own heroes4.exe was not the English one).
+      // English, or the installer's language (by its name; when the name does not say, by its own
+      // heroes4.exe if that was the English one or an alias, else "xx").
       std::string lang = InstallerLanguage(exe.name);
-      if (lang == "xx" && exe_error.empty()) lang.clear();
+      if (lang == "xx" && exe_error.empty()) lang = exe_lang;
       if (!lang.empty()) {
         fprintf(stderr, "installer: the game in %s\n", lang.c_str());
         if (FILE* f = fopen((Unpack() + "/" + kGameLanguage).c_str(), "w")) {

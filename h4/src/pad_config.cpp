@@ -9,6 +9,7 @@
 #include <SDL3/SDL.h>
 
 #include "runtime/hle/user32_window.h"
+#include "ui_text.h"
 
 namespace h4 {
 
@@ -16,60 +17,58 @@ namespace {
 
 struct Action {
   const char* id;
-  const char* en;
-  const char* uk;
+  const char* en;  // translated by ui_text.h
   uint8_t mouse;
   SDL_Scancode key, mod;
 };
 constexpr SDL_Scancode kNone = SDL_SCANCODE_UNKNOWN;
 const Action kActions[] = {
-    {"none", "Nothing", "Нічого", 0, kNone, kNone},
-    {"click", "Click (left button)", "Клік (ЛКМ)", SDL_BUTTON_LEFT, kNone, kNone},
-    {"rclick", "Right-click (information)", "Правий клік (інформація)", SDL_BUTTON_RIGHT, kNone, kNone},
-    {"esc", "Cancel, close (Esc)", "Скасувати, закрити (Esc)", 0, SDL_SCANCODE_ESCAPE, kNone},
-    {"enter", "Move the army / OK (Enter)", "Рух армії / OK (Enter)", 0, SDL_SCANCODE_RETURN, kNone},
-    {"spell", "Cast a spell (C)", "Магія (C)", 0, SDL_SCANCODE_C, kNone},
-    {"wait", "Wait / wake the hero (W)", "Чекати / розбудити героя (W)", 0, SDL_SCANCODE_W, kNone},
-    {"defend", "Defend / dig (D)", "Захист / копати (D)", 0, SDL_SCANCODE_D, kNone},
-    {"hero", "Next hero (H)", "Наступний герой (H)", 0, SDL_SCANCODE_H, kNone},
-    {"town", "Next town (T)", "Наступне місто (T)", 0, SDL_SCANCODE_T, kNone},
-    {"sleep", "The hero sleeps (Z)", "Герой спить (Z)", 0, SDL_SCANCODE_Z, kNone},
-    {"pgup", "Page Up (lists, spell tabs)", "Page Up (списки, вкладки магії)", 0, SDL_SCANCODE_PAGEUP, kNone},
-    {"pgdn", "Page Down (lists, spell tabs)", "Page Down (списки, вкладки магії)", 0, SDL_SCANCODE_PAGEDOWN, kNone},
-    {"endturn", "End the turn (E)", "Кінець ходу (E)", 0, SDL_SCANCODE_E, kNone},
-    {"save", "Save the game (Alt+S)", "Зберегти гру (Alt+S)", 0, SDL_SCANCODE_S, SDL_SCANCODE_LALT},
-    {"home", "Centre on the hero (Home)", "До героя (Home)", 0, SDL_SCANCODE_HOME, kNone},
-    {"shift", "Shift (held)", "Shift (утримання)", 0, SDL_SCANCODE_LSHIFT, kNone},
-    {"ctrl", "Ctrl (held)", "Ctrl (утримання)", 0, SDL_SCANCODE_LCTRL, kNone},
+    {"none", "Nothing", 0, kNone, kNone},
+    {"click", "Click (left button)", SDL_BUTTON_LEFT, kNone, kNone},
+    {"rclick", "Right-click (information)", SDL_BUTTON_RIGHT, kNone, kNone},
+    {"esc", "Cancel, close (Esc)", 0, SDL_SCANCODE_ESCAPE, kNone},
+    {"enter", "Move the army / OK (Enter)", 0, SDL_SCANCODE_RETURN, kNone},
+    {"spell", "Cast a spell (C)", 0, SDL_SCANCODE_C, kNone},
+    {"wait", "Wait / wake the hero (W)", 0, SDL_SCANCODE_W, kNone},
+    {"defend", "Defend / dig (D)", 0, SDL_SCANCODE_D, kNone},
+    {"hero", "Next hero (H)", 0, SDL_SCANCODE_H, kNone},
+    {"town", "Next town (T)", 0, SDL_SCANCODE_T, kNone},
+    {"sleep", "The hero sleeps (Z)", 0, SDL_SCANCODE_Z, kNone},
+    {"pgup", "Page Up (lists, spell tabs)", 0, SDL_SCANCODE_PAGEUP, kNone},
+    {"pgdn", "Page Down (lists, spell tabs)", 0, SDL_SCANCODE_PAGEDOWN, kNone},
+    {"endturn", "End the turn (E)", 0, SDL_SCANCODE_E, kNone},
+    {"save", "Save the game (Alt+S)", 0, SDL_SCANCODE_S, SDL_SCANCODE_LALT},
+    {"home", "Centre on the hero (Home)", 0, SDL_SCANCODE_HOME, kNone},
+    {"shift", "Shift (held)", 0, SDL_SCANCODE_LSHIFT, kNone},
+    {"ctrl", "Ctrl (held)", 0, SDL_SCANCODE_LCTRL, kNone},
 };
 constexpr int kActionCount = int(sizeof kActions / sizeof kActions[0]);
 
 struct Button {
   const char* id;  // in gamepad.conf
-  const char* ps;  // its name on a PlayStation pad, an Xbox one, a Nintendo one (English, Ukrainian)
+  const char* ps;  // its name on a PlayStation pad, an Xbox one, a Nintendo one (translated: ui_text.h)
   const char* xbox;
-  const char* sw_en;
-  const char* sw_uk;
+  const char* sw;
   const char* preset;  // the presets' action (the same by label on every pad)
 };
 // recomp::PadButton's order.
 const Button kButtons[kPadButtons] = {
-    {"A", "✕", "A", "A", "A", "click"},
-    {"B", "○", "B", "B", "B", "esc"},
-    {"X", "□", "X", "X", "X", "spell"},
-    {"Y", "△", "Y", "Y", "Y", "wait"},
-    {"L", "L1", "LB", "L", "L", "hero"},
-    {"R", "R1", "RB", "R", "R", "defend"},
-    {"ZL", "L2", "LT", "ZL", "ZL", "rclick"},
-    {"ZR", "R2", "RT", "ZR", "ZR", "enter"},
-    {"Up", nullptr, nullptr, "D-pad ↑", "Хрестовина ↑", "town"},
-    {"Down", nullptr, nullptr, "D-pad ↓", "Хрестовина ↓", "sleep"},
-    {"Left", nullptr, nullptr, "D-pad ←", "Хрестовина ←", "pgup"},
-    {"Right", nullptr, nullptr, "D-pad →", "Хрестовина →", "pgdn"},
-    {"Plus", "Options", "Menu", "+", "+", "endturn"},
-    {"Minus", "Share", "View", "−", "−", "ctrl"},
-    {"L3", "L3", "LS", "L3", "L3", "shift"},
-    {"R3", "R3", "RS", "R3", "R3", "home"},
+    {"A", "✕", "A", "A", "click"},
+    {"B", "○", "B", "B", "esc"},
+    {"X", "□", "X", "X", "spell"},
+    {"Y", "△", "Y", "Y", "wait"},
+    {"L", "L1", "LB", "L", "hero"},
+    {"R", "R1", "RB", "R", "defend"},
+    {"ZL", "L2", "LT", "ZL", "rclick"},
+    {"ZR", "R2", "RT", "ZR", "enter"},
+    {"Up", nullptr, nullptr, "D-pad ↑", "town"},
+    {"Down", nullptr, nullptr, "D-pad ↓", "sleep"},
+    {"Left", nullptr, nullptr, "D-pad ←", "pgup"},
+    {"Right", nullptr, nullptr, "D-pad →", "pgdn"},
+    {"Plus", "Options", "Menu", "+", "endturn"},
+    {"Minus", "Share", "View", "−", "ctrl"},
+    {"L3", "L3", "LS", "L3", "shift"},
+    {"R3", "R3", "RS", "R3", "home"},
 };
 
 int ActionIndex(const char* id) {
@@ -116,13 +115,13 @@ void Save() {
 
 }  // namespace
 
-const char* PadButtonName(int button, bool uk) {
+const char* PadButtonName(int button, const std::string& lang) {
   if (button < 0 || button >= kPadButtons) return "";
   const Button& b = kButtons[button];
   const int style = PadStyle();
   if (style == kPadPlayStation && b.ps) return b.ps;
   if (style == kPadXbox && b.xbox) return b.xbox;
-  return uk ? b.sw_uk : b.sw_en;
+  return TrIn(lang, b.sw);
 }
 
 int PadStyle() {
@@ -177,9 +176,9 @@ const char* PadActionId(int action) { return action >= 0 && action < kActionCoun
 const char* PadButtonId(int button) { return button >= 0 && button < kPadButtons ? kButtons[button].id : ""; }
 const char* PadStyleId(int style) { return style >= 0 && style < kPadStyles ? kStyleIds[style] : ""; }
 
-const char* PadActionName(int action, bool uk) {
+const char* PadActionName(int action, const std::string& lang) {
   if (action < 0 || action >= kActionCount) return "";
-  return uk ? kActions[action].uk : kActions[action].en;
+  return TrIn(lang, kActions[action].en);
 }
 
 void LoadPadConfig(const std::string& path) {
@@ -233,19 +232,5 @@ void SetPadBinding(int button, int action) {
   std::fprintf(stderr, "h4: gamepad %s: %s\n", kButtons[button].id, kActions[action].id);
 }
 
-
-std::string PadHelp(bool uk) {
-  std::string s = uk ? "Лівий стік — курсор\nПравий стік — прокрутка мапи\n"
-                     : "Left stick: the pointer\nRight stick: scrolls the map\n";
-  for (int b = 0; b < kPadButtons; b++) {
-    if (g_binding[b] == 0) continue;
-    s += std::string(PadButtonName(b, uk)) + (uk ? " — " : ": ") + PadActionName(g_binding[b], uk) + "\n";
-  }
-  s += uk ? "\nXbox / PlayStation: L/R — LB/RB (L1/R1), ZL/ZR — LT/RT (L2/R2), + — Menu (Options), "
-            "− — View (Share)."
-          : "\nXbox / PlayStation: L/R are LB/RB (L1/R1), ZL/ZR LT/RT (L2/R2), + Menu (Options), "
-            "− View (Share).";
-  return s;
-}
 
 }  // namespace h4

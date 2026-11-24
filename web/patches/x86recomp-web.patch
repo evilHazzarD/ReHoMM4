@@ -97,7 +97,7 @@
 +        ctx.audioWorklet.addModule(url).then(function() {
 +          const node = new AudioWorkletNode(ctx, 'h4-out', {
 +            numberOfInputs: 0, outputChannelCount: [2],
-+            processorOptions: { mem: wasmMemory.buffer, ring: ring, frames: frames } });
++            processorOptions: { mem: wasmMemory.buffer, ring: ring >>> 0, frames: frames } });
 +          node.connect(ctx.destination);
 +          resume();
 +        }).catch(function(e) { console.error('h4: audio worklet', e); });
@@ -646,7 +646,7 @@
  
  namespace recomp {
  
-@@ -965,6 +979,17 @@
+@@ -988,6 +1002,17 @@
      // A phone or tablet held upright: the games are landscape (their window
      // turns the device), so the desktop is the landscape one.
      float mw = float(m->w), mh = float(m->h);
@@ -664,7 +664,7 @@
  #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
      if (mw < mh) std::swap(mw, mh);
  #endif
-@@ -1442,6 +1467,12 @@
+@@ -1465,6 +1490,12 @@
    if (!w) return;
    if (SDL_TextInputActive(w)) SDL_StopTextInput(w);
    else SDL_StartTextInput(w);

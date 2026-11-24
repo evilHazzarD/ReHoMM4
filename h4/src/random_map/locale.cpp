@@ -1,5 +1,7 @@
 #include "locale.h"
 
+#include "../ui_text.h"
+
 #include <cstdint>
 #include <cstring>
 
@@ -106,15 +108,14 @@ std::string Encode(std::string_view utf8, int code_page) {
 void Locale::Set(std::string_view code) {
   code_ = code.empty() ? "en" : std::string(code);
   code_page_ = CodePage(code_);
-  translation_ = nullptr;
-  for (const Translation& t : Translations())
-    if (code_ == t.code) translation_ = &t;
+  words_ = UiWords(code_);
 }
 
 std::string Locale::Text(const char* english) const {
-  if (translation_)
-    for (const auto& [en, word] : translation_->words)
-      if (!std::strcmp(en, english)) return Encode(word, code_page_);
+  if (words_) {
+    const auto it = words_->find(english);
+    if (it != words_->end()) return Encode(it->second, code_page_);
+  }
   const char* bar = std::strchr(english, '|');  // "Normal|water": a word's context, not shown
   return bar ? std::string(english, size_t(bar - english)) : std::string(english);
 }

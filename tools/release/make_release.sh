@@ -78,8 +78,8 @@ done
 # The browser version: the site, zipped with serve.py (web/package_release.sh).
 printf '%-13s ' web
 start=$SECONDS
-bash web/build.sh --dynamic >"$OUT/build-web.log" 2>&1 || { echo "FAILED"; tail -20 "$OUT/build-web.log"; die "build failed: $OUT/build-web.log"; }
-bash web/package_release.sh "$OUT/reHoMM4-v$V-web.zip" --dynamic >>"$OUT/build-web.log" 2>&1 || die "web zip failed: $OUT/build-web.log"
+bash web/build.sh >"$OUT/build-web.log" 2>&1 || { echo "FAILED"; tail -20 "$OUT/build-web.log"; die "build failed: $OUT/build-web.log"; }
+bash web/package_release.sh "$OUT/reHoMM4-v$V-web.zip" >>"$OUT/build-web.log" 2>&1 || die "web zip failed: $OUT/build-web.log"
 (cd "$OUT" && shasum -a 256 "reHoMM4-v$V-web.zip" > "reHoMM4-v$V-web.zip.sha256")
 echo "$(du -h "$OUT/reHoMM4-v$V-web.zip" | cut -f1 | tr -d ' ')  $((SECONDS - start)) s"
 

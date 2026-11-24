@@ -9,6 +9,7 @@
 #include <mutex>
 
 #include "filter_notice.h"
+#include "ui_text.h"
 
 #if defined(_WIN32)
 // POSIX's: an existing variable kept unless `overwrite`.
@@ -84,29 +85,70 @@ void NotePresent(double ms) {
     std::lock_guard<std::mutex> l(g_mu);
     WriteWord(g_dir + "/renderer_auto", "soft");
     std::printf("h4: renderer: the GPU is too slow (%d frames of 50 ms and more): the CPU from the next start\n", slow);
-    ShowNotice("The graphics card is slow: the CPU draws the game from the next start (Settings: Renderer)",
-               "Відеокарта повільна: з наступного запуску гру малюватиме процесор (Налаштування: Рендер)", 6);
+    ShowNotice("The graphics card is slow: the CPU draws the game from the next start (Settings: Renderer)", 6);
   }
 }
 
-std::string RendererLabel(bool uk) {
+std::vector<std::string> RendererChoices() { return {"auto", "gpu", "soft"}; }
+
+std::string RendererChoice() {
   std::lock_guard<std::mutex> l(g_mu);
-  std::string what;
-  if (g_choice == "gpu") what = uk ? "Відеокарта" : "GPU";
-  else if (g_choice == "soft") what = uk ? "Процесор" : "CPU";
-  else what = std::string(uk ? "Авто" : "Auto") + " (" + (AutoSoft() ? (uk ? "процесор" : "CPU") : (uk ? "відеокарта" : "GPU")) + ")";
-  const bool soft_next = g_choice == "soft" || (g_choice == "auto" && AutoSoft());
-  std::string label = std::string(uk ? "Рендер: " : "Renderer: ") + what;
-  if (soft_next != g_soft) label += uk ? " (з наступного запуску)" : " (from the next start)";
-  return label;
+  return g_choice;
 }
 
-void NextRenderer() {
+std::string RendererChoiceName(const std::string& choice, const std::string& lang) {
   std::lock_guard<std::mutex> l(g_mu);
-  // Auto, GPU, CPU, Auto, ... Choosing auto again forgets its verdict: it is measured anew.
-  g_choice = g_choice == "auto" ? "gpu" : g_choice == "gpu" ? "soft" : "auto";
-  if (g_choice == "auto") std::remove((g_dir + "/renderer_auto").c_str());
+  const bool auto_soft = AutoSoft();
+  const char* what = choice == "gpu" ? "GPU" : choice == "soft" ? "CPU" : auto_soft ? "Auto (CPU)" : "Auto (GPU)";
+  std::string name = TrIn(lang, what);
+  const bool soft_next = choice == "soft" || (choice == "auto" && auto_soft);
+  if (choice == g_choice && soft_next != g_soft) name = TrIn(lang, "{1} (from the next start)", {name});
+  return name;
+}
+
+void SetRenderer(const std::string& choice) {
+  if (choice != "auto" && choice != "gpu" && choice != "soft") return;
+  std::lock_guard<std::mutex> l(g_mu);
+  if (choice == g_choice) return;
+  g_choice = choice;
+  if (g_choice == "auto") std::remove((g_dir + "/renderer_auto").c_str());  // measured anew
   WriteWord(g_dir + "/renderer", g_choice.c_str());
+}
+
+namespace {
+int g_layout = 1280;  // the layout in use
+}
+
+int CurrentLayout() { return g_layout; }
+
+namespace {
+std::string g_layout_file = "layout";
+}
+
+void LoadLayout(const std::string& data_dir, const std::string& fallback, const std::string& file) {
+  std::lock_guard<std::mutex> l(g_mu);
+  g_dir = data_dir;
+  g_layout_file = file;
+  const std::string saved = ReadWord(data_dir + "/" + file);
+  const bool chosen = saved == "800" || saved == "1024" || saved == "1280";
+  const std::string layout = chosen ? saved : fallback;
+  setenv("H4_LAYOUT", layout.c_str(), 0);  // (the environment's wins)
+  const char* e = std::getenv("H4_LAYOUT");
+  g_layout = e && !std::strncmp(e, "1024", 4) ? 1024 : e && !std::strncmp(e, "800", 3) ? 800 : 1280;
+  std::printf("h4: layout %s (%s, %s)\n", e ? e : "", chosen ? "chosen" : "this device's default", file.c_str());
+}
+
+int UseLayoutFile(const std::string& file, int fallback) {
+  std::lock_guard<std::mutex> l(g_mu);
+  g_layout_file = file;
+  const std::string saved = ReadWord(g_dir + "/" + file);
+  return saved == "800" ? 800 : saved == "1024" ? 1024 : saved == "1280" ? 1280 : fallback;
+}
+
+void SaveLayout(int width) {
+  std::lock_guard<std::mutex> l(g_mu);
+  g_layout = width;
+  if (!g_dir.empty()) WriteWord(g_dir + "/" + g_layout_file, width == 800 ? "800" : width == 1024 ? "1024" : "1280");
 }
 
 }  // namespace h4

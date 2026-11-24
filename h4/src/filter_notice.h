@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace h4 {
 
@@ -11,12 +12,14 @@ namespace h4 {
 // Before the graphics device is made (main.cpp's MobileSetup).
 void LoadFilter(const std::string& path);
 
-// For the settings (iOS, Android: no F10 there): "Scaling: FSR" ("Масштабування: FSR" when `uk`),
-// UTF-8, the filter in use; NextFilter() picks the next one as F10 does (kept, shown).
-std::string FilterLabel(bool uk);
-void NextFilter();
+// For the settings' dropdown (no F10 on phones and tablets): the filters' ids in F10's order, the one in use, one's name in the
+// language `lang` ("Sharp bilinear"), and choosing one (kept, shown, as F10).
+std::vector<std::string> FilterIds();
+std::string CurrentFilter();
+std::string FilterName(const std::string& id, const std::string& lang);
+void SetFilter(const std::string& id);
 
-// Any notice the same way, for `seconds`: `en`, or `uk` (UTF-8) when the game is in Ukrainian.
-void ShowNotice(const std::string& en, const std::string& uk, int seconds);
+// Any notice the same way, for `seconds`: `english` in the game's language (ui_text.h).
+void ShowNotice(const std::string& english, int seconds);
 
 }  // namespace h4

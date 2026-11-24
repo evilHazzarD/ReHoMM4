@@ -2,6 +2,8 @@
 
 #include <string>
 
+union SDL_Event;  // (SDL3/SDL_events.h)
+
 namespace h4 {
 namespace random_map {
 class Font;
@@ -35,6 +37,20 @@ bool RandomMapTyping();
 // a size it has not).
 const random_map::Font* GameFont(int size = 16);
 
+// The game's dialog look for the app's own panels (app_ui): the parchment, the 800 x 600 dialog
+// background its frame comes from, its big text button (released, pressed); each null where the
+// game has none. Null until read (with the font).
+struct GameDialogArt {
+  const random_map::Image* parchment = nullptr;
+  const random_map::Image* dialog = nullptr;
+  const random_map::Image* button_up = nullptr;
+  const random_map::Image* button_down = nullptr;
+};
+const GameDialogArt* DialogArt();
+// The app's other controls over the game (the settings drawn into the frame: menu_button_drawn.cpp)
+// on the one recomp::SetAppInputHook: asked first, each mouse and key event; true: taken (the game
+// does not get it, and is woken to show what it changed).
+void SetMenuInputHook(bool (*hook)(const SDL_Event&));
 // The adventure screen's right dragon column as the game draws it (layers.adventure.1280's
 // Right_Border, its 4-bit alpha kept), read with the font: null until it is there.
 const random_map::Image* AdventureRightBorder();

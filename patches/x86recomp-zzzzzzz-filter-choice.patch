@@ -1,0 +1,60 @@
+--- a/src/runtime/gfx/device.cpp
++++ b/src/runtime/gfx/device.cpp
+@@ -142,7 +142,19 @@
+ namespace {
+ std::atomic<PresentFilterHook> g_filter_hook{nullptr};
+ std::atomic<bool> g_next_filter{false};
++std::mutex g_filter_choice_mu;
++std::string g_filter_choice;  // RequestPresentFilter's
+ }  // namespace
++void RequestPresentFilter(const char* name) {
++  std::lock_guard<std::mutex> l(g_filter_choice_mu);
++  g_filter_choice = name ? name : "";
++}
++std::string TakePresentFilterRequest() {
++  std::lock_guard<std::mutex> l(g_filter_choice_mu);
++  std::string n;
++  n.swap(g_filter_choice);
++  return n;
++}
+ void RequestNextPresentFilter() { g_next_filter = true; }
+ bool TakeNextPresentFilterRequest() { return g_next_filter.exchange(false); }
+ void SetPresentFilterHook(PresentFilterHook hook) { g_filter_hook = hook; }
+--- a/src/runtime/gfx/device.h
++++ b/src/runtime/gfx/device.h
+@@ -23,6 +23,7 @@
+ #include <cstdint>
+ #include <memory>
+ #include <mutex>
++#include <string>
+ #include <vector>
+ 
+ #include "runtime/hlsl/hlsl.h"
+@@ -94,6 +95,10 @@
+ // Asks for the next filter, as F10 does (any thread; at the next frame shown, the hook told).
+ void RequestNextPresentFilter();
+ bool TakeNextPresentFilterRequest();  // (the backends)
++// Asks for the filter `name` (SetPresentFilter's names; any thread; at the next frame shown, the
++// hook told). TakePresentFilterRequest: the name asked for, "" if none (the backends).
++void RequestPresentFilter(const char* name);
++std::string TakePresentFilterRequest();
+ void EncodePixel(uint8_t* p, Format f, uint32_t argb);
+ // Raw pixel value (as stored) for colour keys and fills.
+ uint32_t RawPixel(const uint8_t* p, Format f);
+--- a/src/runtime/gfx/gpu_device.cpp
++++ b/src/runtime/gfx/gpu_device.cpp
+@@ -2325,6 +2325,14 @@
+       if (PresentFilterHook hook = GetPresentFilterHook()) hook(kFilterNames[filter_]);
+     }
+     filter_key_down_ = down;
++    if (const std::string want = TakePresentFilterRequest(); !want.empty()) {  // RequestPresentFilter
++      for (int i = 0; i < kFilterCount; i++)
++        if (want == kFilterNames[i]) {
++          filter_ = i;
++          WarnF("gfx: filter %s\n", kFilterNames[filter_]);
++          if (PresentFilterHook hook = GetPresentFilterHook()) hook(kFilterNames[filter_]);
++        }
++    }
+   }
+ 
+   void SetPresentSharpness(float stops) override {

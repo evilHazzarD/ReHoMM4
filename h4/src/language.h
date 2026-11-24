@@ -46,6 +46,17 @@ std::string GogLanguage();
 // The name of GOG's language `code` in that language ("Deutsch"), the code if it is not known.
 std::string GogLanguageName(const std::string& code);
 
+// Where `l`'s pack is kept once downloaded: <data>/packs/<code>-<hash>.h4p.
+std::string DownloadedPack(const std::string& data_dir, const LanguageInfo& l);
+// What choosing `code` downloads at the restart (main.cpp's ChooseLanguage): its pack's size in
+// bytes, 0 when nothing (English, a pack in the app or one downloaded already). The settings warn
+// before choosing it.
+uint64_t PackDownloadSize(const std::string& code);
+// That warning in the interface's language (ui_text.h; `ui_lang` the game's): "Українська needs
+// its language pack (12.3 MB): it is downloaded when the game starts again.", "" when nothing is
+// downloaded. Its title is "Language pack", its buttons "Download" and "Cancel".
+std::string PackDownloadNote(const std::string& code, const std::string& ui_lang);
+
 // The pack of `code` in the app ("" if it is downloaded instead): a path SDL_IOFromFile opens
 // (on Android an asset's).
 std::string BundledPack(const std::string& code);
