@@ -30,6 +30,7 @@ jobs:
       - name: browser converter contract
         run: |
           node converter/test/validate.mjs
+          node converter/test/dynamic_abi.mjs
           python3 converter/test/game_manifest.py
       - name: dynamic converter adaptation applies
         run: git -C third_party/game-recomp apply --check "$GITHUB_WORKSPACE/converter/patches/game-recomp-manifest-dir.patch"
