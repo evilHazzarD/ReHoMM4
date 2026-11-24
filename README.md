@@ -1,6 +1,6 @@
 # ReHoMM4: Heroes of Might and Magic IV, native
 
-Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android (including Android TV), Linux, Steam Deck, Nintendo Switch and Switch 2, and in a web browser. Runs directly on hardware—no Wine, emulators, or VMs.
+Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android (including Android TV), Windows, Linux, Steam Deck, Nintendo Switch and Switch 2, and in a web browser. Runs directly on hardware—no Wine, emulators, or VMs.
 
 [Українською — нижче](#українською)
 
@@ -26,6 +26,7 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   - a Mac with macOS 13 or later (an Apple chip or Intel);
   - an iPhone or iPad with iOS / iPadOS 17 or later;
   - an Android phone, tablet or TV (64-bit, Android 10 or later; on a TV, with a gamepad);
+  - a Windows PC (64-bit, Windows 10 or 11);
   - a Linux PC (x86-64 or 64-bit ARM) or a Steam Deck;
   - a Nintendo Switch that runs homebrew (Atmosphère), or a Switch 2 that runs homebrew (kaiHEN);
   - or a web browser on a computer, phone or tablet (64-bit Chrome, Edge, Firefox or Safari)
@@ -47,6 +48,7 @@ below is the release's number (for example `0.3`; releases before 0.3 named them
 | Mac | `reHoMM4-v<version>-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
+| Windows PC | `reHoMM4-v<version>-windows-x86_64.zip` (from 0.4) |
 | Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-bit ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 | Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (from 0.4; not the Switch one) |
@@ -118,6 +120,20 @@ buttons are set in ⚙ → **Gamepad**); the TV remote cannot play it. Install i
 from a USB stick, or from a computer: `adb connect <TV's IP address>`, then `adb install`
 `reHoMM4-v<version>-android_arm64.apk`. The TV needs a 64-bit Android with Vulkan: many TV boxes
 and sticks run 32-bit Android and cannot install it.
+
+### Windows
+
+A 64-bit PC with Windows 10 or 11 and graphics drivers with Vulkan (the current NVIDIA, AMD and Intel
+drivers have it).
+
+1. Unpack `reHoMM4-v<version>-windows-x86_64.zip` where the game should live, for example
+   `C:\Games` (right-click the archive → **Extract All…**): it makes the folder `ReHoMM4`.
+2. Start `ReHoMM4\ReHoMM4.exe`. The app is not signed, so Windows may say "Windows protected your
+   PC": **More info** → **Run anyway**.
+
+**Update:** unpack the new archive over the old folder (the app has no update check on Windows
+yet). Saves and settings are in `%LOCALAPPDATA%\ReHoMM4` (paste it into Explorer's address bar),
+not in this folder.
 
 ### Linux
 
@@ -273,7 +289,7 @@ stopped. What happens to the installer files afterwards: see below.
 The ⚙ button in the top right corner of the main menu opens the settings: the version and the
 update check at the top, the game's language (a dropdown; a translation is downloaded when it is
 first chosen, and the game restarts with it on Android, the Mac and Linux, at the next start
-elsewhere), fullscreen (Mac, Linux), the picture scaling (iPhone, iPad, Android: see
+elsewhere), fullscreen (Mac, Windows, Linux), the picture scaling (iPhone, iPad, Android: see
 [Controls](#picture-scaling)), skipping the intro movies, save sync (? tells how to set it up
 on Android and Linux), the gamepad, and the game's and saves' folders. On iPhone and iPad ⚙ opens a
 menu with the same choices.
@@ -316,14 +332,15 @@ game's player folder:
 | Device | Player folder |
 |---|---|
 | Mac | `~/Library/Application Support/ReHoMM4/player` (in Finder: **Cmd ⌘ + Shift + G**, paste the path, **Enter**); the log in `logs/`, crashes in `data/h4/crashes/` |
+| Windows | `%LOCALAPPDATA%\ReHoMM4\player` |
 | Linux, Steam Deck | `~/.local/share/ReHoMM4/player` |
 | Android | `Android/data/games.hazzard.heroes4/files/player` on the phone's storage |
 | iPhone, iPad | the app's folder in the Files app or Finder: **Heroes IV** → `player` |
 | Switch | `sdmc:/switch/ReHoMM4/player` |
 
 **To remove the game:** delete the app; on the Mac also the folder
-`~/Library/Application Support/ReHoMM4`, on Linux `~/.local/share/ReHoMM4` (the game files and
-saves).
+`~/Library/Application Support/ReHoMM4`, on Windows `%LOCALAPPDATA%\ReHoMM4`, on Linux
+`~/.local/share/ReHoMM4` (the game files and saves).
 
 ## Random maps
 
@@ -381,7 +398,8 @@ for each app: [Syncing saves between devices](platforms/README.md#syncing-saves-
 
 ## Tested devices
 
-The iPhone/iPad, Android, Mac and Linux apps have been tested on real devices; the Intel Mac app so far
+The iPhone/iPad, Android, Mac, Windows (a PC with an NVIDIA GeForce RTX 3060 Ti) and Linux apps
+have been tested on real devices; the Intel Mac app so far
 only under Rosetta on an Apple Silicon Mac. The Switch app has
 not been tested: the author has no Switch with custom firmware to run homebrew on. Reports from
 Switch owners are welcome in the [issues](https://github.com/evilHazzarD/ReHoMM4/issues).
@@ -456,6 +474,7 @@ game and prepares its code, then for each platform `platforms/deps.sh <platform>
 | `platforms/build.sh android` | `HeroesIV-android_arm64.apk` |
 | `platforms/build.sh linux` | `HeroesIV-linux-x86_64.tar.gz` |
 | `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
+| `platforms/build.sh windows-x86_64` | `HeroesIV-windows-x86_64.zip` (MinGW-w64) |
 | `platforms/build.sh macos-arm64` | `ReHoMM4.app` and `HeroesIV-macos-arm64.dmg` |
 | `platforms/build.sh macos-x86_64` | `ReHoMM4.app` and `HeroesIV-macos-x86_64.dmg` (Intel) |
 | `platforms/build.sh switch` | `ReHoMM4.nro` |
@@ -507,7 +526,7 @@ Ubisoft or GOG.
 ## Українською
 
 «Герої меча і магії IV» з обома доповненнями як рідна програма для Мака, iPhone та iPad, Android (зокрема Android TV),
-Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузері. Без Wine, емуляторів і віртуальних машин: гра працює на
+Windows, Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузері. Без Wine, емуляторів і віртуальних машин: гра працює на
 пристрої напряму.
 
 Якщо вам подобається, можна підтримати автора (також кнопка ☕ у головному меню гри):
@@ -532,6 +551,7 @@ Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузе�
   - Мак з macOS 13 або новішою (процесор Apple або Intel);
   - iPhone або iPad з iOS / iPadOS 17 або новішою;
   - телефон, планшет чи телевізор на Android (64-бітний, Android 10 або новіший; на телевізорі — з геймпадом);
+  - ПК з Windows (64-бітна, Windows 10 або 11);
   - ПК з Linux (x86-64 чи 64-бітний ARM) або Steam Deck;
   - Nintendo Switch, на якому запускається homebrew (Atmosphère), або Switch 2 з homebrew (kaiHEN);
   - або браузер на комп'ютері, телефоні чи планшеті (64-бітні Chrome, Edge, Firefox чи Safari)
@@ -552,6 +572,7 @@ Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузе�
 | Мак | `reHoMM4-v<version>-macos-arm64.dmg` (процесор Apple, M1 або новіший) або `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
+| ПК з Windows | `reHoMM4-v<version>-windows-x86_64.zip` (з 0.4) |
 | ПК з Linux, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-бітний ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 | Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (з 0.4; не той, що для Switch) |
@@ -623,6 +644,20 @@ Android 10 або новіший, 64-бітний (майже всі телеф�
 файловим менеджером із флешки або з комп'ютера: `adb connect <IP-адреса телевізора>`, потім
 `adb install` `reHoMM4-v<version>-android_arm64.apk`. Телевізору потрібні 64-бітний Android і
 Vulkan: багато ТВ-приставок і стіків працюють на 32-бітному Android, і на них гра не встановиться.
+
+#### Windows
+
+64-бітний ПК з Windows 10 або 11 і драйверами відеокарти з Vulkan (актуальні драйвери NVIDIA, AMD та
+Intel його мають).
+
+1. Розпакуйте `reHoMM4-v<version>-windows-x86_64.zip` туди, де житиме гра, наприклад у `C:\Games`
+   (правою кнопкою по архіву → **«Видобути все…»**): з'явиться тека `ReHoMM4`.
+2. Запустіть `ReHoMM4\ReHoMM4.exe`. Програма не підписана, тож Windows може написати «Windows
+   захистила ваш ПК»: **«Докладніше»** → **«Однаково запустити»**.
+
+**Оновлення:** розпакуйте новий архів поверх старої теки (перевірки оновлень у програмі на Windows
+поки немає). Збереження й налаштування — у `%LOCALAPPDATA%\ReHoMM4` (вставте в адресний рядок
+Провідника), не в цій теці.
 
 #### Linux
 
@@ -777,7 +812,7 @@ iOS / iPadOS 18.2+; на Android — Chrome), ~3 ГБ вільної пам'ят
 Кнопка ⚙ у правому верхньому куті головного меню відкриває налаштування: угорі версію й перевірку
 оновлень, мову гри (випадний список; переклад завантажується, коли його обрано вперше, і гра
 перезапускається з ним на Android, Маку й Linux, деінде — з наступного запуску), повноекранний режим
-(Мак, Linux), масштабування картинки (iPhone, iPad, Android: див.
+(Мак, Windows, Linux), масштабування картинки (iPhone, iPad, Android: див.
 [Масштабування картинки](#масштабування-картинки)), пропуск вступних відео, синхронізацію збережень («?» пояснює, як її налаштувати, на
 Android і Linux), геймпад, теки гри й збережень. На iPhone і iPad ⚙ відкриває меню з тими самими
 пунктами.
@@ -821,13 +856,14 @@ Magic IV: Complete з GOG (англійський інсталятор для Wi
 | Пристрій | Тека гравця |
 |---|---|
 | Мак | `~/Library/Application Support/ReHoMM4/player` (у Finder: **Cmd ⌘ + Shift + G**, вставте шлях, **Enter**); журнал у `logs/`, вильоти в `data/h4/crashes/` |
+| Windows | `%LOCALAPPDATA%\ReHoMM4\player` |
 | Linux, Steam Deck | `~/.local/share/ReHoMM4/player` |
 | Android | `Android/data/games.hazzard.heroes4/files/player` у пам'яті телефона |
 | iPhone, iPad | тека програми в «Файлах» або у Finder: **Heroes IV** → `player` |
 | Switch | `sdmc:/switch/ReHoMM4/player` |
 
 **Видалити гру:** видаліть програму; на Маці також теку `~/Library/Application Support/ReHoMM4`, на
-Linux — `~/.local/share/ReHoMM4` (файли гри й збереження).
+Windows — `%LOCALAPPDATA%\ReHoMM4`, на Linux — `~/.local/share/ReHoMM4` (файли гри й збереження).
 
 ### Випадкові карти
 
@@ -885,7 +921,8 @@ Round Sync, FolderSync чи Nextcloud: гра тримає їх у папці `R
 
 ### Перевірені пристрої
 
-Програми для iPhone/iPad, Android, Мака й Linux перевірено на справжніх пристроях; програму для Мака
+Програми для iPhone/iPad, Android, Мака, Windows (ПК з NVIDIA GeForce RTX 3060 Ti) і Linux перевірено
+на справжніх пристроях; програму для Мака
 з Intel поки що — лише через Rosetta на Маці з процесором Apple. Програма для
 Switch не перевірена: автор не має Switch з кастомною прошивкою, на якій запускається homebrew.
 Відгуки власників Switch — в [issues](https://github.com/evilHazzarD/ReHoMM4/issues).
@@ -958,6 +995,7 @@ SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У р�
 | `platforms/build.sh android` | `HeroesIV-android_arm64.apk` |
 | `platforms/build.sh linux` | `HeroesIV-linux-x86_64.tar.gz` |
 | `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
+| `platforms/build.sh windows-x86_64` | `HeroesIV-windows-x86_64.zip` (MinGW-w64) |
 | `platforms/build.sh macos-arm64` | `ReHoMM4.app` і `HeroesIV-macos-arm64.dmg` |
 | `platforms/build.sh macos-x86_64` | `ReHoMM4.app` і `HeroesIV-macos-x86_64.dmg` (Intel) |
 | `platforms/build.sh switch` | `ReHoMM4.nro` |

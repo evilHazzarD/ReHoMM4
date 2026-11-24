@@ -55,7 +55,7 @@ TARGETS=(
   "macos-x86_64 HeroesIV-macos-x86_64.dmg      reHoMM4-v$V-macos-x86_64.dmg"
   "ios          HeroesIV-ios.ipa               reHoMM4-v$V-ios.ipa"
   "android      HeroesIV-android_arm64.apk     reHoMM4-v$V-android_arm64.apk"
-  # windows-x86_64 HeroesIV-windows-x86_64.zip reHoMM4-v$V-windows-x86_64.zip   (not released yet)
+  "windows-x86_64 HeroesIV-windows-x86_64.zip reHoMM4-v$V-windows-x86_64.zip"
   "linux-x86_64 HeroesIV-linux-x86_64.tar.gz   reHoMM4-v$V-linux-x86_64.tar.gz"
   "linux-arm64  HeroesIV-linux-arm64.tar.gz    reHoMM4-v$V-linux-arm64.tar.gz"
   "switch       ReHoMM4.nro                    reHoMM4-v$V-switch.nro"
