@@ -33,7 +33,4 @@ struct HeroRecord {
 // A player's hero on the map: a v9 army record (what follows the 13-byte position/army header).
 std::vector<uint8_t> HeroArmy(uint8_t owner, const HeroRecord& hero);
 
-// The faction's starting army (two level-1 stacks), as upstream's heroinfo.START_ARMY.
-std::vector<std::pair<int16_t, uint16_t>> StartArmy(int faction);
-
 }  // namespace h4::random_map

@@ -3,6 +3,10 @@
 #include <string>
 
 namespace h4 {
+namespace random_map {
+class Font;
+struct Image;
+}
 
 // The random map generator in the scenario list (New Game > Scenario): a "Random map" button
 // beside the game's dialog opens a panel over it (gfx::SetPresentBadge, so the game's windows are
@@ -25,5 +29,17 @@ bool IsRandomMapsFolder(const std::string& folder);
 // The panel's seed field is being typed in: the on-screen keyboard is wanted (resolution.cpp's
 // KeepScreenKeyboard; the browser's page keyboard is asked for here).
 bool RandomMapTyping();
+
+// The game's own font (font.prose_antique.<size>: 16, or 20 to 36 by 2), read with the
+// generator's data on a thread of its own when first asked for: null until it is there (or for
+// a size it has not).
+const random_map::Font* GameFont(int size = 16);
+
+// The adventure screen's right dragon column as the game draws it (layers.adventure.1280's
+// Right_Border, its 4-bit alpha kept), read with the font: null until it is there.
+const random_map::Image* AdventureRightBorder();
+// Its Top: the thin strip along the top (934 x 16; its end, under the dragon column, has the
+// dragon's head).
+const random_map::Image* AdventureTopStrip();
 
 }  // namespace h4

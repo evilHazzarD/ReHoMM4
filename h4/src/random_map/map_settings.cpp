@@ -14,6 +14,15 @@ namespace {
 const char* const kColours[6] = {"red", "blue", "green", "orange", "purple", "teal"};
 constexpr const char* kHeroes = " Starting heroes: ";
 
+// The computers' places (", computers 2,3"; none: ""): the map lets each player be a human's
+// (scenario: every slot human), the setup's choice kept for its editor.
+std::string Computers(const MapSetup& setup) {
+  std::string s;
+  for (size_t i = 0; i < setup.players.size(); ++i)
+    if (!setup.players[i].human) s += (s.empty() ? ", computers " : ",") + std::to_string(i + 1);
+  return s;
+}
+
 }  // namespace
 
 std::string DescribeSetup(const Catalog& catalog, const MapSetup& setup) {
@@ -28,10 +37,11 @@ std::string DescribeSetup(const Catalog& catalog, const MapSetup& setup) {
                   (setup.obelisks ? "" : ", no obelisks") + (setup.treasures ? ", treasures " + std::to_string(setup.treasures) : "") +
                   (setup.random_humans ? ", random humans" : "") + (setup.random_computers ? ", random computers" : "") +
                   (setup.random_size ? ", random size" : "") + (setup.random_underground ? ", random underground" : "") +
+                  Computers(setup) +
                   (setup.template_name.empty() || setup.template_name == "Classic"
                        ? ""
                        : ", template " + setup.template_name +
-                             (setup.template_text.empty() ? "" : " #" + TemplateSum(setup.template_text))) +
+                             (setup.template_text.empty() ? "" : " #" + TemplateMapSum(setup.template_text))) +
                   ", generator " + std::to_string(kGeneratorVersion) +
                   "." +
                   kHeroes;
@@ -111,6 +121,17 @@ bool ReadSetup(const Catalog& catalog, const std::vector<uint8_t>& file, MapSetu
   s.random_computers = head.find(", random computers") != std::string::npos;
   s.random_size = head.find(", random size") != std::string::npos;
   s.random_underground = head.find(", random underground") != std::string::npos;
+  if (const size_t at = head.find(", computers "); at != std::string::npos) {
+    for (PlayerSetup& pl : s.players) pl.human = true;  // (the file's: every one may be)
+    for (size_t q = at + 12; q < head.size() && head[q] >= '0' && head[q] <= '9';) {
+      const int n = head[q] - '0';
+      if (n >= 1 && size_t(n) <= s.players.size()) s.players[size_t(n - 1)].human = false;
+      q += head[q + 1] == ',' ? 2 : 1;
+    }
+  } else if (head.find(", generator ") != std::string::npos &&
+             std::atoi(head.c_str() + head.find(", generator ") + 12) >= 3) {
+    for (PlayerSetup& pl : s.players) pl.human = true;  // generator 3 on: no computers listed, none
+  }
   if (const size_t at = head.find(", template "); at != std::string::npos) {
     const size_t from = at + 11, to = head.find_first_of(",.", from);
     std::string t = head.substr(from, to == std::string::npos ? std::string::npos : to - from);

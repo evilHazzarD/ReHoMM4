@@ -32,14 +32,17 @@ class HeroArt {
   struct Creature {
     std::string plural;
     int level = 0, attack = 0, defense = 0, hit_points = 0, low = 0, high = 0, speed = 0, move = 0;
+    int growth = 0;  // a week's (table.creatures' Weekly Growth)
   };
 
   bool Load(const Resources& res);  // the tables; pictures when first asked for
   // class: a hero record's class number (Catalog's HeroChoice::hero_class).
   static std::vector<std::string> ClassSkills(int hero_class);  // skill keywords ("tactics", ...)
   static const char* ClassTitle(int hero_class);                // "Knight", ... (English)
-  // The faction's starting army (bodies.cpp's StartArmy): creature keywords and counts.
-  static std::vector<std::pair<std::string, int>> Army(int faction);
+  // The faction's starting army: its town's two level 1 creatures (keywords). The game gives a
+  // player's starting hero a week's growth of each (Creature::growth), and the town as many: the
+  // map writes none of its own (seen in the game: 21 squires and 16 crossbowmen for Life).
+  static std::vector<std::string> Army(int faction);
   // A level 1 hero's statistics (kStats' order), as heroes4.exe's t_hero works them out (its
   // skills all basic, no artifacts); the damage's low end (its high end: kDamageHigh).
   static constexpr int kStatCount = 9;

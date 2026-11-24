@@ -51,6 +51,12 @@ constexpr const char* kFontName = "font.prose_antique.16.h4d";
 struct Data {
   random_map::Resources res;
   random_map::Font font;
+  random_map::Font button_fonts[9];                   // the buttons': prose_antique 20, 22 ... 36
+  std::map<std::string, random_map::Image> button;   // layers.button.large: "released", "pressed"
+  random_map::Image parchment;                       // the panel's: from the game's options dialog
+  random_map::Image dialog;                          // that dialog's whole background (its frame)
+  random_map::Image right_border;                    // layers.adventure.1280's Right_Border (the dragon)
+  random_map::Image top_strip;                       // and its Top (the strip, the dragon's head at its end)
   random_map::Catalog catalog;
   random_map::HeroArt art;
 };
@@ -208,6 +214,36 @@ void Load() {
     g_load = -1;
     return;
   }
+  {  // the game's own text button, for ours (left plain without it)
+    std::vector<uint8_t> bytes;
+    if (d->res.Read("layers.button.large.h4d", bytes)) d->button = random_map::ReadLayers(bytes);
+    for (int i = 0; i < 9; i++)
+      d->button_fonts[i].Load(d->res, "font.prose_antique." + std::to_string(20 + 2 * i) + ".h4d");
+    if (d->button_fonts[0].Height() <= 0) d->button.clear();
+    bytes.clear();
+    if (d->res.Read("layers.adventure.1280.h4d", bytes)) {
+      auto layers = random_map::ReadLayers(bytes);
+      if (const auto it = layers.find("right_border"); it != layers.end()) d->right_border = std::move(it->second);
+      if (const auto it = layers.find("top"); it != layers.end()) d->top_strip = std::move(it->second);
+    }
+    // The parchment inside the New Game options dialog (its left page, clear of the frames).
+    bytes.clear();
+    if (d->res.Read("layers.dialog.new_game_options.h4d", bytes)) {
+      auto layers = random_map::ReadLayers(bytes);
+      const auto it = layers.find("background");
+      if (it != layers.end() && it->second.w >= 420 && it->second.h >= 560) {
+        const random_map::Image& bg = it->second;
+        constexpr int x0 = 30, y0 = 70, w = 390, h = 480;
+        d->parchment.w = w;
+        d->parchment.h = h;
+        d->parchment.argb.resize(size_t(w) * h);
+        for (int y = 0; y < h; y++)
+          for (int x = 0; x < w; x++)
+            d->parchment.argb[size_t(y) * w + size_t(x)] = bg.argb[size_t(y0 + y) * size_t(bg.w) + size_t(x0 + x)];
+        if (bg.w == 800 && bg.h == 600) d->dialog = bg;
+      }
+    }
+  }
   g_data = d;
   g_load = 2;
   WakeIdleGame();  // the button can show now
@@ -341,17 +377,20 @@ bool OnInputLocked(const SDL_Event& e) {
       const int which = in ? g_panel.ButtonAt(fx - g_x, fy - g_y) : 0;
       if (down && which && e.button.button == SDL_BUTTON_LEFT) {
         g_pressed = which;
+        WakeIdleGame();  // (drawn pressed now)
         return true;
       }
       if (!down && g_pressed && e.button.button == SDL_BUTTON_LEFT) {
         if (which == g_pressed)
           (which == Panel::kOpenButton ? g_open_wanted : which == Panel::kEditButton ? g_edit_wanted : g_remove_wanted) = true;
         g_pressed = 0;
+        WakeIdleGame();
         return true;
       }
       return false;
     }
     case SDL_EVENT_MOUSE_WHEEL:
+      if (g_open && g_panel.Wheel(g_px - g_x, g_py - g_y, e.wheel.y > 0 ? 1 : e.wheel.y < 0 ? -1 : 0)) WakeIdleGame();
       return g_open;
     case SDL_EVENT_TEXT_INPUT:  // an on-screen keyboard's digits (with text input on: not as keys)
       if (!g_open) return false;
@@ -385,7 +424,7 @@ void StartJob(const random_map::MapSetup& setup, const std::string& path, bool r
                               g_panel.Text("it is at the top of the list.");
   const std::string failed = g_panel.Text("Could not create the map:") + " ";
   const random_map::Catalog* catalog = &g_data->catalog;
-  std::thread([job, setup, path, replace, created, failed, catalog] {
+  std::thread([job, setup, path, replace, created, failed, catalog] {  // (g_panel's words: read only)
     random_map::GeneratedMap map;
     std::string err;
     const uint64_t t0 = SDL_GetTicks();
@@ -396,7 +435,7 @@ void StartJob(const random_map::MapSetup& setup, const std::string& path, bool r
                 setup.size, setup.players.size(), ok ? (replace ? "updated" : "made") : err.c_str(),
                 (unsigned long long)(SDL_GetTicks() - t0), map.attempts, ok ? path.c_str() : "");
     job->ok = ok && !job->cancel;
-    job->message = job->ok ? created : failed + err;
+    job->message = job->ok ? created : failed + g_panel.Reason(err);
     job->done = true;
     WakeIdleGame();  // its message, and the map in the list
   }).detach();
@@ -406,7 +445,7 @@ void StartJob(const random_map::MapSetup& setup, const std::string& path, bool r
 bool ReadyToMake() {
   const int load = g_load;
   if (load == -1) {
-    g_panel.SetMode(Panel::Mode::kEdit, g_panel.Text("Could not create the map:") + " " + g_load_error);
+    g_panel.SetMode(Panel::Mode::kEdit, g_panel.Text("Could not create the map:") + " " + g_load_error, true);
     return false;
   }
   if (load != 3) {
@@ -415,7 +454,7 @@ bool ReadyToMake() {
   }
   const random_map::MapSetup& setup = g_panel.setup();
   if (std::none_of(setup.players.begin(), setup.players.end(), [](const auto& p) { return p.human; })) {
-    g_panel.SetMode(Panel::Mode::kEdit, g_panel.Text("At least one player must be human."));
+    g_panel.SetMode(Panel::Mode::kEdit, g_panel.Text("At least one player must be human."), true);
     return false;
   }
   return true;
@@ -443,7 +482,7 @@ void Create(const std::string& list_folder) {
   for (int i = 0; Exists(GuestToHost(guest)); ++i) {
     if (!g_panel.rolled() || i == 100) {
       g_panel.SetMode(Panel::Mode::kEdit, random_map::MapFileName(setup.title) + " " +
-                                              g_panel.Text("already exists: choose another seed."));
+                                              g_panel.Text("already exists: choose another seed."), true);
       return;
     }
     g_panel.SetSeed(RandomSeed());
@@ -478,7 +517,7 @@ void EditSelected(const std::string& folder) {
   random_map::MapSetup setup;
   if (!random_map::ReadFile(GuestToHost(guest), file) || !random_map::ReadSetup(g_data->catalog, file, &setup)) {
     g_panel.NewMap(RandomSeed());
-    g_panel.SetMode(Panel::Mode::kEdit, g_panel.Text("Could not read the map's settings."));
+    g_panel.SetMode(Panel::Mode::kEdit, g_panel.Text("Could not read the map's settings."), true);
   } else {
     g_edit_guest = guest;
     if (setup.title.empty()) setup.title = random_map::TitleOfFile(g_selected);
@@ -489,7 +528,8 @@ void EditSelected(const std::string& folder) {
     if (setup.generator_version != random_map::kGeneratorVersion)
       g_panel.SetMode(Panel::Mode::kEdit, g_panel.Text("Made by another version of the generator: updated, it will not be the same map."));
     else if (!setup.template_sum.empty() &&
-             (now.template_text.empty() || random_map::TemplateSum(now.template_text) != setup.template_sum))
+             (now.template_text.empty() || (random_map::TemplateMapSum(now.template_text) != setup.template_sum &&
+                                            random_map::TemplateSum(now.template_text) != setup.template_sum)))
       g_panel.SetMode(Panel::Mode::kEdit, g_panel.Text("Its template's file has changed or is gone: updated, it will not be the same map."));
   }
   g_open = true;
@@ -529,6 +569,31 @@ bool IsRandomMapsFolder(const std::string& folder) {
   return true;
 }
 
+// The game's data read on a thread of its own, once (any thread may ask first).
+void StartLoading() {
+  int idle = 0;
+  if (g_load.compare_exchange_strong(idle, 1)) std::thread(Load).detach();
+}
+
+const random_map::Image* AdventureRightBorder() {
+  StartLoading();
+  return g_load >= 2 && g_data->right_border.w > 0 ? &g_data->right_border : nullptr;
+}
+
+const random_map::Image* AdventureTopStrip() {
+  StartLoading();
+  return g_load >= 2 && g_data->top_strip.w > 0 ? &g_data->top_strip : nullptr;
+}
+
+const random_map::Font* GameFont(int size) {
+  StartLoading();
+  if (g_load < 2) return nullptr;
+  if (size == 16) return &g_data->font;
+  const int i = (size - 20) / 2;
+  if (size < 20 || size % 2 || i >= 9 || g_data->button_fonts[i].Height() <= 0) return nullptr;
+  return &g_data->button_fonts[i];
+}
+
 bool RandomMapPass(bool shown, int l, int t, int r, int b, const std::string& folder,
                    const std::string& selected, std::string* open) {
   static bool hooked = false;
@@ -536,10 +601,7 @@ bool RandomMapPass(bool shown, int l, int t, int r, int b, const std::string& fo
     hooked = true;
     recomp::SetAppInputHook(OnInput);
   }
-  if (shown && g_load == 0) {
-    g_load = 1;
-    std::thread(Load).detach();
-  }
+  if (shown) StartLoading();
   std::lock_guard<std::mutex> lock(g_mu);
   const int load = g_load;
   bool written = false;
@@ -567,7 +629,7 @@ bool RandomMapPass(bool shown, int l, int t, int r, int b, const std::string& fo
     written = g_job->ok;
     if (written && open && !g_made_folder.empty()) *open = g_made_folder;
     if (g_job->cancel) g_panel.SetMode(Panel::Mode::kEdit, "");
-    else g_panel.SetMode(written ? Panel::Mode::kDone : Panel::Mode::kEdit, g_job->message);
+    else g_panel.SetMode(written ? Panel::Mode::kDone : Panel::Mode::kEdit, g_job->message, !written);
     g_job.reset();
   }
   if (!shown || !(load >= 2 || (load == -1 && g_data))) {
@@ -582,6 +644,14 @@ bool RandomMapPass(bool shown, int l, int t, int r, int b, const std::string& fo
     // The game's language (main.cpp's H4_LANG: a translation's, or a GOG install's own).
     const char* lang = std::getenv("H4_LANG");
     g_panel.Init(&g_data->font, lang ? lang : "", RandomSeed());
+    if (g_data->parchment.w > 0) g_panel.SetBackground(&g_data->parchment);
+    if (g_data->dialog.w > 0) g_panel.SetFrame(&g_data->dialog);
+    const auto up = g_data->button.find("released"), down = g_data->button.find("pressed");
+    if (up != g_data->button.end() && down != g_data->button.end()) {
+      std::vector<const random_map::Font*> fonts;
+      for (const random_map::Font& f : g_data->button_fonts) fonts.push_back(f.Height() > 0 ? &f : nullptr);
+      g_panel.SetButtonArt(std::move(fonts), &up->second, &down->second);
+    }
     g_panel_ready = true;
   }
   static bool catalog_given = false;
@@ -641,17 +711,25 @@ bool RandomMapPass(bool shown, int l, int t, int r, int b, const std::string& fo
   int w = 0, h = 0;
   bool changed = false;
   const int remove = g_selected.empty() ? 0 : g_remove_armed ? 2 : 1;
-  static int shown_remove = -1;  // what the buttons' picture given showed
-  if (!g_open && remove != shown_remove) changed = true;
-  if (!g_open) shown_remove = remove;
+  static int shown_remove = -1, shown_pressed = -1;  // what the buttons' picture given showed
+  if (!g_open && (remove != shown_remove || g_pressed != shown_pressed)) changed = true;
+  if (!g_open) shown_remove = remove, shown_pressed = g_pressed;
+  const recomp::gfx::Presentation p = recomp::gfx::LastPresentation();
+  // Screen pixels per frame pixel: the buttons are drawn that fine (their text sharp).
+  const float scale = p.src_w > 0 && p.rect.right > p.rect.left ? float(p.rect.right - p.rect.left) / float(p.src_w) : 1.0f;
+  float density = 1.0f;
+  static float shown_density = 0;
   const std::vector<uint32_t>& pic =
-      g_open ? g_panel.Picture(&w, &h, &changed) : g_panel.ButtonPicture(&w, &h, remove);
+      g_open ? g_panel.Picture(&w, &h, &changed) : g_panel.ButtonPicture(&w, &h, remove, g_pressed, scale, &density);
+  if (!g_open && density != shown_density) changed = true;
+  if (!g_open) shown_density = density;
   if (changed || g_badge != &pic || !g_badge_ours) {
-    recomp::gfx::SetPresentBadge(pic.data(), w, h);
+    recomp::gfx::SetPresentBadgeDense(pic.data(), w, h, density);
     g_badge = &pic;
     g_badge_ours = true;
   }
-  const recomp::gfx::Presentation p = recomp::gfx::LastPresentation();
+  w = int(float(w) / density + 0.5f);  // (in the frame)
+  h = int(float(h) / density + 0.5f);
   const int fw = p.src_w > 0 ? p.src_w : r, fh = p.src_h > 0 ? p.src_h : b;
   int x, y;
   if (g_open) {  // over the dialog's middle

@@ -39,7 +39,7 @@ int Font::Width(std::string_view text) const {
 }
 
 void Font::Draw(std::vector<uint32_t>& canvas, int w, int h, int x, int y, std::string_view text,
-                uint32_t ink) const {
+                uint32_t ink, bool shadow) const {
   if (glyphs_.empty()) return;
   auto blend = [&](int px, int py, uint32_t colour, int alpha) {  // alpha 0..15
     if (px < 0 || py < 0 || px >= w || py >= h || alpha <= 0) return;
@@ -54,7 +54,7 @@ void Font::Draw(std::vector<uint32_t>& canvas, int w, int h, int x, int y, std::
   for (unsigned char ch : text) {
     const Glyph& g = glyphs_[ch];
     const int gx = x + g.x, gy = y;
-    for (int pass = 0; pass < 2; ++pass)  // the shadow, then the ink over it
+    for (int pass = shadow ? 0 : 1; pass < 2; ++pass)  // the shadow, then the ink over it
       for (int row = 0; row < g.h; ++row)
         for (int col = 0; col < g.w; ++col) {
           const uint8_t v = g.px[size_t(row) * g.w + col];

@@ -149,7 +149,8 @@ bool HeroArt::Load(const Resources& res) {
       };
       const int c_plural = column("Plural Name"), c_level = column("Level"), c_attack = column("Attack"),
                 c_defense = column("Defense"), c_hp = column("Hit Points"), c_low = column("Low"),
-                c_high = column("High"), c_speed = column("Speed"), c_move = column("Move");
+                c_high = column("High"), c_speed = column("Speed"), c_move = column("Move"),
+                c_growth = column("Weekly Growth");
       for (size_t r = 2; r < rows.size(); ++r) {
         const auto& row = rows[r];
         if (row.empty() || row[0].empty()) continue;
@@ -164,6 +165,7 @@ bool HeroArt::Load(const Resources& res) {
         c.high = Int(cell(c_high));
         c.speed = Int(cell(c_speed));
         c.move = Int(cell(c_move));
+        c.growth = Int(cell(c_growth));
         creatures_.emplace(Lower(row[0]), std::move(c));
       }
     }
@@ -182,14 +184,14 @@ const char* HeroArt::ClassTitle(int hero_class) {
   return hero_class >= 0 && hero_class < int(std::size(kClassData)) ? kClassData[hero_class].title : "";
 }
 
-std::vector<std::pair<std::string, int>> HeroArt::Army(int faction) {
+std::vector<std::string> HeroArt::Army(int faction) {
   switch (faction) {
-    case kLife: return {{"squire", 16}, {"crossbowman", 6}};
-    case kOrder: return {{"dwarf", 14}, {"halfling", 9}};
-    case kDeath: return {{"skeleton", 19}, {"imp", 11}};
-    case kChaos: return {{"orc", 12}, {"bandit", 10}};
-    case kNature: return {{"wolf", 11}, {"sprite", 9}};
-    case kMight: return {{"berserker", 14}, {"centaur", 4}};
+    case kLife: return {"squire", "crossbowman"};
+    case kOrder: return {"dwarf", "halfling"};
+    case kDeath: return {"skeleton", "imp"};
+    case kChaos: return {"orc", "bandit"};
+    case kNature: return {"wolf", "sprite"};
+    case kMight: return {"berserker", "centaur"};
     default: return {};
   }
 }

@@ -5,12 +5,13 @@ namespace h4::random_map {
 
 const ShippedTemplate kShippedTemplates[] = {
     {"allies.txt",
-     R"tpl(# Allies: two against two (set the teams: players 1 and 3, 2 and 4); each pair shares a
+     R"tpl(# Allies: two against two (players 1 and 3, 2 and 4: the teams line); each pair shares a
 # back zone, the middle and its town between the pairs.
 )tpl"
      R"tpl(
 name Allies
 players 4
+teams 1,3 2,4
 sizes small-medium
 
 zone p1 start size=1.1 x=-0.33 y=-0.2
@@ -36,6 +37,7 @@ link south middle strong
      R"tpl(
 name Allies
 players 4
+teams 1,3 2,4
 sizes large-huge
 
 zone p1 start size=1.1 x=-0.33 y=-0.2
@@ -5358,12 +5360,13 @@ link inner5 middle deadly
 link inner6 middle deadly
 )tpl"},
     {"three_on_three.txt",
-     R"tpl(# Three on three: six players, two teams (set them: players 1, 3, 5 and 2, 4, 6), each
+     R"tpl(# Three on three: six players, two teams (players 1, 3, 5 and 2, 4, 6: the teams line), each
 # team's starts in a row on its side, the fronts between.
 )tpl"
      R"tpl(
 name Three on three
 players 6
+teams 1,3,5 2,4,6
 sizes small-medium
 
 zone p1 start x=-0.34 y=-0.3
@@ -5395,6 +5398,7 @@ link p6 p4 weak
      R"tpl(
 name Three on three
 players 6
+teams 1,3,5 2,4,6
 sizes large-huge
 
 zone p1 start x=-0.34 y=-0.3

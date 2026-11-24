@@ -42,6 +42,7 @@
 #include "intro.h"
 #include "window_mode.h"
 #include "menu_button.h"
+#include "random_map/hero_card.h"
 #include "random_map_ui.h"
 #include "runtime/ctx.h"
 #include "runtime/gfx/device.h"
@@ -1101,35 +1102,61 @@ constexpr uint32_t kReadMapFolder = 0x7B58A0, kStringAssign = 0x401D30, kStringT
 // and whatever the game keeps up under it) is on one side of it in the list, a window over it (a
 // message) would be on the other. So: the dialog at either end of the visible windows' list (the
 // tooltip and the cursor's window left out).
+// The scenario dialog (t_new_map_dialog) when it is shown and nothing is over it: 0 otherwise.
+// From the main menu it is a child of the top window; from a game (the system menu's New Game)
+// one of the adventure frame's, so it is looked for under the top window's children too. Each
+// window on the way must be the front (or back) one of its parent's shown children, as the
+// dialog itself. (Windows' rectangles are all in the same coordinates, a child's as its parent's.)
 uint32_t NewMapDialog() {
   const uint32_t top = Rd32(kTopWindow);
   if (!top) return 0;
   static uint32_t vtable = 0;   // t_new_map_dialog's, once seen
   static uint32_t balloon = 0;  // t_help_balloon's: the tooltip shown on hover, not a window over it
-  std::vector<uint32_t> shown;
-  int at = -1;
-  ForChildren(top, [&](uint32_t w) {
-    if (!GPtr(w + kVisible)[0]) return;
-    const uint32_t vt = Rd32(w);
-    if (vt == kCursorWindowVtable || (balloon && vt == balloon)) return;
-    if (!balloon && ClassOf(w) == ".?AVt_help_balloon@@") {
-      balloon = vt;
-      return;
-    }
-    if (!vtable && ClassOf(w) == ".?AVt_new_map_dialog@@") vtable = vt;
-    if (vtable && vt == vtable) at = int(shown.size());
-    shown.push_back(w);
-  });
-  if (at < 0) return 0;
-  const bool front = at == 0 || at == int(shown.size()) - 1;
-  static std::string last;  // what is up with it, when that changes (for the log)
+  auto shown_children = [&](uint32_t parent) {
+    std::vector<uint32_t> shown;
+    ForChildren(parent, [&](uint32_t w) {
+      if (!GPtr(w + kVisible)[0]) return;
+      const uint32_t vt = Rd32(w);
+      if (vt == kCursorWindowVtable || (balloon && vt == balloon)) return;
+      if (!balloon && ClassOf(w) == ".?AVt_help_balloon@@") {
+        balloon = vt;
+        return;
+      }
+      if (!vtable && ClassOf(w) == ".?AVt_new_map_dialog@@") vtable = vt;
+      shown.push_back(w);
+    });
+    return shown;
+  };
+  auto front = [](const std::vector<uint32_t>& shown, size_t at) { return at == 0 || at + 1 == shown.size(); };
+  const std::vector<uint32_t> level0 = shown_children(top);
+  uint32_t found = 0;
+  bool on_top = false;
   std::string now;
-  for (uint32_t w : shown) now += ClassOf(w) + " ";
+  for (size_t i = 0; i < level0.size() && !found; i++) {
+    if (vtable && Rd32(level0[i]) == vtable) {
+      found = level0[i];
+      on_top = front(level0, i);
+      for (uint32_t w : level0) now += ClassOf(w) + " ";
+      break;
+    }
+    if (i + 1 != level0.size()) continue;  // (a game's dialog: under the front screen only)
+    const std::vector<uint32_t> level1 = shown_children(level0[i]);
+    for (size_t j = 0; j < level1.size(); j++)
+      if (vtable && Rd32(level1[j]) == vtable) {
+        found = level1[j];
+        on_top = front(level1, j);
+        now = ClassOf(level0[i]) + " > ";
+        for (uint32_t w : level1) now += ClassOf(w) + " ";
+        break;
+      }
+  }
+  if (!found) return 0;
+  static std::string last;  // what is up with it, when that changes (for the log)
   if (now != last) {
-    std::fprintf(stderr, "h4: new map dialog %s: %s\n", front ? "on top" : "covered", now.c_str());
+    std::fprintf(stderr, "h4: new map dialog %s: %s\n", on_top ? "on top" : "covered", now.c_str());
     last = now;
   }
-  return front ? shown[size_t(at)] : 0;
+  return on_top ? found : 0;
 }
 
 std::string MapFolder(uint32_t dialog) {
@@ -1522,6 +1549,41 @@ void PaintDirty(::recomp::Ctx& c) {
       };
       band(frame.t - origin.t, 1, 17);
       band(frame.b - origin.t - 1, -1, 15);
+      // The top strip goes on under the right dragon column (to 934 of the 1280 layout, the
+      // column from 880), where the column's top is see-through; its art is cut at the join
+      // above, so nothing painted there and the map's old pixels showed. The strip's own end
+      // there (the dragon's head is on it), with the column laid over it by its alpha.
+      const h4::random_map::Image* strip = h4::AdventureTopStrip();
+      if (const h4::random_map::Image* dragon = h4::AdventureRightBorder();
+          dragon && strip && strip->w == 934 && strip->h >= 16) {
+        const int x0 = right, x1 = std::min(surface->width, frame.r - 346 - origin.l);
+        auto unpack = [](uint32_t v, int* r, int* g, int* b) { *r = (v >> 11) & 31, *g = (v >> 5) & 63, *b = v & 31; };
+        for (int i = 0; i < 16 && i < dragon->h; ++i) {
+          const int y = frame.t - origin.t + i;
+          if (y < 0 || y >= surface->height) continue;
+          auto* row = reinterpret_cast<uint16_t*>(GPtr(surface->mem + y * surface->pitch));
+          for (int x = x0; x < x1 && x - x0 < dragon->w; ++x) {
+            const bool covered = std::any_of(overlays.begin(), overlays.end(), [&](const Rect& r) {
+              return y + origin.t >= r.t && y + origin.t < r.b && x + origin.l >= r.l && x + origin.l < r.r;
+            });
+            if (covered) continue;
+            const uint32_t d = dragon->argb[size_t(i) * size_t(dragon->w) + size_t(x - x0)];
+            const uint32_t a = d >> 24;
+            if (a == 255) continue;
+            const uint32_t s = strip->argb[size_t(i) * size_t(strip->w) + size_t(880 + x - x0)];
+            const uint16_t under = uint16_t(((s >> 19) & 31) << 11 | ((s >> 10) & 63) << 5 | ((s >> 3) & 31));
+            if (a == 0) {
+              row[x] = under;
+              continue;
+            }
+            int ur, ug, ub;
+            unpack(under, &ur, &ug, &ub);
+            const int dr = int((d >> 19) & 31), dg = int((d >> 10) & 63), db = int((d >> 3) & 31);
+            auto mix = [&](int top, int bottom) { return (top * int(a) + bottom * int(255 - a) + 127) / 255; };
+            row[x] = uint16_t(mix(dr, ur) << 11 | mix(dg, ug) << 5 | mix(db, ub));
+          }
+        }
+      }
     }
     return;
   }

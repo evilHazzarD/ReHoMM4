@@ -30,9 +30,21 @@ class Panel {
   void SetCatalog(const Catalog* catalog);
   // The hero card's pictures and texts (until then: names only).
   void SetHeroArt(const HeroArt* art);
+  // The parchment drawn under it (a piece of one of the game's dialogs); without it plain.
+  void SetBackground(const Image* parchment) { back_ = parchment; dirty_ = true; }
+  // The game's dialog frame round it and between its halves: taken from the new game options
+  // dialog's background (layers.dialog.new_game_options "background", 800 x 600); without it a
+  // plain drawn one.
+  void SetFrame(const Image* dialog) { frame_ = dialog; dirty_ = true; }
+  // The buttons drawn as the game's own text buttons (layers.button.large: "released", "pressed")
+  // with a bigger font of its; without them, plain plates in the panel's font.
+  // `fonts`: prose_antique by size, from 20 up (20, 22, ... 36; null where missing): the buttons
+  // are drawn at the screen's own resolution with the size that fits it (ButtonPicture's scale).
+  void SetButtonArt(std::vector<const Font*> fonts, const Image* released, const Image* pressed);
   // The templates to choose from: the built-in ones and the player's files (template.h).
   void SetTemplates(std::vector<TemplateInfo> templates);
-  void SetMode(Mode m, const std::string& message);  // message: the game's bytes
+  // message: the game's bytes; error: drawn red (what went wrong, not what was done)
+  void SetMode(Mode m, const std::string& message, bool error = false);
   Mode mode() const { return mode_; }
   const MapSetup& setup() const { return setup_; }
   void SetSeed(uint32_t seed);  // a rolled one (the player's own: typed, stepped)
@@ -43,6 +55,9 @@ class Panel {
   // A key: '0'-'9', '\b', '\r' (create; in the seed's field: done), 27 (Esc: close or cancel; in
   // the field: done).
   Action Key(int key);
+  // The mouse wheel at (x, y) in the picture (`dy` > 0 up): scrolls the hero's biography when
+  // over it (true then).
+  bool Wheel(int x, int y, int dy);
   // The seed's field has the keys (clicked; until a click elsewhere, Enter or Esc): the on-screen
   // keyboard is wanted.
   bool typing() const { return seed_focus_; }
@@ -54,7 +69,11 @@ class Panel {
   // The button that opens it ("Random map") and, right of it for the random map selected in the
   // list, the ones that edit and remove it: remove 0 none (no random map selected), 1 shown,
   // 2 asking to click "Remove" again.
-  const std::vector<uint32_t>& ButtonPicture(int* w, int* h, int remove = 0);
+  // `pressed`: the one held down (a kOpenButton... one, 0 none), drawn pressed. `scale`: screen
+  // pixels per frame pixel; the picture is drawn finer by *density (its w x h covers
+  // w / density x h / density of the frame; 1 without the game's button art).
+  const std::vector<uint32_t>& ButtonPicture(int* w, int* h, int remove = 0, int pressed = 0,
+                                             float scale = 1.0f, float* density = nullptr);
   // Which of those buttons (x, y) in that picture is on: 0 none, else a kOpenButton... one.
   enum { kOpenButton = 1, kRemoveButton = 2, kEditButton = 3 };
   int ButtonAt(int x, int y) const;
@@ -67,6 +86,9 @@ class Panel {
 
   // The app's words for the message line (the game's bytes).
   std::string Text(const char* english) const;
+  // A reason the generator gave (GenerateMap's error) in the app's words where it has them (a
+  // template file's own errors, about its English keywords, and the system's stay as they are).
+  std::string Reason(const std::string& english) const;
 
  private:
   struct Hit {
@@ -79,14 +101,27 @@ class Panel {
   Locale locale_;
   Mode mode_ = Mode::kEdit;
   std::string message_;
+  bool message_error_ = false;
   MapSetup setup_;
   int size_index_ = 0;
   std::vector<uint32_t> pic_, button_;
   int button_remove_ = -1;            // what button_ shows (ButtonPicture's remove)
+  int button_pressed_ = -1;           // and its pressed
+  float button_density_ = 0;          // and its density
+  int button_tw_ = 0, button_th_ = 0;  // its size (button_w_, button_h_: in the frame)
+  std::vector<const Font*> button_fonts_;
+  Image button_up_scaled_, button_down_scaled_;  // the art at button_density_
+  const Image* button_up_ = nullptr;
+  const Image* back_ = nullptr;
+  const Image* frame_ = nullptr;
+  const Image* button_down_ = nullptr;
   int button_w_ = 0, button_h_ = 0;   // its size
   std::vector<std::pair<int, int>> button_spans_;  // each button's x0, x1 in it
   std::string editing_;  // the title of the map edited ("" a new one)
   std::vector<Hit> hits_;
+  std::string bio_text_;   // the biography shown, and how many lines it is scrolled down
+  int bio_scroll_ = 0, bio_max_ = 0;
+  int bio_x0_ = 0, bio_y0_ = 0, bio_x1_ = 0, bio_y1_ = 0;  // where it is (the wheel's place)
   bool dirty_ = true;
   bool seed_typed_ = false;  // keys typed since the seed was last set
   bool seed_focus_ = false;  // the seed's field has the keys (typing())
@@ -101,6 +136,7 @@ class Panel {
   void FitRandomRows();
   void SetPlayers(int want);  // 2 to 6, not random: computers added or taken off
   void ChooseTemplate(const TemplateInfo& t);  // and the players and size set for it if they do not fit
+  void ApplyTemplateTeams(const TemplateInfo& t);  // its variant's teams line, if it has one
   // The rows' least and most numbers of humans and computers the setup can give.
   void Counts(int* min_h, int* max_h, int* min_k, int* max_k) const;
   std::vector<TemplateInfo> templates_;

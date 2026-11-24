@@ -1,679 +1,679 @@
-classic seed=1 size=76 players=2 4719d247d2a428ba
-classic seed=1 size=76 players=2 underground 9280d50d2b2b35d7
-classic seed=1 size=76 players=2 underground islands 3efc7c033b6ff740
-classic seed=1 size=76 players=4 4f7a63f46d1dc21b
-classic seed=1 size=76 players=4 underground ce9fea8d99be19b9
-classic seed=1 size=76 players=4 underground islands 4e69371a2e23d9d0
-classic seed=1 size=76 players=6 4637467e6174f584
-classic seed=1 size=76 players=6 underground 07e89908d7e2fb7d
-classic seed=1 size=76 players=6 underground islands 96ccd53d699c0a6e
-classic seed=1 size=152 players=2 99bf4fa0c1110043
-classic seed=1 size=152 players=2 underground 74bd19bdd47c9d9f
-classic seed=1 size=152 players=2 underground dry 345c11b0970774fb
-classic seed=1 size=152 players=2 underground islands ccd70648cccafa85
-classic seed=1 size=152 players=2 underground random water e9082406be0d2630
-classic seed=1 size=152 players=2 underground no obelisks bc0526808c34bbb1
-classic seed=1 size=152 players=2 underground treasures babd0ff9c8865adb
-classic seed=1 size=152 players=2 underground random players 25b9ded9fac18e3c
-classic seed=1 size=152 players=2 underground random size 7f36564171766800
-classic seed=1 size=152 players=2 underground random monsters 238c95c0259b58ce
-classic seed=1 size=152 players=2 underground weak aa6236deb1ff6037
-classic seed=1 size=152 players=2 underground strong 85c87267202777f3
-classic seed=1 size=152 players=4 fc64547f732559cd
-classic seed=1 size=152 players=4 underground c372c013e708dfef
-classic seed=1 size=152 players=4 underground dry 3cc9d2a1cd72ddd2
-classic seed=1 size=152 players=4 underground islands bceb154b4369d0fd
-classic seed=1 size=152 players=4 underground random water 333bb2d42c21415a
-classic seed=1 size=152 players=4 underground no obelisks 60298cbde3ae511a
-classic seed=1 size=152 players=4 underground treasures 94e6182e61b4d0f5
-classic seed=1 size=152 players=4 underground teams 2dea5c86cd4fbf7d
-classic seed=1 size=152 players=4 underground random players 9e97066235b4d02e
-classic seed=1 size=152 players=4 underground random size 1ec81a48c767a3c1
-classic seed=1 size=152 players=4 underground random monsters fe118b7ff8c923c2
-classic seed=1 size=152 players=4 underground weak ee7076157ad5cf63
-classic seed=1 size=152 players=4 underground strong 03c32b035e918c14
-classic seed=1 size=152 players=6 88a4b12d9679eab1
-classic seed=1 size=152 players=6 underground 3e2937a3eb94f067
-classic seed=1 size=152 players=6 underground dry a3a95ceec37621aa
-classic seed=1 size=152 players=6 underground islands 563cdc1638c8aecb
-classic seed=1 size=152 players=6 underground random water 4ad3df1c3d61aa12
-classic seed=1 size=152 players=6 underground no obelisks 89dc99093d636bbe
-classic seed=1 size=152 players=6 underground treasures b51f4afee6198f1c
-classic seed=1 size=152 players=6 underground teams 0693bcdf98e6a023
-classic seed=1 size=152 players=6 underground random players 9e97066235b4d02e
-classic seed=1 size=152 players=6 underground random size 13f54dbfb15f5f2e
-classic seed=1 size=152 players=6 underground random monsters 095a03cd7433720f
-classic seed=1 size=152 players=6 underground weak eb36b7af89f577e6
-classic seed=1 size=152 players=6 underground strong 5d1347dcb05800e7
-classic seed=1 size=228 players=2 d4b1f12ed57c0dd1
-classic seed=1 size=228 players=2 underground 28ed0ca53be316c3
-classic seed=1 size=228 players=2 underground islands e4c8a32348d4d09b
-classic seed=1 size=228 players=4 3da0b03482a2f038
-classic seed=1 size=228 players=4 underground 0b548a1a519d118c
-classic seed=1 size=228 players=4 underground islands 5f5e78ba11708971
-classic seed=1 size=228 players=6 1bcdfff12178ca4c
-classic seed=1 size=228 players=6 underground 0cc4f0d6aec363c7
-classic seed=1 size=228 players=6 underground islands 9a7b71c9edb6d235
-classic seed=1 size=304 players=2 1b5ada5d5ba6eae4
-classic seed=1 size=304 players=2 underground 0a8c45b4a893df2e
-classic seed=1 size=304 players=2 underground islands 1db6873344bee8c7
-classic seed=1 size=304 players=4 c0f12e7bbf556cc6
-classic seed=1 size=304 players=4 underground 1be092c297b41c45
-classic seed=1 size=304 players=4 underground islands f359293c87b3a86a
-classic seed=1 size=304 players=6 7f23e6c683f93455
-classic seed=1 size=304 players=6 underground 24bd42e7c23ef9ec
-classic seed=1 size=304 players=6 underground islands d9d0cb8a5a79947a
-classic seed=1112 size=76 players=2 a0d98228901ad637
-classic seed=1112 size=76 players=2 underground 4d35fde69e9025c2
-classic seed=1112 size=76 players=2 underground islands c1d02b954b8ad4ec
-classic seed=1112 size=76 players=4 98d2057617b1bbd5
-classic seed=1112 size=76 players=4 underground c361ae9f9dc0fa08
-classic seed=1112 size=76 players=4 underground islands 48092fc10fe48c9a
-classic seed=1112 size=76 players=6 c5d395b53787b994
-classic seed=1112 size=76 players=6 underground 1ad0f90c7202e5b2
-classic seed=1112 size=76 players=6 underground islands a607050494394db7
-classic seed=1112 size=152 players=2 f605c20745570765
-classic seed=1112 size=152 players=2 underground 05ad358b820a2bb8
-classic seed=1112 size=152 players=2 underground dry 650a44b2a2c3a9d6
-classic seed=1112 size=152 players=2 underground islands f2caa74937af6437
-classic seed=1112 size=152 players=2 underground random water fd2351403ea2afda
-classic seed=1112 size=152 players=2 underground no obelisks 9d71a05ec0d6510c
-classic seed=1112 size=152 players=2 underground treasures 2a8d35d0cd017dc2
-classic seed=1112 size=152 players=2 underground random players b901e016392f01d1
-classic seed=1112 size=152 players=2 underground random size 4f1d083350f8f39c
-classic seed=1112 size=152 players=2 underground random monsters 42931355af3f685d
-classic seed=1112 size=152 players=2 underground weak c7b3f51b53a4f844
-classic seed=1112 size=152 players=2 underground strong b6b7ea113468336d
-classic seed=1112 size=152 players=4 fc9d0fdfeb0b34f1
-classic seed=1112 size=152 players=4 underground 00baceffa816bf4f
-classic seed=1112 size=152 players=4 underground dry a362a428a9a6a889
-classic seed=1112 size=152 players=4 underground islands 967cd1b7e602fdf6
-classic seed=1112 size=152 players=4 underground random water 6bc284b3f800ce21
-classic seed=1112 size=152 players=4 underground no obelisks 88918adee767ba28
-classic seed=1112 size=152 players=4 underground treasures 81be8bb9451eac6c
-classic seed=1112 size=152 players=4 underground teams 94733a2b18caa6d5
-classic seed=1112 size=152 players=4 underground random players ed0663502a631e68
-classic seed=1112 size=152 players=4 underground random size 07b10e3041668d81
-classic seed=1112 size=152 players=4 underground random monsters 5fd6485e71ef69af
-classic seed=1112 size=152 players=4 underground weak 4c16c79fe0781930
-classic seed=1112 size=152 players=4 underground strong 9d5ffb86398ed627
-classic seed=1112 size=152 players=6 013c5ee85a663edc
-classic seed=1112 size=152 players=6 underground 9993f7e13cc16004
-classic seed=1112 size=152 players=6 underground dry deabef7e9880633b
-classic seed=1112 size=152 players=6 underground islands efdec045030cf6af
-classic seed=1112 size=152 players=6 underground random water 350ec2973305e25a
-classic seed=1112 size=152 players=6 underground no obelisks edce66627eb192d6
-classic seed=1112 size=152 players=6 underground treasures cc2a2a0ed6c44cde
-classic seed=1112 size=152 players=6 underground teams 3b3d71899622b5f8
-classic seed=1112 size=152 players=6 underground random players ed0663502a631e68
-classic seed=1112 size=152 players=6 underground random size 4fec3df13903bbb3
-classic seed=1112 size=152 players=6 underground random monsters 067c2965c9eadeeb
-classic seed=1112 size=152 players=6 underground weak 4703178b70057c09
-classic seed=1112 size=152 players=6 underground strong 385c128fa5053923
-classic seed=1112 size=228 players=2 a13f14a650235d95
-classic seed=1112 size=228 players=2 underground b7835352fecfbddd
-classic seed=1112 size=228 players=2 underground islands 447eda49e30087ce
-classic seed=1112 size=228 players=4 7aab58b01e47f0b6
-classic seed=1112 size=228 players=4 underground 97a74ecdf5859896
-classic seed=1112 size=228 players=4 underground islands a5ad679641f70fad
-classic seed=1112 size=228 players=6 3fa31dd02db63cc8
-classic seed=1112 size=228 players=6 underground a7dd4551f6db3619
-classic seed=1112 size=228 players=6 underground islands 7e691c03b76fd3df
-classic seed=1112 size=304 players=2 add3597a4743d075
-classic seed=1112 size=304 players=2 underground 4d22e027e4704363
-classic seed=1112 size=304 players=2 underground islands 37b03773db5021ac
-classic seed=1112 size=304 players=4 66e47dd821ff005b
-classic seed=1112 size=304 players=4 underground 75dee3aad5ba5f7a
-classic seed=1112 size=304 players=4 underground islands 77b5ca56dbcf0871
-classic seed=1112 size=304 players=6 c2b88e8cdc58ca77
-classic seed=1112 size=304 players=6 underground 82f4b781346662cf
-classic seed=1112 size=304 players=6 underground islands bfc423349147836f
-classic seed=77777 size=76 players=2 cf199378bcd6aa66
-classic seed=77777 size=76 players=2 underground 8225a880290441b6
-classic seed=77777 size=76 players=2 underground islands 1a9e390ab08ac98c
-classic seed=77777 size=76 players=4 826b9c78ac0584f9
-classic seed=77777 size=76 players=4 underground d5c476d40b05e383
-classic seed=77777 size=76 players=4 underground islands a245152f97bde424
-classic seed=77777 size=76 players=6 e172b97b04b741ca
-classic seed=77777 size=76 players=6 underground 6258326f7c9422ed
-classic seed=77777 size=76 players=6 underground islands 813c78b4cbead256
-classic seed=77777 size=152 players=2 8e1b507a329d57dd
-classic seed=77777 size=152 players=2 underground d7da97c0351c175e
-classic seed=77777 size=152 players=2 underground dry fb74740d157a96ef
-classic seed=77777 size=152 players=2 underground islands be6002c6a9586753
-classic seed=77777 size=152 players=2 underground random water a8c38d8301ed53f3
-classic seed=77777 size=152 players=2 underground no obelisks 1f73b6176b172519
-classic seed=77777 size=152 players=2 underground treasures 2f9fc23bf30a6005
-classic seed=77777 size=152 players=2 underground random players 5a8c47ce1c0143b9
-classic seed=77777 size=152 players=2 underground random size 0032eb3a45a928dd
-classic seed=77777 size=152 players=2 underground random monsters 6e22536df9aee19a
-classic seed=77777 size=152 players=2 underground weak e8207be90e872116
-classic seed=77777 size=152 players=2 underground strong 066fe51cf0d4d372
-classic seed=77777 size=152 players=4 c7f4765816c3764e
-classic seed=77777 size=152 players=4 underground 6d360771b99f4388
-classic seed=77777 size=152 players=4 underground dry 3fd11c328865cfc8
-classic seed=77777 size=152 players=4 underground islands 2b1e7f57af361cab
-classic seed=77777 size=152 players=4 underground random water 708a7a83fccbdbac
-classic seed=77777 size=152 players=4 underground no obelisks 4c8c3db66634f194
-classic seed=77777 size=152 players=4 underground treasures 6742acb306a78d56
-classic seed=77777 size=152 players=4 underground teams 762d782e5e40defa
-classic seed=77777 size=152 players=4 underground random players 4a0671adc54fbeae
-classic seed=77777 size=152 players=4 underground random size ed18bec9a47c88c3
-classic seed=77777 size=152 players=4 underground random monsters b2394aa347997eb2
-classic seed=77777 size=152 players=4 underground weak 6414dabe742bbe72
-classic seed=77777 size=152 players=4 underground strong d16e87ed95a34c42
-classic seed=77777 size=152 players=6 2ff7d050b6c63aa0
-classic seed=77777 size=152 players=6 underground 756a3577f5f8b0d3
-classic seed=77777 size=152 players=6 underground dry d1a4234d6289daab
-classic seed=77777 size=152 players=6 underground islands 9bdb885057244b66
-classic seed=77777 size=152 players=6 underground random water 14c3779172f8e15f
-classic seed=77777 size=152 players=6 underground no obelisks 11b00c77b1d1d595
-classic seed=77777 size=152 players=6 underground treasures 7f9b23985d08388f
-classic seed=77777 size=152 players=6 underground teams e6ed4b73b2e232e7
-classic seed=77777 size=152 players=6 underground random players 4a0671adc54fbeae
-classic seed=77777 size=152 players=6 underground random size 8ced0ea3f67f8810
-classic seed=77777 size=152 players=6 underground random monsters 924ec629e0ad0cb1
-classic seed=77777 size=152 players=6 underground weak 3637dbd2041f94ff
-classic seed=77777 size=152 players=6 underground strong 416a38edbc1a1681
-classic seed=77777 size=228 players=2 464c1042a8f4322e
-classic seed=77777 size=228 players=2 underground afbefd87e0a45024
-classic seed=77777 size=228 players=2 underground islands 3c98a09315e84eb0
-classic seed=77777 size=228 players=4 69e86d3260a3a29a
-classic seed=77777 size=228 players=4 underground 6f9327e87496fd96
-classic seed=77777 size=228 players=4 underground islands 823b73b6f39a8955
-classic seed=77777 size=228 players=6 017a62e9cf63ea5a
-classic seed=77777 size=228 players=6 underground 5593d0c1dec38437
-classic seed=77777 size=228 players=6 underground islands 647d704dc714d87d
-classic seed=77777 size=304 players=2 d351412f08f25c48
-classic seed=77777 size=304 players=2 underground 37bdea0f566a3a15
-classic seed=77777 size=304 players=2 underground islands 4e6e3344db81845d
-classic seed=77777 size=304 players=4 664d326c1d40856e
-classic seed=77777 size=304 players=4 underground aefef7f15a175e4d
-classic seed=77777 size=304 players=4 underground islands 45f42b8d09e80a6d
-classic seed=77777 size=304 players=6 f329810bc2b9e40d
-classic seed=77777 size=304 players=6 underground 56c6c23e2f17b51d
-classic seed=77777 size=304 players=6 underground islands 81cefafe06796bf0
-template Crossroads size=76 players=2 b549f1e8ab1f6fd1
-template Crossroads size=76 players=3 5425bbde53c35c6b
-template Crossroads size=76 players=4 bec14c48dca40409
-template Crossroads size=152 players=2 9dd26d0e8b2b7c23
-template Crossroads size=152 players=2 underground d9ae9750a79a44fd
-template Crossroads size=152 players=2 islands 8a8c6975883dbfef
-template Crossroads size=152 players=3 c01d56dae0c814ab
-template Crossroads size=152 players=3 underground c0ca68355ac10f83
-template Crossroads size=152 players=3 islands 73da2b6f6ae6b049
-template Crossroads size=152 players=4 7d36390c4f034e7a
-template Crossroads size=152 players=4 underground 123168ddb673ffac
-template Crossroads size=152 players=4 islands 122341a91486ecf1
-template Crossroads size=228 players=2 571353af8d55a7eb
-template Crossroads size=228 players=3 9996360a3e3e7780
-template Crossroads size=228 players=4 5d2a34040f23bcf5
-template Crossroads size=304 players=2 94670b6a9bd51275
-template Crossroads size=304 players=3 a90cef378aaf75ae
-template Crossroads size=304 players=4 15f9a0956fed4f56
-template Allies size=76 players=4 e651601b377f8ed1
-template Allies size=152 players=4 f44dfcb45a432d18
-template Allies size=152 players=4 underground db40fb777e10d9a6
-template Allies size=152 players=4 islands 76cbfce87426543a
-template Allies size=228 players=4 536f1f1b00a82713
-template Allies size=304 players=4 80391625440a36a1
-template Arena size=76 players=2 d56fa6c2c31c8d79
-template Arena size=76 players=3 83cc84502b2b201f
-template Arena size=76 players=4 0b3dff5b6a9fb322
-template Arena size=76 players=6 0472b66a4ed56932
-template Arena size=152 players=2 7186c1a7e2b00e2b
-template Arena size=152 players=2 underground 72b574a9c266bda1
-template Arena size=152 players=2 islands 5c5fa00cbe3508c0
-template Arena size=152 players=3 f217ae74a76020b7
-template Arena size=152 players=3 underground abb74e9ecd7649fb
-template Arena size=152 players=3 islands dc8d239bc51acf7c
-template Arena size=152 players=4 0a00fe7f46d0f221
-template Arena size=152 players=4 underground 371c5919c6fa6422
-template Arena size=152 players=4 islands 7442f3a4d6800e58
-template Arena size=152 players=6 b6f040142acf2d0a
-template Arena size=152 players=6 underground 7317ec790201b7dc
-template Arena size=152 players=6 islands 127068ab26383f70
-template Arena size=228 players=2 269f4d77c84c7fe5
-template Arena size=228 players=3 8cf82fe74b03b0d0
-template Arena size=228 players=4 908ffd58f1200fd5
-template Arena size=228 players=6 eb575ba7f7e6a99a
-template Arena size=304 players=2 f7228bfe3f117062
-template Arena size=304 players=3 d975da0523ce512c
-template Arena size=304 players=4 5b8d0ce9487fc5b4
-template Arena size=304 players=6 079a2390fe7dafef
-template Blitz size=76 players=2 4ed08fcf0fc579ca
-template Blitz size=152 players=2 a3c877a30624fe9a
-template Blitz size=152 players=2 underground 16fa26ab14d1a2d4
-template Blitz size=152 players=2 islands fd39144a1f1865a5
-template Blitz size=228 players=2 fed3954a8536adf7
-template Blitz size=304 players=2 430f9ad5c59fc66b
-template Chain size=76 players=2 9bd30dbc8ca9878f
-template Chain size=76 players=3 3bfcb987bc21e0d0
-template Chain size=76 players=4 3ad12370ca302e0b
-template Chain size=76 players=6 0d151ca58de64ad5
-template Chain size=152 players=2 dfcbbc5ee12ce930
-template Chain size=152 players=2 underground 638dcf73c1e98047
-template Chain size=152 players=2 islands fce154328f9e6f6e
-template Chain size=152 players=3 c13170e6bc120739
-template Chain size=152 players=3 underground d9ad17b01c5a8f9f
-template Chain size=152 players=3 islands fa2bc4e52846f316
-template Chain size=152 players=4 73dfa323aa39649c
-template Chain size=152 players=4 underground 4991a259d1d839ac
-template Chain size=152 players=4 islands dca6f57602716e88
-template Chain size=152 players=6 aa422dc33ccf12e8
-template Chain size=152 players=6 underground 0511c17cf2cb0519
-template Chain size=152 players=6 islands e4009ebeec89bae2
-template Chain size=228 players=2 9774abee6e3d8164
-template Chain size=228 players=3 b1d34e1d20f93dc4
-template Chain size=228 players=4 9b3980a01697e55a
-template Chain size=228 players=6 d0926fa35a7ee89e
-template Chain size=304 players=2 f6e78a58a5d1a3ed
-template Chain size=304 players=3 37d67a1429c3cccf
-template Chain size=304 players=4 e809097e243c1dc7
-template Chain size=304 players=6 2d8efa1f3f85250a
-template Checkerboard size=76 players=2 8de527fdd875f7dc
-template Checkerboard size=76 players=3 327ce83b5b7f7268
-template Checkerboard size=76 players=4 5b8018e2390f6109
-template Checkerboard size=152 players=2 33b85f55ecaa04f7
-template Checkerboard size=152 players=2 underground 29475e580a3fae94
-template Checkerboard size=152 players=2 islands bb14790f0860d578
-template Checkerboard size=152 players=3 e0804b687984ecb8
-template Checkerboard size=152 players=3 underground 80a39b530314b881
-template Checkerboard size=152 players=3 islands 6a24e0b26eeb52dd
-template Checkerboard size=152 players=4 0f394dc6d4492f99
-template Checkerboard size=152 players=4 underground 04d0412b17a0286c
-template Checkerboard size=152 players=4 islands 6b7cdd0118986068
-template Checkerboard size=228 players=2 0180538b7d25c5de
-template Checkerboard size=228 players=3 fb802d5ca3c2476f
-template Checkerboard size=228 players=4 4fa0f18901f804de
-template Checkerboard size=304 players=2 87ce8c0378d0ffd4
-template Checkerboard size=304 players=3 7e6d6f1fc70c22bb
-template Checkerboard size=304 players=4 f5d09174e68bbcb7
-template Clash size=76 players=2 25811de9b227a56c
-template Clash size=76 players=3 5111f07814186b9b
-template Clash size=76 players=4 34251ac93d1ecf92
-template Clash size=152 players=2 a129c0c56d3523f1
-template Clash size=152 players=2 underground df48692788b547fe
-template Clash size=152 players=2 islands c22df66efff1ffce
-template Clash size=152 players=3 53e613ec1e6caf78
-template Clash size=152 players=3 underground 9cb2ca1960b92b1c
-template Clash size=152 players=3 islands 715594105ebc34be
-template Clash size=152 players=4 aa6954aee11e7044
-template Clash size=152 players=4 underground 222188d0f82b4245
-template Clash size=152 players=4 islands 2a86c61e8f1ab7e4
-template Clash size=152 players=6 44e93748ffe0506b
-template Clash size=152 players=6 underground c7e8b05a3b8c562f
-template Clash size=152 players=6 islands 76899f051d8f24aa
-template Clash size=228 players=2 79cdc732ebe774cf
-template Clash size=228 players=3 288b5d81a9b0ae66
-template Clash size=228 players=4 ef544a9f3440ac55
-template Clash size=228 players=6 893a5916bc6b0951
-template Clash size=304 players=2 95e80fcf3de301bc
-template Clash size=304 players=3 d91509a75c4214d0
-template Clash size=304 players=4 0733f42a21e653ad
-template Clash size=304 players=6 d77c116b8aa35267
-template Corridor size=76 players=2 cb3806a6a45c3fac
-template Corridor size=152 players=2 172f38337ca47e05
-template Corridor size=152 players=2 underground 444b9383dac002c1
-template Corridor size=152 players=2 islands 6b44fcc109030f78
-template Corridor size=228 players=2 88e76cdbbb002ef9
-template Corridor size=304 players=2 1e47aca585bd4632
-template Cross size=76 players=2 215d27ad091f43f6
-template Cross size=76 players=3 796d1dccc6d2ee79
-template Cross size=76 players=4 3a1a33124ff0a135
-template Cross size=152 players=2 096c31306ab71939
-template Cross size=152 players=2 underground d27da0ef8d729f8b
-template Cross size=152 players=2 islands 174e1899975fe482
-template Cross size=152 players=3 d4f638626b8cf554
-template Cross size=152 players=3 underground 963a71d889b35595
-template Cross size=152 players=3 islands 7878fbe9e7c6e21f
-template Cross size=152 players=4 54cdc87bf77c206a
-template Cross size=152 players=4 underground f6ecd0c2c79e5a7f
-template Cross size=152 players=4 islands 6883f8d2edcae117
-template Cross size=228 players=2 f3d29f112b638ed9
-template Cross size=228 players=3 3de6f80bc95ad5de
-template Cross size=228 players=4 d35a69eb9bec55b9
-template Cross size=304 players=2 06a7de4faa029468
-template Cross size=304 players=3 d6d9b068a5f3d294
-template Cross size=304 players=4 b53f11e3cb1a0bb4
-template Crown size=76 players=2 cfe01a608a720ede
-template Crown size=76 players=3 fa2f8ac880f67315
-template Crown size=76 players=4 38f8e1ecd8e61ac7
-template Crown size=152 players=2 1e97e5a7068dc55a
-template Crown size=152 players=2 underground b9e121a44cbb84bd
-template Crown size=152 players=2 islands 914bef5442c1d9db
-template Crown size=152 players=3 29d8ee9348d7e82f
-template Crown size=152 players=3 underground 8c9304fdbe5a9631
-template Crown size=152 players=3 islands e1310ad75b3ebe4d
-template Crown size=152 players=4 140ad6aa605815c3
-template Crown size=152 players=4 underground bd06ea9c66bf753c
-template Crown size=152 players=4 islands 7d954bdf5446556b
-template Crown size=228 players=2 22b2921a7120c1da
-template Crown size=228 players=3 fa53ea51fdcbedd7
-template Crown size=228 players=4 2aa2bc0d09cfce9a
-template Crown size=304 players=2 742694b9ec1b711b
-template Crown size=304 players=3 beb91c542a1bf493
-template Crown size=304 players=4 a3957bd24ff0962c
-template Diamond size=76 players=2 a97acebc74cdbc48
-template Diamond size=76 players=3 fd4e9a761c7c86e1
-template Diamond size=76 players=4 aa9687ca4b68bac9
-template Diamond size=152 players=2 d5d8bd8daf03c404
-template Diamond size=152 players=2 underground b9afe549615dd170
-template Diamond size=152 players=2 islands f986ba97e4d5b545
-template Diamond size=152 players=3 09fde16b312170ed
-template Diamond size=152 players=3 underground ce91e485739a460d
-template Diamond size=152 players=3 islands 177940ea2c86d11a
-template Diamond size=152 players=4 10af8a86fa827d1a
-template Diamond size=152 players=4 underground 6d2a9876c02f0ebe
-template Diamond size=152 players=4 islands 23ebcd6b8507d378
-template Diamond size=228 players=2 df664bfdcb166f11
-template Diamond size=228 players=3 ba89b5e4df555df5
-template Diamond size=228 players=4 4f6b7019f7b51b91
-template Diamond size=304 players=2 0720c49cdce25cca
-template Diamond size=304 players=3 81d7ae903151b43a
-template Diamond size=304 players=4 b7581c511ef7c467
-template Duel size=76 players=2 418dfac813ecd547
-template Duel size=152 players=2 339331fab9cacfd3
-template Duel size=152 players=2 underground 66b13d871938103e
-template Duel size=152 players=2 islands 613e64c40141925e
-template Duel size=228 players=2 1c0276f59624e27b
-template Duel size=304 players=2 a50a363dce66d22c
-template Fortress size=76 players=2 8142af30d3dd2673
-template Fortress size=76 players=3 ed71c8671d4b2aca
-template Fortress size=152 players=2 188ba327327d0a87
-template Fortress size=152 players=2 underground 893d1151f4c77ba7
-template Fortress size=152 players=2 islands b35cc2944475c81a
-template Fortress size=152 players=3 34af4d7f0eb1ed3a
-template Fortress size=152 players=3 underground 55f516e1e0143f4e
-template Fortress size=152 players=3 islands 92bd59bfc7f68be8
-template Fortress size=152 players=4 2f53fff00d15a027
-template Fortress size=152 players=4 underground 5e6e123bbcda3fed
-template Fortress size=152 players=4 islands c896336b8fc0abb9
-template Fortress size=152 players=6 29fed4e2413e1b53
-template Fortress size=152 players=6 underground 2b94808aebb795f2
-template Fortress size=152 players=6 islands f9c40391137d16c6
-template Fortress size=228 players=2 3fe977d37c5bedb6
-template Fortress size=228 players=3 94a3c378c40cfd10
-template Fortress size=228 players=4 dbcd19e188cede6f
-template Fortress size=228 players=6 82d371301fc8f8bc
-template Fortress size=304 players=2 8a1e71172c05666e
-template Fortress size=304 players=3 e92d4b0fb4054a6f
-template Fortress size=304 players=4 fa959ebbacdfdb50
-template Fortress size=304 players=6 509d902594fb915f
-template Frontier size=76 players=2 b631d78ce304e6e3
-template Frontier size=152 players=2 ddb427734933f84f
-template Frontier size=152 players=2 underground b5c08bff20ff6d2b
-template Frontier size=152 players=2 islands 00ac24cfbb698212
-template Frontier size=228 players=2 0a07a37f0509582b
-template Frontier size=304 players=2 8b4c652fefd422c3
-template Gauntlet size=76 players=2 6164539839a2d33a
-template Gauntlet size=76 players=3 9163e3af916bd18f
-template Gauntlet size=76 players=4 1a007857d52b70c9
-template Gauntlet size=76 players=6 18870a4142646072
-template Gauntlet size=152 players=2 2fb486c43a3e5b92
-template Gauntlet size=152 players=2 underground 2eb8b0a9f14039dc
-template Gauntlet size=152 players=2 islands 6a7511d97c5bed3b
-template Gauntlet size=152 players=3 6ca1384b26d2ed12
-template Gauntlet size=152 players=3 underground e925c13481d61646
-template Gauntlet size=152 players=3 islands 8290f42f4892e7b1
-template Gauntlet size=152 players=4 85df6ded9d276e2b
-template Gauntlet size=152 players=4 underground 99272d01bc7977af
-template Gauntlet size=152 players=4 islands b8b7e524a7c4a65f
-template Gauntlet size=152 players=6 5ba774ab5b7458c5
-template Gauntlet size=152 players=6 underground fe02d0a918fb8d86
-template Gauntlet size=152 players=6 islands 0f1953bd1a288624
-template Gauntlet size=228 players=2 f48e947b2934845f
-template Gauntlet size=228 players=3 0e5756ebcce4423a
-template Gauntlet size=228 players=4 7e2dc8e76e5c5b6c
-template Gauntlet size=228 players=6 b420459677994bc1
-template Gauntlet size=304 players=2 22b2652964b6a95c
-template Gauntlet size=304 players=3 e8ac6dd0e523b03a
-template Gauntlet size=304 players=4 4f38d3a02373337b
-template Gauntlet size=304 players=6 8d0ee648f179074d
-template Horseshoe size=76 players=2 f8798a4b82e79ad4
-template Horseshoe size=152 players=2 0b1b7e2c950c5aa9
-template Horseshoe size=152 players=2 underground 6be98e0af6bcabe7
-template Horseshoe size=152 players=2 islands 5e1e497274721d0a
-template Horseshoe size=228 players=2 9383633fd60e3a88
-template Horseshoe size=304 players=2 6099707490b11d87
-template Hourglass size=76 players=2 f8ddacd7565be798
-template Hourglass size=152 players=2 7828925645dafec3
-template Hourglass size=152 players=2 underground 18f22d939c5ee385
-template Hourglass size=152 players=2 islands d4220da1cffd56f2
-template Hourglass size=228 players=2 6937a5674922c695
-template Hourglass size=304 players=2 6e986980c9a75b22
-template Hub size=76 players=2 61162eeebe64572c
-template Hub size=76 players=3 a7023a42157bf0da
-template Hub size=76 players=4 2992be83d1aa3f50
-template Hub size=76 players=6 36c16b41908d0770
-template Hub size=152 players=2 6657182da6b202cd
-template Hub size=152 players=2 underground fc579295ebdcc95c
-template Hub size=152 players=2 islands 811d081562aea8d8
-template Hub size=152 players=3 5eea3ecf1e0350c2
-template Hub size=152 players=3 underground dbbacc594f967947
-template Hub size=152 players=3 islands cee704c39f8cd735
-template Hub size=152 players=4 e3b8ffa21d3275b7
-template Hub size=152 players=4 underground d4a5f40e148d2c4e
-template Hub size=152 players=4 islands 37683e13a71834de
-template Hub size=152 players=6 105673428f22c713
-template Hub size=152 players=6 underground 557b4577a04a9b69
-template Hub size=152 players=6 islands d62eb1b13dfc82f4
-template Hub size=228 players=2 e4e6a4ea1a2873b9
-template Hub size=228 players=3 699b50ffe0cace39
-template Hub size=228 players=4 089c2870b196a0f4
-template Hub size=228 players=6 5fb41617faba0f52
-template Hub size=304 players=2 48b6338b2ae567f1
-template Hub size=304 players=3 53fe97ad7d757fb6
-template Hub size=304 players=4 186ed06227eddea9
-template Hub size=304 players=6 ebe5f6b5191b2c53
-template Labyrinth size=76 players=2 2c7a018fd3b800c7
-template Labyrinth size=152 players=2 467063fa763aa54d
-template Labyrinth size=152 players=2 underground 30adb29cda9230de
-template Labyrinth size=152 players=2 islands dd632addfc6797a6
-template Labyrinth size=228 players=2 49c695bb8b15b845
-template Labyrinth size=304 players=2 4aa954f7267c55d2
-template Ladder size=76 players=2 0bbdf39a7eae6b36
-template Ladder size=152 players=2 6e96a2ad83266c9a
-template Ladder size=152 players=2 underground 4b12ab70852bc110
-template Ladder size=152 players=2 islands 5fab18f38c574fe6
-template Ladder size=228 players=2 24979cb153920c5b
-template Ladder size=304 players=2 0c4aad778a854c4f
-template Mirror size=76 players=2 9419682b2eb87499
-template Mirror size=152 players=2 b9153ad1232cdf72
-template Mirror size=152 players=2 underground 356a9b0ba1b35d4b
-template Mirror size=152 players=2 islands 5f53ffe96b7b6fef
-template Mirror size=228 players=2 a60ab0afbb464a38
-template Mirror size=304 players=2 d1b5622a746a1056
-template Pockets size=76 players=2 5a494b665b22349a
-template Pockets size=76 players=3 791a540f82ec2703
-template Pockets size=152 players=2 1a277ea41dcd24de
-template Pockets size=152 players=2 underground d7263c0f1462386a
-template Pockets size=152 players=2 islands 61e22db3303f3459
-template Pockets size=152 players=3 c5d5a8bc52b0e445
-template Pockets size=152 players=3 underground 9c21fec35d474570
-template Pockets size=152 players=3 islands 4a7fc92c8e20953b
-template Pockets size=152 players=4 0dbbbaa19ab14e3b
-template Pockets size=152 players=4 underground 9f38ae589c371eef
-template Pockets size=152 players=4 islands 6c6d05bd7a3dfabd
-template Pockets size=152 players=6 de76cefa79e0b9a1
-template Pockets size=152 players=6 underground 399e8caf9d8e6add
-template Pockets size=152 players=6 islands 532d83b1898ede0a
-template Pockets size=228 players=2 297ec19ee48a5960
-template Pockets size=228 players=3 16ad1d751c6ed26f
-template Pockets size=228 players=4 390f0c3e59d8b8c9
-template Pockets size=228 players=6 42b9494051104494
-template Pockets size=304 players=2 f4db5f4c4837a02c
-template Pockets size=304 players=3 57bc7fa11536beb9
-template Pockets size=304 players=4 ff7492965752fb49
-template Pockets size=304 players=6 159c8c5f0d1a4982
-template Race size=76 players=2 64f0f8a93a687291
-template Race size=76 players=3 c5323258aa740810
-template Race size=76 players=4 f6ef086567a2834c
-template Race size=152 players=2 f1ddbb49566e552d
-template Race size=152 players=2 underground fb852df4cc1714e2
-template Race size=152 players=2 islands 9e7628a842db50b6
-template Race size=152 players=3 7d886a2b5789ee17
-template Race size=152 players=3 underground a04c10ec4c808697
-template Race size=152 players=3 islands 12d84e96c2a908af
-template Race size=152 players=4 1ad04e24a84cb675
-template Race size=152 players=4 underground f318d7803fbbd784
-template Race size=152 players=4 islands 8f9f5bef42afbc02
-template Race size=152 players=6 c9bb277564e479c5
-template Race size=152 players=6 underground 6aa64eb7ee05cfcd
-template Race size=152 players=6 islands ad10ed9ca19ed3d5
-template Race size=228 players=2 6143f4d1e95993ea
-template Race size=228 players=3 21d99ea51c906580
-template Race size=228 players=4 b44aae8428a597ce
-template Race size=228 players=6 12a4a51338bf6668
-template Race size=304 players=2 c19af0cc75babf19
-template Race size=304 players=3 c512628de78cd3c4
-template Race size=304 players=4 0b4d2a1a40571430
-template Race size=304 players=6 1eb6dc6cd4b57051
-template Ring size=76 players=2 e531e76d3028b201
-template Ring size=76 players=3 23a03daa6f9c8190
-template Ring size=76 players=4 251ef5847673d095
-template Ring size=76 players=6 f83894023a89dd5e
-template Ring size=152 players=2 8b73fbffd2f3c71d
-template Ring size=152 players=2 underground 5c11f3cd42ca5879
-template Ring size=152 players=2 islands ee3862ea78e8667c
-template Ring size=152 players=3 1b5775c7162c7e1c
-template Ring size=152 players=3 underground 8fa0c41eeec30310
-template Ring size=152 players=3 islands 3374b57c9855849d
-template Ring size=152 players=4 c89047b676100953
-template Ring size=152 players=4 underground 111e18489f9e571a
-template Ring size=152 players=4 islands bed375294c251a8b
-template Ring size=152 players=6 dce8e57df43f0d5d
-template Ring size=152 players=6 underground 55b80334d8ed14f3
-template Ring size=152 players=6 islands 4ee8806b1a4ba27d
-template Ring size=228 players=2 2533642e80f2fedd
-template Ring size=228 players=3 c5695d57b3f6fca6
-template Ring size=228 players=4 466557ffa204b6ed
-template Ring size=228 players=6 8969b6fae60abbe9
-template Ring size=304 players=2 c4cd4b04752ccbd0
-template Ring size=304 players=3 f3ff28b365a40e76
-template Ring size=304 players=4 4113a76af2cb399e
-template Ring size=304 players=6 3da91e6d2ee5cbf2
-template Spider size=76 players=2 8f1274670ebf87ff
-template Spider size=76 players=3 dd9d3cd809ffdf00
-template Spider size=76 players=4 dd7046f1d2a137d7
-template Spider size=152 players=2 74e9ad73c98d7f14
-template Spider size=152 players=2 underground e0b0e4b3ce06e28f
-template Spider size=152 players=2 islands 43f55b0139385a36
-template Spider size=152 players=3 f1217db7d1e76e73
-template Spider size=152 players=3 underground 234f2ca70c3eea06
-template Spider size=152 players=3 islands bc8879ce82a91a7c
-template Spider size=152 players=4 619bb9713dd935c6
-template Spider size=152 players=4 underground 4ca56378dc8866ad
-template Spider size=152 players=4 islands add80cefb0ea895b
-template Spider size=152 players=6 500f35098d9afab2
-template Spider size=152 players=6 underground 78cec4f9aa94d25a
-template Spider size=152 players=6 islands 2e63abd281aca431
-template Spider size=228 players=2 315bdc4d80b245b4
-template Spider size=228 players=3 130ab41696518055
-template Spider size=228 players=4 8c462f279a12890e
-template Spider size=228 players=6 13c5b88dd714d657
-template Spider size=304 players=2 f6e6adf74b7952db
-template Spider size=304 players=3 af64a66a53bddc9d
-template Spider size=304 players=4 1bb537427c7bb5bd
-template Spider size=304 players=6 52628af00913e6cf
-template Spiral size=76 players=2 a70a2506c24fcab7
-template Spiral size=76 players=3 bf66c6d6dcfc4ff1
-template Spiral size=76 players=4 38b294c3a7d27c0e
-template Spiral size=152 players=2 751cfa59c7929df0
-template Spiral size=152 players=2 underground 5dbce007f080268b
-template Spiral size=152 players=2 islands 79efce406c87dd1a
-template Spiral size=152 players=3 1408a660d664d451
-template Spiral size=152 players=3 underground 76cc195b0df467b4
-template Spiral size=152 players=3 islands 2f4bceb9f5f38203
-template Spiral size=152 players=4 f1119f02feda803f
-template Spiral size=152 players=4 underground 13fee5f6eb3ef183
-template Spiral size=152 players=4 islands dc9e245c5794b84f
-template Spiral size=228 players=2 c3e16c56ec5d41eb
-template Spiral size=228 players=3 b6a6dad900023969
-template Spiral size=228 players=4 efb20a58f6db52fe
-template Spiral size=304 players=2 067c26802d976f5d
-template Spiral size=304 players=3 18add96a8cc2747e
-template Spiral size=304 players=4 c4a6972d77eb71d7
-template Star size=76 players=3 3fd945a313c09148
-template Star size=76 players=4 1f2748af46ed716c
-template Star size=76 players=6 9f8b677abf00ee9f
-template Star size=152 players=3 c62e31829edfe45e
-template Star size=152 players=3 underground 9090b3568cf09307
-template Star size=152 players=3 islands ea117699ceeb723e
-template Star size=152 players=4 401f41fdf7755239
-template Star size=152 players=4 underground 8e34d798ab38551e
-template Star size=152 players=4 islands c16b896d45510040
-template Star size=152 players=6 81fbb3829be30a70
-template Star size=152 players=6 underground e74a1a28e6d0590b
-template Star size=152 players=6 islands cd6d08806d1fda9c
-template Star size=228 players=3 bf79f7a68950e783
-template Star size=228 players=4 511e1622b47aecb4
-template Star size=228 players=6 a3c87dc703f4f362
-template Star size=304 players=3 356490845f2e8fe9
-template Star size=304 players=4 f59533553c56a593
-template Star size=304 players=6 ba96777f57cb11c7
-template Three on three size=76 players=6 0b35b31d47d15345
-template Three on three size=152 players=6 08511bea12c70d24
-template Three on three size=152 players=6 underground e34973817f7cd3f9
-template Three on three size=152 players=6 islands 4f1f5a08afdca8e5
-template Three on three size=228 players=6 1e87ad71f0721539
-template Three on three size=304 players=6 e1ca569861d491aa
-template Treasury size=76 players=2 7d29cb4644f41a7d
-template Treasury size=76 players=3 ffe38fd197bf54ac
-template Treasury size=76 players=4 0af716b15b301f66
-template Treasury size=76 players=6 3ccac7986d36038e
-template Treasury size=152 players=2 cb9b75a4dccb80c4
-template Treasury size=152 players=2 underground ec8e050048d47653
-template Treasury size=152 players=2 islands 8ab01b31ab4dc2ba
-template Treasury size=152 players=3 d327fe5df787b6c2
-template Treasury size=152 players=3 underground b55e500188e4a87e
-template Treasury size=152 players=3 islands abda62535c890571
-template Treasury size=152 players=4 16a30690bed66c8c
-template Treasury size=152 players=4 underground 13f3eca01eef3570
-template Treasury size=152 players=4 islands 9ebd3dba8dca24fc
-template Treasury size=152 players=6 e4e346929444f8f7
-template Treasury size=152 players=6 underground 061ff89f53ee6538
-template Treasury size=152 players=6 islands be06f234183768e0
-template Treasury size=228 players=2 c8d069841e0daac1
-template Treasury size=228 players=3 7b7e3de35e8c7960
-template Treasury size=228 players=4 78559c6b99a81213
-template Treasury size=228 players=6 aca46a97841ec453
-template Treasury size=304 players=2 d83108d44b50c5ac
-template Treasury size=304 players=3 ead688722d7f4376
-template Treasury size=304 players=4 9efc6387d14d324c
-template Treasury size=304 players=6 623de35f05b29c60
-template Triangle size=76 players=3 1841363010f42a68
-template Triangle size=152 players=3 85816b3caf91a49d
-template Triangle size=152 players=3 underground fcc513240eb93fa8
-template Triangle size=152 players=3 islands 714c5d547b048440
-template Triangle size=228 players=3 ad073d810dc86bac
-template Triangle size=304 players=3 3c4f4373cc4a088d
-template Twin rings size=76 players=2 6836c64f86bf8b55
-template Twin rings size=152 players=2 db6ba9a0139ad73c
-template Twin rings size=152 players=2 underground 8c82452284c2a3d7
-template Twin rings size=152 players=2 islands 119ab95eb017c9fd
-template Twin rings size=228 players=2 e3b1e5851ee04e61
-template Twin rings size=304 players=2 d62e9133210bd0d4
-template Wheel size=76 players=2 fc5ddce8acb38e38
-template Wheel size=76 players=3 0c09e0a7a291fd46
-template Wheel size=76 players=4 2aede6a5983c9194
-template Wheel size=152 players=2 c4eb4994af943e0f
-template Wheel size=152 players=2 underground 72627931d04b5cba
-template Wheel size=152 players=2 islands c1b070f2d2cf5918
-template Wheel size=152 players=3 0cf9964c0fa0abbd
-template Wheel size=152 players=3 underground 1d16443f67ac469d
-template Wheel size=152 players=3 islands d5c7f04e0942a1d1
-template Wheel size=152 players=4 5ca07b3d931cd855
-template Wheel size=152 players=4 underground 41f750b74ead8f0c
-template Wheel size=152 players=4 islands 58d0d385eec3d9e0
-template Wheel size=152 players=6 e57496bec3218e98
-template Wheel size=152 players=6 underground 080e909ec5f31da9
-template Wheel size=152 players=6 islands 94aed42e2644b66c
-template Wheel size=228 players=2 df0410e8b6d42131
-template Wheel size=228 players=3 aeb799bc4474379c
-template Wheel size=228 players=4 db227e62b6386bfe
-template Wheel size=228 players=6 f530b6967228c54e
-template Wheel size=304 players=2 bfa6ec0700f52bec
-template Wheel size=304 players=3 ac60b42e5fc36cac
-template Wheel size=304 players=4 b6cd385dbbcdfaaa
-template Wheel size=304 players=6 0ea3b74499e09400
+classic seed=1 size=76 players=2 1b1a37fdb43bcf42
+classic seed=1 size=76 players=2 underground dddea60fc40adafe
+classic seed=1 size=76 players=2 underground islands 192140ef2320d1a1
+classic seed=1 size=76 players=4 534cc2037c5f678d
+classic seed=1 size=76 players=4 underground eef6805f079f5200
+classic seed=1 size=76 players=4 underground islands 55a885bbba45f650
+classic seed=1 size=76 players=6 cd5c9871fa8c0782
+classic seed=1 size=76 players=6 underground eefde6b52b2ba2bd
+classic seed=1 size=76 players=6 underground islands 0782f98b49d54907
+classic seed=1 size=152 players=2 ce4672ece92f9971
+classic seed=1 size=152 players=2 underground 32adc91bdcabfb88
+classic seed=1 size=152 players=2 underground dry c551308e9ad89868
+classic seed=1 size=152 players=2 underground islands f59ec01b01e91d07
+classic seed=1 size=152 players=2 underground random water 74bb4c4af0324d26
+classic seed=1 size=152 players=2 underground no obelisks 9b37e456b928dc62
+classic seed=1 size=152 players=2 underground treasures e5ecbb938ed0c559
+classic seed=1 size=152 players=2 underground random players 8ca40328d179f91c
+classic seed=1 size=152 players=2 underground random size ed32da2359b66864
+classic seed=1 size=152 players=2 underground random monsters e05d1ff091418c91
+classic seed=1 size=152 players=2 underground weak 1f813a31aa003ee4
+classic seed=1 size=152 players=2 underground strong f3b8fb68de4ced8c
+classic seed=1 size=152 players=4 a988d52ec210a32a
+classic seed=1 size=152 players=4 underground f11b0d2d9f53a248
+classic seed=1 size=152 players=4 underground dry aedbae41127c1755
+classic seed=1 size=152 players=4 underground islands c5805837b1de94f0
+classic seed=1 size=152 players=4 underground random water 21ceeb9fe65e4d67
+classic seed=1 size=152 players=4 underground no obelisks 2aea56372f68d00b
+classic seed=1 size=152 players=4 underground treasures 746d87fd15c83cdd
+classic seed=1 size=152 players=4 underground teams 31fa3e45ed2b5ebe
+classic seed=1 size=152 players=4 underground random players 7ab7453ffad7257f
+classic seed=1 size=152 players=4 underground random size fa34c55e93120c6d
+classic seed=1 size=152 players=4 underground random monsters 6bb4a2dfba8248b3
+classic seed=1 size=152 players=4 underground weak ff7c570485a274f8
+classic seed=1 size=152 players=4 underground strong 5fc86a441bc23bd1
+classic seed=1 size=152 players=6 c1a2670305f122bc
+classic seed=1 size=152 players=6 underground 51661d65834b893f
+classic seed=1 size=152 players=6 underground dry 886dc8d01a26a502
+classic seed=1 size=152 players=6 underground islands 501802beff572cd1
+classic seed=1 size=152 players=6 underground random water 12ce0dd9d857e15e
+classic seed=1 size=152 players=6 underground no obelisks a2484ca5bcd4fe8f
+classic seed=1 size=152 players=6 underground treasures ddc60541eaa5f208
+classic seed=1 size=152 players=6 underground teams c9b5bbec2a8e2dcb
+classic seed=1 size=152 players=6 underground random players 7ab7453ffad7257f
+classic seed=1 size=152 players=6 underground random size 64d155f179f90f42
+classic seed=1 size=152 players=6 underground random monsters 25550bd65c352e6f
+classic seed=1 size=152 players=6 underground weak 3fca2401a5045c14
+classic seed=1 size=152 players=6 underground strong c48abe0eb55a0f3f
+classic seed=1 size=228 players=2 e67f405538899c56
+classic seed=1 size=228 players=2 underground b3fe8530bdbc10a9
+classic seed=1 size=228 players=2 underground islands 4bf9234bed1380af
+classic seed=1 size=228 players=4 e83aecd064a0f571
+classic seed=1 size=228 players=4 underground ea7993cb3d62b134
+classic seed=1 size=228 players=4 underground islands 956c4c83757f0b3e
+classic seed=1 size=228 players=6 01280dcb03054b6b
+classic seed=1 size=228 players=6 underground 9784ae48928212bf
+classic seed=1 size=228 players=6 underground islands 8fc08ce010ba4e02
+classic seed=1 size=304 players=2 467d6927c9a79b2a
+classic seed=1 size=304 players=2 underground c6e86997f81a352e
+classic seed=1 size=304 players=2 underground islands 0669bdd7896b702a
+classic seed=1 size=304 players=4 8aaea8ecb787d548
+classic seed=1 size=304 players=4 underground a8445f7ab2e9c355
+classic seed=1 size=304 players=4 underground islands 622ef562112f6030
+classic seed=1 size=304 players=6 2490c716391cc2d8
+classic seed=1 size=304 players=6 underground 1a6c2557620a7caa
+classic seed=1 size=304 players=6 underground islands 6cb809589d3e0d51
+classic seed=1112 size=76 players=2 e9770c7cd01ecf2e
+classic seed=1112 size=76 players=2 underground 86376829ef8d5611
+classic seed=1112 size=76 players=2 underground islands 5410b09b46153e2d
+classic seed=1112 size=76 players=4 fa3760816c8cb552
+classic seed=1112 size=76 players=4 underground 8c5a30d0389d3619
+classic seed=1112 size=76 players=4 underground islands 4b6e7a77e78fae92
+classic seed=1112 size=76 players=6 3352fa3be3687e62
+classic seed=1112 size=76 players=6 underground 04ef20ce67c8977f
+classic seed=1112 size=76 players=6 underground islands 95ce599fa6f7764b
+classic seed=1112 size=152 players=2 6cbb9841a10f180d
+classic seed=1112 size=152 players=2 underground 7b702a6375b45e73
+classic seed=1112 size=152 players=2 underground dry 75c813df78c59a8f
+classic seed=1112 size=152 players=2 underground islands 1e3c87a71e0cf615
+classic seed=1112 size=152 players=2 underground random water 4192c56d798d2c6d
+classic seed=1112 size=152 players=2 underground no obelisks 51335c9d1c7fc684
+classic seed=1112 size=152 players=2 underground treasures 0979a1a6675f8f90
+classic seed=1112 size=152 players=2 underground random players 035b81c800830028
+classic seed=1112 size=152 players=2 underground random size 1d5a7d83b4c2b162
+classic seed=1112 size=152 players=2 underground random monsters cfd647f0ec27b384
+classic seed=1112 size=152 players=2 underground weak f62e925e97b5fcc9
+classic seed=1112 size=152 players=2 underground strong 2bcc5ce079ca49e4
+classic seed=1112 size=152 players=4 e53ef5c26303871f
+classic seed=1112 size=152 players=4 underground bfe34f2cca2dddcb
+classic seed=1112 size=152 players=4 underground dry 665e7d0aa56d0541
+classic seed=1112 size=152 players=4 underground islands 518b9a4ae76fa56b
+classic seed=1112 size=152 players=4 underground random water 1e851eaebd2d8ef9
+classic seed=1112 size=152 players=4 underground no obelisks 6ba6f6eec5c67f5f
+classic seed=1112 size=152 players=4 underground treasures b6649e0e142c6bc4
+classic seed=1112 size=152 players=4 underground teams a096ea9670b5c895
+classic seed=1112 size=152 players=4 underground random players d958a9eeafab026a
+classic seed=1112 size=152 players=4 underground random size 629c0ecb345726e7
+classic seed=1112 size=152 players=4 underground random monsters d76ce042817495dd
+classic seed=1112 size=152 players=4 underground weak 592d7da8a9d105e2
+classic seed=1112 size=152 players=4 underground strong ec6519c154a2e845
+classic seed=1112 size=152 players=6 fb0503108cfcd1ad
+classic seed=1112 size=152 players=6 underground cfb6f0c32675b2d5
+classic seed=1112 size=152 players=6 underground dry 99f468d4452d2155
+classic seed=1112 size=152 players=6 underground islands 98b7b446f47b1da5
+classic seed=1112 size=152 players=6 underground random water 4c90affe8f0a8b9f
+classic seed=1112 size=152 players=6 underground no obelisks 6c293fae8ce05000
+classic seed=1112 size=152 players=6 underground treasures f3996d30b54b1dd7
+classic seed=1112 size=152 players=6 underground teams d1e6eac619062839
+classic seed=1112 size=152 players=6 underground random players d958a9eeafab026a
+classic seed=1112 size=152 players=6 underground random size f86176aac097bab1
+classic seed=1112 size=152 players=6 underground random monsters 8fb77ae78ca4f82a
+classic seed=1112 size=152 players=6 underground weak 5f2daeb64a771fc8
+classic seed=1112 size=152 players=6 underground strong ce8c8d20961d0332
+classic seed=1112 size=228 players=2 ac08a27e0644b579
+classic seed=1112 size=228 players=2 underground 1f415ac57fedf17a
+classic seed=1112 size=228 players=2 underground islands 4cf96a9a212cd323
+classic seed=1112 size=228 players=4 4b8de514201038e4
+classic seed=1112 size=228 players=4 underground 8cca007c11969318
+classic seed=1112 size=228 players=4 underground islands 909ba3a091888409
+classic seed=1112 size=228 players=6 469b1f44e36b28f8
+classic seed=1112 size=228 players=6 underground 1e4d452750a2d1e6
+classic seed=1112 size=228 players=6 underground islands b5a132769bf77a57
+classic seed=1112 size=304 players=2 432b82e1a69bbf12
+classic seed=1112 size=304 players=2 underground 555edf58faffa19f
+classic seed=1112 size=304 players=2 underground islands dedd8d6cb743b7fa
+classic seed=1112 size=304 players=4 89fea808e9fd24df
+classic seed=1112 size=304 players=4 underground 183c8fb526dbdd5b
+classic seed=1112 size=304 players=4 underground islands f0705888f49f7089
+classic seed=1112 size=304 players=6 32d9dbd0275d78eb
+classic seed=1112 size=304 players=6 underground 015a3f7388280556
+classic seed=1112 size=304 players=6 underground islands fa73d0bf3e324fc9
+classic seed=77777 size=76 players=2 bfbc2968eab3d79f
+classic seed=77777 size=76 players=2 underground 679909059b012123
+classic seed=77777 size=76 players=2 underground islands 7befc828c24d6a1e
+classic seed=77777 size=76 players=4 1ff3708017dd3fc5
+classic seed=77777 size=76 players=4 underground 1ddb982753a673c5
+classic seed=77777 size=76 players=4 underground islands 45e9a88d731f328a
+classic seed=77777 size=76 players=6 435576bd6cb7d0ac
+classic seed=77777 size=76 players=6 underground 832388c8b1759bac
+classic seed=77777 size=76 players=6 underground islands 36b22d272c264b70
+classic seed=77777 size=152 players=2 68d6905268c00405
+classic seed=77777 size=152 players=2 underground 31a5eb9942bf9bc0
+classic seed=77777 size=152 players=2 underground dry 5c5d9276870031c2
+classic seed=77777 size=152 players=2 underground islands 81acc3a6b99a9182
+classic seed=77777 size=152 players=2 underground random water da2d122dc80d63f6
+classic seed=77777 size=152 players=2 underground no obelisks 3f510fecd770c6f6
+classic seed=77777 size=152 players=2 underground treasures fb2862ff75e5630f
+classic seed=77777 size=152 players=2 underground random players a5b4ceaca555d559
+classic seed=77777 size=152 players=2 underground random size a71c6862d82f289f
+classic seed=77777 size=152 players=2 underground random monsters b2bfb82dc12fb04a
+classic seed=77777 size=152 players=2 underground weak d9be3e014d8cd608
+classic seed=77777 size=152 players=2 underground strong 2ff18cd92b1dd54a
+classic seed=77777 size=152 players=4 0c60f3e1dfbcf82b
+classic seed=77777 size=152 players=4 underground 75d2154840b3a452
+classic seed=77777 size=152 players=4 underground dry 6378d9fafb09d58b
+classic seed=77777 size=152 players=4 underground islands 9f0deced9e830174
+classic seed=77777 size=152 players=4 underground random water 09e0836f936375ef
+classic seed=77777 size=152 players=4 underground no obelisks 8788263da3c04aaf
+classic seed=77777 size=152 players=4 underground treasures 98442061a81083b9
+classic seed=77777 size=152 players=4 underground teams c297f86fc8addf54
+classic seed=77777 size=152 players=4 underground random players 44ca43dab5f5df7a
+classic seed=77777 size=152 players=4 underground random size fbf4acf1282dee73
+classic seed=77777 size=152 players=4 underground random monsters b0b65895b012875e
+classic seed=77777 size=152 players=4 underground weak d5c9d7e02863ccbc
+classic seed=77777 size=152 players=4 underground strong cb3a5807cb56ad86
+classic seed=77777 size=152 players=6 0377df137ca9b5df
+classic seed=77777 size=152 players=6 underground 15f40b886b5d9d48
+classic seed=77777 size=152 players=6 underground dry 7f5d4c776b6e973c
+classic seed=77777 size=152 players=6 underground islands 64907f61b1c67d62
+classic seed=77777 size=152 players=6 underground random water 543dac8d7d465388
+classic seed=77777 size=152 players=6 underground no obelisks e268be213b1c01fb
+classic seed=77777 size=152 players=6 underground treasures 2a2f976e16112dd2
+classic seed=77777 size=152 players=6 underground teams 2621b8989cf47554
+classic seed=77777 size=152 players=6 underground random players 44ca43dab5f5df7a
+classic seed=77777 size=152 players=6 underground random size 36eaedb67210bdf5
+classic seed=77777 size=152 players=6 underground random monsters 034dac475190a8e4
+classic seed=77777 size=152 players=6 underground weak 271bd98276010046
+classic seed=77777 size=152 players=6 underground strong af12a78ec9b085ec
+classic seed=77777 size=228 players=2 b9ffeeef02bbd4e9
+classic seed=77777 size=228 players=2 underground 83e35b1af9360c6f
+classic seed=77777 size=228 players=2 underground islands 29f706911a47c078
+classic seed=77777 size=228 players=4 90292440745fdd20
+classic seed=77777 size=228 players=4 underground 5e89ffa9912d28b1
+classic seed=77777 size=228 players=4 underground islands 5edba7caa1bd359c
+classic seed=77777 size=228 players=6 36429585d67d3d30
+classic seed=77777 size=228 players=6 underground ab832f345e63859c
+classic seed=77777 size=228 players=6 underground islands ea040c3428e96a5d
+classic seed=77777 size=304 players=2 c471391728171ace
+classic seed=77777 size=304 players=2 underground 71e9701492b1b7e2
+classic seed=77777 size=304 players=2 underground islands b173cc386705df45
+classic seed=77777 size=304 players=4 a9605bfd95cd33b7
+classic seed=77777 size=304 players=4 underground d3dc3c59edba9eca
+classic seed=77777 size=304 players=4 underground islands 9249bab0dd2229d5
+classic seed=77777 size=304 players=6 04eceea9a9532c15
+classic seed=77777 size=304 players=6 underground 22082293708cd7ed
+classic seed=77777 size=304 players=6 underground islands d0adc3c98e77f9eb
+template Crossroads size=76 players=2 49335fef72015e4a (read back differently)
+template Crossroads size=76 players=3 e0eecf7418ab1c43 (read back differently)
+template Crossroads size=76 players=4 820d4910ee983519 (read back differently)
+template Crossroads size=152 players=2 7f99860e56c38efb (read back differently)
+template Crossroads size=152 players=2 underground 77f48a4073bf5a9b (read back differently)
+template Crossroads size=152 players=2 islands 1cc8028147cb6b3c (read back differently)
+template Crossroads size=152 players=3 47daaf2496fdb3e3 (read back differently)
+template Crossroads size=152 players=3 underground 2fea4b6969feca66 (read back differently)
+template Crossroads size=152 players=3 islands 71b9c774baaeff4a (read back differently)
+template Crossroads size=152 players=4 c41d28cc8ce847ea (read back differently)
+template Crossroads size=152 players=4 underground 61a25226e50cfca3 (read back differently)
+template Crossroads size=152 players=4 islands 634b1e3ab21bcb4d (read back differently)
+template Crossroads size=228 players=2 97125e3077fa5256 (read back differently)
+template Crossroads size=228 players=3 72a861c26cb995e9 (read back differently)
+template Crossroads size=228 players=4 b1a9e145143147a3 (read back differently)
+template Crossroads size=304 players=2 3af0924c5eaddcd9 (read back differently)
+template Crossroads size=304 players=3 238ecf6c7f95cc42 (read back differently)
+template Crossroads size=304 players=4 6617e4553f11a538 (read back differently)
+template Allies size=76 players=4 ac55e4d4101ac8e5 (read back differently)
+template Allies size=152 players=4 302fb455c300b919 (read back differently)
+template Allies size=152 players=4 underground fd204d46bf71b22c (read back differently)
+template Allies size=152 players=4 islands 9c67f1e0951aa825 (read back differently)
+template Allies size=228 players=4 dd9c57d770a3a867 (read back differently)
+template Allies size=304 players=4 f2211cce01049628 (read back differently)
+template Arena size=76 players=2 1bbdaf08fb52b137 (read back differently)
+template Arena size=76 players=3 703f72d96dc25311 (read back differently)
+template Arena size=76 players=4 09c9c2b4f8a9fcc6 (read back differently)
+template Arena size=76 players=6 ac0608da34cb14ac (read back differently)
+template Arena size=152 players=2 50a1f12737c4a858 (read back differently)
+template Arena size=152 players=2 underground 089e48b65b3ee018 (read back differently)
+template Arena size=152 players=2 islands 25651d4875fdde7f (read back differently)
+template Arena size=152 players=3 c971f3049abd065a (read back differently)
+template Arena size=152 players=3 underground d4259bdad1266916 (read back differently)
+template Arena size=152 players=3 islands a42a1afdfac8c33b (read back differently)
+template Arena size=152 players=4 9155db0885920dec (read back differently)
+template Arena size=152 players=4 underground 4907902d92e6a967 (read back differently)
+template Arena size=152 players=4 islands 429c35997e9a177b (read back differently)
+template Arena size=152 players=6 e09672f4ce612e51 (read back differently)
+template Arena size=152 players=6 underground 7921cc7e2a155135 (read back differently)
+template Arena size=152 players=6 islands 67b45e2c33611aa0 (read back differently)
+template Arena size=228 players=2 4a38a91ed9b1f121 (read back differently)
+template Arena size=228 players=3 a00b99e74904f661 (read back differently)
+template Arena size=228 players=4 a57fbe21415ea88b (read back differently)
+template Arena size=228 players=6 4c60771d3390e367 (read back differently)
+template Arena size=304 players=2 00b30fb33631dfe5 (read back differently)
+template Arena size=304 players=3 c89657b322fcf83d (read back differently)
+template Arena size=304 players=4 0c4e7d540d846bd0 (read back differently)
+template Arena size=304 players=6 e94cfc1d0492c079 (read back differently)
+template Blitz size=76 players=2 335984c667f3ec0e (read back differently)
+template Blitz size=152 players=2 f9bd4c1d2ff87eb5 (read back differently)
+template Blitz size=152 players=2 underground 1df21519658c03dc (read back differently)
+template Blitz size=152 players=2 islands c6ee3e352f0da412 (read back differently)
+template Blitz size=228 players=2 87b8648c629c5018 (read back differently)
+template Blitz size=304 players=2 4e2b397efad156dc (read back differently)
+template Chain size=76 players=2 02a0ce03a2ce1293 (read back differently)
+template Chain size=76 players=3 556d1c4315920304 (read back differently)
+template Chain size=76 players=4 52ca126b59e96c8d (read back differently)
+template Chain size=76 players=6 9681856ced1c6bae (read back differently)
+template Chain size=152 players=2 e2efd5078f4eae8f (read back differently)
+template Chain size=152 players=2 underground ce60691a9d348e3c (read back differently)
+template Chain size=152 players=2 islands 5f84676062de9853 (read back differently)
+template Chain size=152 players=3 29c43f9e241f6738 (read back differently)
+template Chain size=152 players=3 underground 6b42406ea88326b4 (read back differently)
+template Chain size=152 players=3 islands 04246ac13831983a (read back differently)
+template Chain size=152 players=4 267d069cf315b267 (read back differently)
+template Chain size=152 players=4 underground bec82067c6a17e78 (read back differently)
+template Chain size=152 players=4 islands 73023122d0fc408c (read back differently)
+template Chain size=152 players=6 f134d42c63a1afbd (read back differently)
+template Chain size=152 players=6 underground b4e85ae1a598f503 (read back differently)
+template Chain size=152 players=6 islands 3cb9f26255078382 (read back differently)
+template Chain size=228 players=2 c3acbd59a36590f7 (read back differently)
+template Chain size=228 players=3 59aa3d6be0fc1402 (read back differently)
+template Chain size=228 players=4 bd8d9166d3cf12d2 (read back differently)
+template Chain size=228 players=6 9cbebd32ec833e45 (read back differently)
+template Chain size=304 players=2 a251fd7aca28a4fa (read back differently)
+template Chain size=304 players=3 142438f594f7837d (read back differently)
+template Chain size=304 players=4 5d6d4e9ea1f5e9b7 (read back differently)
+template Chain size=304 players=6 a84266910c44f3f6 (read back differently)
+template Checkerboard size=76 players=2 f13c3cf4f1606abf (read back differently)
+template Checkerboard size=76 players=3 566f1cc979e82a21 (read back differently)
+template Checkerboard size=76 players=4 29586aa489b9762f (read back differently)
+template Checkerboard size=152 players=2 0b17424b5c5b1a56 (read back differently)
+template Checkerboard size=152 players=2 underground 6ebe0b83f29b2f99 (read back differently)
+template Checkerboard size=152 players=2 islands c6873ffefb64596f (read back differently)
+template Checkerboard size=152 players=3 fbf216697402908e (read back differently)
+template Checkerboard size=152 players=3 underground c4c2817122e1f7ce (read back differently)
+template Checkerboard size=152 players=3 islands f71a6bfc5e622023 (read back differently)
+template Checkerboard size=152 players=4 5ecb74daf46611cd (read back differently)
+template Checkerboard size=152 players=4 underground bccd26eba0c81e5f (read back differently)
+template Checkerboard size=152 players=4 islands e3ba6c87f77be13a (read back differently)
+template Checkerboard size=228 players=2 fbf92447070d9bef (read back differently)
+template Checkerboard size=228 players=3 e5715920d332820e (read back differently)
+template Checkerboard size=228 players=4 26da9b0a70d11c61 (read back differently)
+template Checkerboard size=304 players=2 5e69016d1d45afbf (read back differently)
+template Checkerboard size=304 players=3 2db461a3f84b2848 (read back differently)
+template Checkerboard size=304 players=4 4acc920dd5b7f328 (read back differently)
+template Clash size=76 players=2 2b72762c01512752 (read back differently)
+template Clash size=76 players=3 7df9aa94c89292c1 (read back differently)
+template Clash size=76 players=4 8e4c116f658b3978 (read back differently)
+template Clash size=152 players=2 448913c1feeea089 (read back differently)
+template Clash size=152 players=2 underground 66d544e4b6df10bf (read back differently)
+template Clash size=152 players=2 islands ad3623295c25d48d (read back differently)
+template Clash size=152 players=3 0e2d97af7b4efa50 (read back differently)
+template Clash size=152 players=3 underground d5b3958adc2148ae (read back differently)
+template Clash size=152 players=3 islands b2b47f5e206970a7 (read back differently)
+template Clash size=152 players=4 5aea314e979cc28a (read back differently)
+template Clash size=152 players=4 underground e8ffdd36066263db (read back differently)
+template Clash size=152 players=4 islands 85916bd1bd1f84f1 (read back differently)
+template Clash size=152 players=6 fac8a9fce8f06e4e (read back differently)
+template Clash size=152 players=6 underground 792e21848732dbbb (read back differently)
+template Clash size=152 players=6 islands d505341a0f039ece (read back differently)
+template Clash size=228 players=2 9e56c93de206bb1d (read back differently)
+template Clash size=228 players=3 ab28f4ea816f8204 (read back differently)
+template Clash size=228 players=4 fbb32e9e8bf6d409 (read back differently)
+template Clash size=228 players=6 8166d7874b224372 (read back differently)
+template Clash size=304 players=2 5d57b667b6b8235a (read back differently)
+template Clash size=304 players=3 552cf91e910ca94f (read back differently)
+template Clash size=304 players=4 9fe9327c51bbdfbe (read back differently)
+template Clash size=304 players=6 279aa859af202f94 (read back differently)
+template Corridor size=76 players=2 82c69e4e5b55879d (read back differently)
+template Corridor size=152 players=2 bb1af69dbca6b5e5 (read back differently)
+template Corridor size=152 players=2 underground d52412526d387090 (read back differently)
+template Corridor size=152 players=2 islands 8276895bc8f05c0b (read back differently)
+template Corridor size=228 players=2 c0dc2442d2526de5 (read back differently)
+template Corridor size=304 players=2 462e48b9ca3290a6 (read back differently)
+template Cross size=76 players=2 4765d9579abe2be1 (read back differently)
+template Cross size=76 players=3 9f8c7c99bc2faf60 (read back differently)
+template Cross size=76 players=4 f05cdb5b1655ecf7 (read back differently)
+template Cross size=152 players=2 788e87d2e94d15fa (read back differently)
+template Cross size=152 players=2 underground 4275ee1f2dfebc2a (read back differently)
+template Cross size=152 players=2 islands cdfbaf198cdddaaa (read back differently)
+template Cross size=152 players=3 b0ba92010e8038c7 (read back differently)
+template Cross size=152 players=3 underground bd97e2482fb456b6 (read back differently)
+template Cross size=152 players=3 islands 55570cd223a7217a (read back differently)
+template Cross size=152 players=4 6ddeaf0ea2f8177e (read back differently)
+template Cross size=152 players=4 underground 1bafc7e2f55ad212 (read back differently)
+template Cross size=152 players=4 islands 2368630868db0b9f (read back differently)
+template Cross size=228 players=2 3270e7513b67d090 (read back differently)
+template Cross size=228 players=3 f93464677d03b94c (read back differently)
+template Cross size=228 players=4 a041ceb440069102 (read back differently)
+template Cross size=304 players=2 6a968ecf4db13af2 (read back differently)
+template Cross size=304 players=3 6fe2b646e185f338 (read back differently)
+template Cross size=304 players=4 2e1d4c47fe6f3aa4 (read back differently)
+template Crown size=76 players=2 946400f47c47ca05 (read back differently)
+template Crown size=76 players=3 b9cd06a6cbf160ad (read back differently)
+template Crown size=76 players=4 071eb92568a5d114 (read back differently)
+template Crown size=152 players=2 dbc78e67a134d060 (read back differently)
+template Crown size=152 players=2 underground 20d12ba59135d938 (read back differently)
+template Crown size=152 players=2 islands 99c6945a6e7fc98e (read back differently)
+template Crown size=152 players=3 0332a5f4d13af847 (read back differently)
+template Crown size=152 players=3 underground 29ed8bd2df023bb7 (read back differently)
+template Crown size=152 players=3 islands 134cc7058f591fb0 (read back differently)
+template Crown size=152 players=4 ae4b656826d147c9 (read back differently)
+template Crown size=152 players=4 underground 9ee4007a10591468 (read back differently)
+template Crown size=152 players=4 islands e234abd3839af735 (read back differently)
+template Crown size=228 players=2 3c8f653157d68b49 (read back differently)
+template Crown size=228 players=3 0ca51753f01b16ec (read back differently)
+template Crown size=228 players=4 1246c4f43dd4dd76 (read back differently)
+template Crown size=304 players=2 3b99b8b2fb7d641c (read back differently)
+template Crown size=304 players=3 513c984773b21a29 (read back differently)
+template Crown size=304 players=4 2be40772b8209933 (read back differently)
+template Diamond size=76 players=2 78faf69f69ad96cf (read back differently)
+template Diamond size=76 players=3 bed336234b6cfc00 (read back differently)
+template Diamond size=76 players=4 3e3235a117541275 (read back differently)
+template Diamond size=152 players=2 b1637e1f1a655625 (read back differently)
+template Diamond size=152 players=2 underground 8885af53e681ed6e (read back differently)
+template Diamond size=152 players=2 islands b42f26f0e228e262 (read back differently)
+template Diamond size=152 players=3 e6fcc71c57149ad0 (read back differently)
+template Diamond size=152 players=3 underground 1c39155064380a19 (read back differently)
+template Diamond size=152 players=3 islands dbbb15cc8dfc75c8 (read back differently)
+template Diamond size=152 players=4 6a853afe49df5cd0 (read back differently)
+template Diamond size=152 players=4 underground f5dba8d6703f7893 (read back differently)
+template Diamond size=152 players=4 islands 738923f4d68e51a3 (read back differently)
+template Diamond size=228 players=2 bac9a8c1d90bc23e (read back differently)
+template Diamond size=228 players=3 9b37175c021a557e (read back differently)
+template Diamond size=228 players=4 ee14960bfa89c2b4 (read back differently)
+template Diamond size=304 players=2 9c1ca580d94257b4 (read back differently)
+template Diamond size=304 players=3 48c2aaa702a6f6cd (read back differently)
+template Diamond size=304 players=4 dc4bbb574538b5cb (read back differently)
+template Duel size=76 players=2 328d9c27df9201c0 (read back differently)
+template Duel size=152 players=2 88bc423ef336a687 (read back differently)
+template Duel size=152 players=2 underground 3e5e225022c49b07 (read back differently)
+template Duel size=152 players=2 islands 24d766ae287bac0a (read back differently)
+template Duel size=228 players=2 273ed9e23ce789e8 (read back differently)
+template Duel size=304 players=2 b9efba4dd406ef0b (read back differently)
+template Fortress size=76 players=2 704448439720f19c (read back differently)
+template Fortress size=76 players=3 74d68c88f63cf2b2 (read back differently)
+template Fortress size=152 players=2 6f82c91ea5acd698 (read back differently)
+template Fortress size=152 players=2 underground 9426f0975769e349 (read back differently)
+template Fortress size=152 players=2 islands 6459533954f70cc6 (read back differently)
+template Fortress size=152 players=3 4bbed00f7fd7c37e (read back differently)
+template Fortress size=152 players=3 underground bc2f9467d55e2953 (read back differently)
+template Fortress size=152 players=3 islands e16a16380381fc9e (read back differently)
+template Fortress size=152 players=4 e220c2432353b5e9 (read back differently)
+template Fortress size=152 players=4 underground abbba22bc704e51c (read back differently)
+template Fortress size=152 players=4 islands 12e7ffa031c3765c (read back differently)
+template Fortress size=152 players=6 2df8fc73d4e45cb9 (read back differently)
+template Fortress size=152 players=6 underground 7e14eff2d466d8f0 (read back differently)
+template Fortress size=152 players=6 islands 61b165a9ff5683cd (read back differently)
+template Fortress size=228 players=2 a67b413adc1506d1 (read back differently)
+template Fortress size=228 players=3 4bf542972adb74d7 (read back differently)
+template Fortress size=228 players=4 10e1b7da5fd81bcb (read back differently)
+template Fortress size=228 players=6 b7e3cf9cbbb69d7c (read back differently)
+template Fortress size=304 players=2 b9adbfacff39ed92 (read back differently)
+template Fortress size=304 players=3 4bff5a885d5d0094 (read back differently)
+template Fortress size=304 players=4 93c071f2d5e17aab (read back differently)
+template Fortress size=304 players=6 b2940984cc63929f (read back differently)
+template Frontier size=76 players=2 761c7137947daad4 (read back differently)
+template Frontier size=152 players=2 b5f4a3a746605dd0 (read back differently)
+template Frontier size=152 players=2 underground 797e07409abb6f59 (read back differently)
+template Frontier size=152 players=2 islands eb4954037b8cf5b2 (read back differently)
+template Frontier size=228 players=2 a37a00387ffa0b19 (read back differently)
+template Frontier size=304 players=2 d750ed23cee0a313 (read back differently)
+template Gauntlet size=76 players=2 0c8c6b1a20f7d85d (read back differently)
+template Gauntlet size=76 players=3 4c10ffb6b381ffda (read back differently)
+template Gauntlet size=76 players=4 f80ca258bc1ab6bd (read back differently)
+template Gauntlet size=76 players=6 187f7f240b2c81f7 (read back differently)
+template Gauntlet size=152 players=2 141aaf89161357e2 (read back differently)
+template Gauntlet size=152 players=2 underground a240497818f9c708 (read back differently)
+template Gauntlet size=152 players=2 islands d80ba084cd396427 (read back differently)
+template Gauntlet size=152 players=3 a07807e799c0c3e4 (read back differently)
+template Gauntlet size=152 players=3 underground 7b08d2d4fc7fbb66 (read back differently)
+template Gauntlet size=152 players=3 islands 82af52e6f038acd3 (read back differently)
+template Gauntlet size=152 players=4 1e3ffc8232ee815f (read back differently)
+template Gauntlet size=152 players=4 underground 7c5629c0dbf46bdc (read back differently)
+template Gauntlet size=152 players=4 islands 1f81302247cda3ef (read back differently)
+template Gauntlet size=152 players=6 88a5ad6a875149b9 (read back differently)
+template Gauntlet size=152 players=6 underground c465143422623ecf (read back differently)
+template Gauntlet size=152 players=6 islands d594c2e08ef01108 (read back differently)
+template Gauntlet size=228 players=2 caa360818ae462ec (read back differently)
+template Gauntlet size=228 players=3 c236f4619bd451fc (read back differently)
+template Gauntlet size=228 players=4 df26ebd162e7897c (read back differently)
+template Gauntlet size=228 players=6 66a279547f38e704 (read back differently)
+template Gauntlet size=304 players=2 5f63553d6997fb95 (read back differently)
+template Gauntlet size=304 players=3 56cb36701ec426fb (read back differently)
+template Gauntlet size=304 players=4 695db5e33c980bc1 (read back differently)
+template Gauntlet size=304 players=6 6dea8cde3daea707 (read back differently)
+template Horseshoe size=76 players=2 165f4af5f1d54bfa (read back differently)
+template Horseshoe size=152 players=2 5f40459edf2ba407 (read back differently)
+template Horseshoe size=152 players=2 underground 6bae6f034223d4f3 (read back differently)
+template Horseshoe size=152 players=2 islands 2b617afe93515333 (read back differently)
+template Horseshoe size=228 players=2 c1c4c8be552c2d84 (read back differently)
+template Horseshoe size=304 players=2 6d78b9dabb5e26fa (read back differently)
+template Hourglass size=76 players=2 5e637469c8f8eeea (read back differently)
+template Hourglass size=152 players=2 e2a7d921e7cd28de (read back differently)
+template Hourglass size=152 players=2 underground 2d2e8c5f992a1321 (read back differently)
+template Hourglass size=152 players=2 islands 0b02827cb50547b0 (read back differently)
+template Hourglass size=228 players=2 9a3406f047c0221b (read back differently)
+template Hourglass size=304 players=2 b9da074effe9e4ce (read back differently)
+template Hub size=76 players=2 3c31a21ae7ec35d4 (read back differently)
+template Hub size=76 players=3 55eb0a37583cdf2e (read back differently)
+template Hub size=76 players=4 c8e42cef77268e83 (read back differently)
+template Hub size=76 players=6 ea3386e2a70951f2 (read back differently)
+template Hub size=152 players=2 5f4a4272a843b5cf (read back differently)
+template Hub size=152 players=2 underground 3ca71b7f1b3fdd61 (read back differently)
+template Hub size=152 players=2 islands fa877af416464840 (read back differently)
+template Hub size=152 players=3 8bff2d36027ec289 (read back differently)
+template Hub size=152 players=3 underground 77dc5cfdd4b93831 (read back differently)
+template Hub size=152 players=3 islands 241ebe6539eb351b (read back differently)
+template Hub size=152 players=4 215113a48cb901d0 (read back differently)
+template Hub size=152 players=4 underground 1b46c05642e42ae6 (read back differently)
+template Hub size=152 players=4 islands d522a83b860552cf (read back differently)
+template Hub size=152 players=6 076b1c5b90d584dc (read back differently)
+template Hub size=152 players=6 underground 0b6e0569d41e25ef (read back differently)
+template Hub size=152 players=6 islands f3d9cc99f4b9fc31 (read back differently)
+template Hub size=228 players=2 623efae14502ef04 (read back differently)
+template Hub size=228 players=3 a776266d1fda8901 (read back differently)
+template Hub size=228 players=4 69e7932c0e8a64af (read back differently)
+template Hub size=228 players=6 94d79832387a0eca (read back differently)
+template Hub size=304 players=2 2856cd6507efdbd7 (read back differently)
+template Hub size=304 players=3 b97d4408b158b65c (read back differently)
+template Hub size=304 players=4 0f52800372be59ff (read back differently)
+template Hub size=304 players=6 61b778215cb84213 (read back differently)
+template Labyrinth size=76 players=2 6834d22527381b92 (read back differently)
+template Labyrinth size=152 players=2 c481235febb92bf3 (read back differently)
+template Labyrinth size=152 players=2 underground a809f51d1a86f164 (read back differently)
+template Labyrinth size=152 players=2 islands ff4817878fd89000 (read back differently)
+template Labyrinth size=228 players=2 23060b5a0362c5e1 (read back differently)
+template Labyrinth size=304 players=2 0b0dd619f8fd3743 (read back differently)
+template Ladder size=76 players=2 b2d504482f687e16 (read back differently)
+template Ladder size=152 players=2 bada2748820c0b6e (read back differently)
+template Ladder size=152 players=2 underground 53520c1fd495f7c0 (read back differently)
+template Ladder size=152 players=2 islands d849bf3a36404c62 (read back differently)
+template Ladder size=228 players=2 099dd5366e734887 (read back differently)
+template Ladder size=304 players=2 b27c2726604f2e7d (read back differently)
+template Mirror size=76 players=2 7566ce2fc0dbaeca (read back differently)
+template Mirror size=152 players=2 d6947d4aa1c45e72 (read back differently)
+template Mirror size=152 players=2 underground ffc84a012d341986 (read back differently)
+template Mirror size=152 players=2 islands 944fba644accc42d (read back differently)
+template Mirror size=228 players=2 f6eaefe2d6d5816e (read back differently)
+template Mirror size=304 players=2 499fe6d156de4cc1 (read back differently)
+template Pockets size=76 players=2 7987d450db3e3852 (read back differently)
+template Pockets size=76 players=3 b8fe2d2879d0a127 (read back differently)
+template Pockets size=152 players=2 8b1e442f8cb3df7e (read back differently)
+template Pockets size=152 players=2 underground f3a0306306655c3b (read back differently)
+template Pockets size=152 players=2 islands 69d54115c9f959f7 (read back differently)
+template Pockets size=152 players=3 5891b5997685499e (read back differently)
+template Pockets size=152 players=3 underground 2b33d160eadfc2b6 (read back differently)
+template Pockets size=152 players=3 islands b5fc35f3b58931b8 (read back differently)
+template Pockets size=152 players=4 112e7d63740c1d79 (read back differently)
+template Pockets size=152 players=4 underground 7235fc6550674c13 (read back differently)
+template Pockets size=152 players=4 islands c30bef24e2ed79d0 (read back differently)
+template Pockets size=152 players=6 cb8bb85d58ab333c (read back differently)
+template Pockets size=152 players=6 underground 3855ba0eaeaf3fbf (read back differently)
+template Pockets size=152 players=6 islands 0ba8e2d59008ff60 (read back differently)
+template Pockets size=228 players=2 37ac4b8d6870c145 (read back differently)
+template Pockets size=228 players=3 3430bfd7153bd9b6 (read back differently)
+template Pockets size=228 players=4 47ea0e32beae359b (read back differently)
+template Pockets size=228 players=6 827a9077c06df93f (read back differently)
+template Pockets size=304 players=2 e53a166abfd1400b (read back differently)
+template Pockets size=304 players=3 a0eb91a8cfcc3f9a (read back differently)
+template Pockets size=304 players=4 b38e45e92fb78b33 (read back differently)
+template Pockets size=304 players=6 2f812a369d35241c (read back differently)
+template Race size=76 players=2 c2bd36a738840644 (read back differently)
+template Race size=76 players=3 0453ce9a6e4890bb (read back differently)
+template Race size=76 players=4 8012cd69d73a586c (read back differently)
+template Race size=152 players=2 666720021e60ead3 (read back differently)
+template Race size=152 players=2 underground 47a4f0662b737e95 (read back differently)
+template Race size=152 players=2 islands 1159a250cfc157dd (read back differently)
+template Race size=152 players=3 efa258a8b5dcd4a7 (read back differently)
+template Race size=152 players=3 underground 562ef551cb06fbaa (read back differently)
+template Race size=152 players=3 islands 79f0fc64ab7dce78 (read back differently)
+template Race size=152 players=4 c2a250581e02947f (read back differently)
+template Race size=152 players=4 underground 847c3bc533af0889 (read back differently)
+template Race size=152 players=4 islands 5b5c5d710d04e59b (read back differently)
+template Race size=152 players=6 beb2884ee653ddc3 (read back differently)
+template Race size=152 players=6 underground 21cb25e3ac2e6c34 (read back differently)
+template Race size=152 players=6 islands 478dad84679a942d (read back differently)
+template Race size=228 players=2 13fc2d6037096f9b (read back differently)
+template Race size=228 players=3 93e980e36680811d (read back differently)
+template Race size=228 players=4 12c2f668911eb652 (read back differently)
+template Race size=228 players=6 1fb5b0b195297ffb (read back differently)
+template Race size=304 players=2 a33e50a800d430bf (read back differently)
+template Race size=304 players=3 7fd086e72737b0ba (read back differently)
+template Race size=304 players=4 93175de4aeb96e99 (read back differently)
+template Race size=304 players=6 4211e4c53aaa21a7 (read back differently)
+template Ring size=76 players=2 6c7ad844d5af75f8 (read back differently)
+template Ring size=76 players=3 18cfe9ae50ebef12 (read back differently)
+template Ring size=76 players=4 1164750b8d3afd75 (read back differently)
+template Ring size=76 players=6 ceff184c712eb88a (read back differently)
+template Ring size=152 players=2 6b31e830bc6dbf05 (read back differently)
+template Ring size=152 players=2 underground 820ab0684b96b791 (read back differently)
+template Ring size=152 players=2 islands 452c4d043af52078 (read back differently)
+template Ring size=152 players=3 77b7a7fdd8ace6a6 (read back differently)
+template Ring size=152 players=3 underground 5eac26420b134862 (read back differently)
+template Ring size=152 players=3 islands adccb945d99b1932 (read back differently)
+template Ring size=152 players=4 ace51af20277e7df (read back differently)
+template Ring size=152 players=4 underground b1cfca6882c0485c (read back differently)
+template Ring size=152 players=4 islands 1af6cb653aa77d2c (read back differently)
+template Ring size=152 players=6 bda60ec7db5647f7 (read back differently)
+template Ring size=152 players=6 underground 41911e0ee58dfbe4 (read back differently)
+template Ring size=152 players=6 islands 8562bc99c8fc65c2 (read back differently)
+template Ring size=228 players=2 ab4d3bdfbc447751 (read back differently)
+template Ring size=228 players=3 2272a7c4c407d417 (read back differently)
+template Ring size=228 players=4 5582de4e2e2b9aaf (read back differently)
+template Ring size=228 players=6 bc4f0c68c810d998 (read back differently)
+template Ring size=304 players=2 00fa5c9274247714 (read back differently)
+template Ring size=304 players=3 b0aab5d6c2db2d83 (read back differently)
+template Ring size=304 players=4 81c49456cb7bb73c (read back differently)
+template Ring size=304 players=6 161404a924dded10 (read back differently)
+template Spider size=76 players=2 be05b92db52edcb4 (read back differently)
+template Spider size=76 players=3 8207c2c77fa30d56 (read back differently)
+template Spider size=76 players=4 aeb4cf163ca99c44 (read back differently)
+template Spider size=152 players=2 e5cdff250cbb4456 (read back differently)
+template Spider size=152 players=2 underground 0453ff47d2f5d11e (read back differently)
+template Spider size=152 players=2 islands cdef0baae2f3431b (read back differently)
+template Spider size=152 players=3 5600d1ce27063170 (read back differently)
+template Spider size=152 players=3 underground be706ba6950bec1e (read back differently)
+template Spider size=152 players=3 islands 3f681c0cda45b191 (read back differently)
+template Spider size=152 players=4 50cf18c2db7472dd (read back differently)
+template Spider size=152 players=4 underground 1ca31064c08b194a (read back differently)
+template Spider size=152 players=4 islands a351c26f1fe83869 (read back differently)
+template Spider size=152 players=6 9968f8ff38e005dd (read back differently)
+template Spider size=152 players=6 underground b4634f8fd8550e2f (read back differently)
+template Spider size=152 players=6 islands 0f3dfeaeb2ba76a9 (read back differently)
+template Spider size=228 players=2 49c68b549d3e9dc2 (read back differently)
+template Spider size=228 players=3 e5e4a254461e61c7 (read back differently)
+template Spider size=228 players=4 b11cf0a3d5942cab (read back differently)
+template Spider size=228 players=6 4ab453e9856eb530 (read back differently)
+template Spider size=304 players=2 1e6199650c516d7f (read back differently)
+template Spider size=304 players=3 30d88b8dc561039e (read back differently)
+template Spider size=304 players=4 a0d46320cdd11068 (read back differently)
+template Spider size=304 players=6 86317c66f1cf10a6 (read back differently)
+template Spiral size=76 players=2 78e14ef5669dfcea (read back differently)
+template Spiral size=76 players=3 7e38326dfaf687d2 (read back differently)
+template Spiral size=76 players=4 179dbb930f3df8dc (read back differently)
+template Spiral size=152 players=2 6642f63caf28d245 (read back differently)
+template Spiral size=152 players=2 underground 1b941b70eaa5c8db (read back differently)
+template Spiral size=152 players=2 islands de6c7c4f007d5d4b (read back differently)
+template Spiral size=152 players=3 b6b4247b97ff4b08 (read back differently)
+template Spiral size=152 players=3 underground a5a9369cb63d716e (read back differently)
+template Spiral size=152 players=3 islands 8c4fa3bcc15120c8 (read back differently)
+template Spiral size=152 players=4 db375eddf04ba64b (read back differently)
+template Spiral size=152 players=4 underground 41679c55172970e2 (read back differently)
+template Spiral size=152 players=4 islands 3e0c87041a20ef60 (read back differently)
+template Spiral size=228 players=2 a7ca398d7258b853 (read back differently)
+template Spiral size=228 players=3 c871cfb279fff0f4 (read back differently)
+template Spiral size=228 players=4 1d9d6bddae8cff9d (read back differently)
+template Spiral size=304 players=2 967129b561f8aad6 (read back differently)
+template Spiral size=304 players=3 f932e0b09abaf886 (read back differently)
+template Spiral size=304 players=4 063b056c9a3435ac (read back differently)
+template Star size=76 players=3 32bad80b5f4fb471 (read back differently)
+template Star size=76 players=4 41e85734c86cf9e2 (read back differently)
+template Star size=76 players=6 36423346967a8955 (read back differently)
+template Star size=152 players=3 d9a93a2098405a0b (read back differently)
+template Star size=152 players=3 underground b56b255a066e49f1 (read back differently)
+template Star size=152 players=3 islands bc8369138cbfbcfb (read back differently)
+template Star size=152 players=4 56ce4302c4caeaf9 (read back differently)
+template Star size=152 players=4 underground a4ff14bc8ae22e55 (read back differently)
+template Star size=152 players=4 islands 3a7a4042648acaf9 (read back differently)
+template Star size=152 players=6 ad0523d99d86725d (read back differently)
+template Star size=152 players=6 underground c93619d68044fcdb (read back differently)
+template Star size=152 players=6 islands 8fda5eb875acda61 (read back differently)
+template Star size=228 players=3 7d29327011f3e384 (read back differently)
+template Star size=228 players=4 37239369def76bf3 (read back differently)
+template Star size=228 players=6 262eaad486827ebf (read back differently)
+template Star size=304 players=3 19de13f6771fa5d3 (read back differently)
+template Star size=304 players=4 5283538506a4d6b8 (read back differently)
+template Star size=304 players=6 66abf8fcbaf5db00 (read back differently)
+template Three on three size=76 players=6 9fd177ab8a9a983c (read back differently)
+template Three on three size=152 players=6 9560fbb05b37d59d (read back differently)
+template Three on three size=152 players=6 underground e690afb98330323c (read back differently)
+template Three on three size=152 players=6 islands 5e3cc5c9d8582b74 (read back differently)
+template Three on three size=228 players=6 6a86b97ddf7e4d1b (read back differently)
+template Three on three size=304 players=6 faa653c720fae12e (read back differently)
+template Treasury size=76 players=2 5674eb8e948ed0d8 (read back differently)
+template Treasury size=76 players=3 b97f4d2599e60e21 (read back differently)
+template Treasury size=76 players=4 95f959b7a4856208 (read back differently)
+template Treasury size=76 players=6 c0f2a8aaa5edb85b (read back differently)
+template Treasury size=152 players=2 574ec4ce7bf155d1 (read back differently)
+template Treasury size=152 players=2 underground 89f41e70de6c23e1 (read back differently)
+template Treasury size=152 players=2 islands 201c0179e974c8f6 (read back differently)
+template Treasury size=152 players=3 e1e8bd86e5f9abb8 (read back differently)
+template Treasury size=152 players=3 underground 21cb6a6031d89a2f (read back differently)
+template Treasury size=152 players=3 islands e2ccd8ff0b3d88c2 (read back differently)
+template Treasury size=152 players=4 ed10efb54df24f2a (read back differently)
+template Treasury size=152 players=4 underground 6027c5143bcb06dd (read back differently)
+template Treasury size=152 players=4 islands 75a7e8fa47573d66 (read back differently)
+template Treasury size=152 players=6 fe4ad722fd0f8457 (read back differently)
+template Treasury size=152 players=6 underground 0474c3f799444ac4 (read back differently)
+template Treasury size=152 players=6 islands 0357f817571a3429 (read back differently)
+template Treasury size=228 players=2 79189bcd5a644ae7 (read back differently)
+template Treasury size=228 players=3 5df9a1d202c72165 (read back differently)
+template Treasury size=228 players=4 1899853d37a0afec (read back differently)
+template Treasury size=228 players=6 4b0d827cb02492c1 (read back differently)
+template Treasury size=304 players=2 22399a793ceda72f (read back differently)
+template Treasury size=304 players=3 a85cea86756b2322 (read back differently)
+template Treasury size=304 players=4 bd95d5a7f2c2f90d (read back differently)
+template Treasury size=304 players=6 da59027d9e6c4666 (read back differently)
+template Triangle size=76 players=3 6051d3a2afc2c220 (read back differently)
+template Triangle size=152 players=3 7e496f3fc8950346 (read back differently)
+template Triangle size=152 players=3 underground a2350089fdcbe740 (read back differently)
+template Triangle size=152 players=3 islands e5d4d0129acde3dd (read back differently)
+template Triangle size=228 players=3 0a1b77cd3cf9f05d (read back differently)
+template Triangle size=304 players=3 22734488dfb3e3b5 (read back differently)
+template Twin rings size=76 players=2 0391b13b13fdaac6 (read back differently)
+template Twin rings size=152 players=2 3aba14c0e9047cf3 (read back differently)
+template Twin rings size=152 players=2 underground c0ed95f44f55e0fb (read back differently)
+template Twin rings size=152 players=2 islands ec02e2e4c593e46e (read back differently)
+template Twin rings size=228 players=2 51260a1ad648d1d0 (read back differently)
+template Twin rings size=304 players=2 2655f213ab7617c6 (read back differently)
+template Wheel size=76 players=2 0eb5367de8e0c54a (read back differently)
+template Wheel size=76 players=3 0a8f6153e5cd6043 (read back differently)
+template Wheel size=76 players=4 c1d862e4baa3a8f9 (read back differently)
+template Wheel size=152 players=2 ba9b0c09bafa4398 (read back differently)
+template Wheel size=152 players=2 underground f5830bd3d5f392be (read back differently)
+template Wheel size=152 players=2 islands 32e1ede595602a94 (read back differently)
+template Wheel size=152 players=3 5bb88d7add8e73fa (read back differently)
+template Wheel size=152 players=3 underground 91af10c193331d1d (read back differently)
+template Wheel size=152 players=3 islands 8d6b0863937c616e (read back differently)
+template Wheel size=152 players=4 0cbf2ef40cb54e74 (read back differently)
+template Wheel size=152 players=4 underground f45bf6f3d097f3d1 (read back differently)
+template Wheel size=152 players=4 islands 5da1b84d3f2bd2ec (read back differently)
+template Wheel size=152 players=6 19cc0d7c08c9f78f (read back differently)
+template Wheel size=152 players=6 underground 2bc12d836beae3e8 (read back differently)
+template Wheel size=152 players=6 islands 0d06e09901679ecd (read back differently)
+template Wheel size=228 players=2 8464f48428044c9f (read back differently)
+template Wheel size=228 players=3 fb3a214ce7803029 (read back differently)
+template Wheel size=228 players=4 26ff7797dc92f440 (read back differently)
+template Wheel size=228 players=6 151a7cad00b64d3d (read back differently)
+template Wheel size=304 players=2 921ea0e5ebcff60e (read back differently)
+template Wheel size=304 players=3 dd7958853888d1c0 (read back differently)
+template Wheel size=304 players=4 2c310c138b6b48d7 (read back differently)
+template Wheel size=304 players=6 3fdcb0b5bf39112f (read back differently)

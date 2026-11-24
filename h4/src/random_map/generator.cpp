@@ -242,7 +242,7 @@ uint16_t TypeId(std::string_view type, uint16_t fallback) {
       {"lighthouse", 38},     {"shipwreck_survivor", 80}, {"dolphin_school", 24},
       {"pathfinder", 54},     {"sphinx", 84},           {"cartographer", 14},
       {"blacksmith", 6},      {"tavern", 88},           {"teacher", 89},
-      {"random_staff", 68},   {"oyster", 51}};
+      {"random_staff", 68},   {"oyster", 51},           {"obelisk", 47}};
   auto it = kIds.find(type);
   return it == kIds.end() ? fallback : it->second;
 }
@@ -341,9 +341,11 @@ class Generator {
     std::vector<std::string> problems = Check();
     if (!problems.empty()) return problems;
 
+    // every player may be a human's (the game's new game window sets who is, as on its own
+    // multiplayer maps); the setup's humans and computers are in the description (map_settings)
     std::vector<PlayerSlot> slots;
     for (const PlayerSetup& p : setup_.players)
-      slots.push_back({p.human, uint8_t(p.faction >= 0 ? 1 << p.faction : 0x3F)});
+      slots.push_back({true, uint8_t(p.faction >= 0 ? 1 << p.faction : 0x3F)});
     ScenarioRules rules;
     rules.size = uint16_t(size_);
     rules.levels = uint8_t(levels_);
@@ -436,6 +438,7 @@ class Generator {
   std::vector<int> shipyards_;  // their objects
   std::vector<uint8_t> decor_;  // cells under a passable decoration
   std::vector<uint8_t> view_;   // in front of a town (MarkTownViews): no trees there
+  std::vector<uint8_t> path_side_;  // along the paths (MarkPathSides): no forest, no obstacle
   std::array<std::vector<uint16_t>, 12> obelisk_rewards_;  // by the obelisks' colour
   std::vector<uint8_t> sea_zone_;   // islands: a zone of the surface all sea, with islets
   std::set<int> sea_links_;         // normal water: zones linked by sea (a shipyard each)
@@ -1334,7 +1337,8 @@ class Generator {
         rec.name = choice->name;
         rec.biography = choice->biography;
       }
-      rec.army = StartArmy(faction);
+      // no army: the game gives the starting hero a week's growth of the town's level 1
+      // creatures (hero_card.h's HeroArt::Army)
       Object o;
       o.r = R(hero);
       o.c = C(hero);
@@ -1649,6 +1653,8 @@ class Generator {
   // -- islands
 
   // The surface's zones made islands: their borders (and the map's edge) the sea, a little wider.
+  static constexpr int kSeaRoom = 300;  // MakeSea: a smallest island's cells per pass of more sea
+
   void MakeSea() {
     std::vector<int> sea;
     for (int cell : cells_)
@@ -1659,28 +1665,39 @@ class Generator {
       const int d = std::min({r, size_ - 1 - r, c - first_[r], end_[r] - 1 - c});
       if (d < (size_ > 76 ? 3 : 2)) sea.push_back(cell);
     }
-    // some neutral zones all sea: open water with islets (one in five, none on small maps)
+    // some neutral zones all sea: open water with islets (one in five, none on small maps; on the
+    // classic extra large ones one in five to one in three, by the seed: a template's zones are its
+    // author's, and the large maps' start islands would be left too small)
     sea_zone_.assign(size_t(zones()), 0);
     std::vector<int> neutral;
     for (int z = 0; z < zones(); ++z)
       if (ZoneLevel(z) == 0 && !start_[z]) neutral.push_back(z);
     rng_.Shuffle(neutral);
-    const size_t open_seas = size_ > 76 ? (neutral.size() + 2) / 5 : 0;
+    // (the widths' draws: their own sequence, the rest of the map as before)
+    Rng wide(seed_ ^ 0x736561u);
+    const double open_share = size_ >= 228 && !tpl_ ? 0.2 + 0.13 * wide.Real() : 0.2;
+    const size_t open_seas = size_ > 76 ? size_t(double(neutral.size()) * open_share + 0.4) : 0;
     for (size_t i = 0; i < open_seas && i < neutral.size(); ++i) sea_zone_[size_t(neutral[i])] = 1;
     for (int cell : cells_)
       if (L(cell) == 0 && sea_zone_[size_t(zone_[cell])]) sea.push_back(cell);
     for (int cell : sea) ground_[cell] = WATER;
-    // wider, ragged (less on the smaller maps: their zones are small)
-    int passes = size_ >= 228 ? 6 : size_ >= 152 ? 4 : players_ > 4 ? 0 : players_ > 2 ? 1 : 2;
-    if (tpl_) {  // a template's small zones: a narrower sea (room on each island for its shipyard)
+    // wider, ragged (less on the smaller maps: their zones are small; on the large and extra large
+    // ones up to 3 or 4 cells more, by the seed, where the smallest island keeps room for a town)
+    const int base = size_ >= 228 ? 6 : size_ >= 152 ? 4 : players_ > 4 ? 0 : players_ > 2 ? 1 : 2;
+    const int extra = size_ >= 228 ? int(wide.Below(5)) : size_ >= 152 ? int(wide.Below(4)) : 0;
+    int least = 1 << 30;  // the smallest land zone's cells
+    {
       std::vector<int> area(static_cast<size_t>(zones()));
       for (int cell : cells_)
         if (L(cell) == 0) ++area[size_t(zone_[cell])];
-      int least = 1 << 30;
       for (int z = 0; z < zones(); ++z)
-        if (ZoneLevel(z) == 0) least = std::min(least, area[size_t(z)]);
-      passes = std::clamp(least / 150, 0, passes);
+        if (ZoneLevel(z) == 0 && !sea_zone_[size_t(z)]) least = std::min(least, area[size_t(z)]);
     }
+    int passes = base;
+    if (tpl_)  // a template's small zones: a narrower sea (room on each island for its shipyard)
+      passes = std::clamp(least / 150, 0, base);
+    else
+      passes = std::max(base, std::min(base + extra, least / kSeaRoom));
     for (int pass = 0; pass < passes; ++pass) {
       std::vector<int> grow;
       for (int cell : cells_) {
@@ -2158,17 +2175,30 @@ class Generator {
     ground_[cell] = t == VOLCANIC ? LAVA_RIVER : t == SNOW ? ICE_RIVER : RIVER;
   }
 
-  // forests: clumps on the open ground (as the caves' rock: random, then smoothed),
-  // trees where the zone's land has them.
+  // The ground along the paths, kept clear: a cell to each side, and the two in front of it on the
+  // screen (below it: a tree there stands up over the path and hides it). Not the zones' borders:
+  // they stay closed (only the open ground's forests and obstacles keep off it).
+  void MarkPathSides() {
+    path_side_.assign(zone_.size(), 0);
+    for (int cell : cells_)
+      if (state_[cell] == RES)
+        for (int dr = -1; dr <= 2; ++dr)
+          for (int dc = -1; dc <= 2; ++dc)
+            if (const int nb = Nb(cell, dr, dc); nb >= 0) path_side_[nb] = 1;
+  }
+
+  // forests: clumps on the open ground (as the caves' rock: random, then smoothed; 38% of it at
+  // first: fewer long walls of trees), trees where the zone's land has them; none along the paths.
   void FillForests() {
     MarkShore();
+    MarkPathSides();
     for (int z = 0; z < zones(); ++z) {
       if (ZoneLevel(z) != 0 || SeaZone(z)) continue;
       std::vector<int> free;
       for (int cell : zone_cells_[z])
         if (state_[cell] == FREE) free.push_back(cell);
       std::vector<uint8_t> want(free.size());
-      for (auto& w : want) w = rng_.Real() < 0.45;
+      for (auto& w : want) w = rng_.Real() < 0.38;
       std::map<int, size_t> index;
       for (size_t i = 0; i < free.size(); ++i) index[free[i]] = i;
       for (int pass = 0; pass < 4; ++pass) {
@@ -2187,7 +2217,7 @@ class Generator {
       }
       std::vector<int> forest;
       for (size_t i = 0; i < free.size(); ++i)
-        if (want[i] && !shore_[free[i]] && !view_[free[i]]) {
+        if (want[i] && !shore_[free[i]] && !view_[free[i]] && !path_side_[free[i]]) {
           state_[free[i]] = WALL;
           forest.push_back(free[i]);
         }
@@ -2256,6 +2286,7 @@ class Generator {
           const int nb = At(r0 + x, c0 + y, lv);
           fits = nb >= 0 && zone_[nb] == z && state_[nb] == allowed &&
                  !(allowed == FREE && !shore_.empty() && shore_[nb]) &&
+                 !(allowed == FREE && !path_side_.empty() && path_side_[nb]) &&
                  !(spare_view && !view_.empty() && view_[nb] && (allowed == FREE || TreeLike(fp.model)));
         }
       if (!fits) continue;
@@ -2394,7 +2425,8 @@ class Generator {
         const auto& d = kDir4[rng_.Below(4)];
         const int len = 2 + int(rng_.Below(3));
         std::vector<int> line;
-        for (int i = 0; i < len && cell >= 0 && state_[cell] == FREE && zone_[cell] == z && !shore_[cell]; ++i) {
+        for (int i = 0; i < len && cell >= 0 && state_[cell] == FREE && zone_[cell] == z && !shore_[cell] &&
+                         !path_side_[cell]; ++i) {
           line.push_back(cell);
           cell = Nb(cell, d[0], d[1]);
         }
