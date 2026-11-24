@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "language.h"
+#include "filter_notice.h"
 #include "gamepad_help.h"
 #include "intro.h"
 #include "menu_button.h"
@@ -192,8 +193,17 @@ void SetMenu(UIButton* b) {
                                     handler:^(UIAction*) {
                                       Alert(Str(h4::GamepadHelpTitle(Uk())), Str(h4::GamepadHelp(Uk())), @[]);
                                     }];
+  // The scaling filter (F10 with a keyboard): each tap the next one, shown over the game.
+  UIAction* scaling = [UIAction actionWithTitle:Str(h4::FilterLabel(Uk()))
+                                          image:[UIImage systemImageNamed:@"aspectratio"]
+                                     identifier:nil
+                                        handler:^(UIAction*) {
+                                          h4::NextFilter();
+                                          SetMenu(b);
+                                        }];
   NSMutableArray<UIMenuElement*>* items = [NSMutableArray array];
   [items addObject:sides];
+  [items addObject:scaling];
   UIAction* upd = [UIAction actionWithTitle:Uk() ? @"Перевірити оновлення" : @"Check for updates"
                                       image:[UIImage systemImageNamed:@"arrow.down.circle"]
                                  identifier:nil

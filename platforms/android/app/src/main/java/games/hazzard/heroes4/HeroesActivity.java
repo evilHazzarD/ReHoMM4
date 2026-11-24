@@ -302,6 +302,8 @@ public class HeroesActivity extends SDLActivity {
     }
 
     private static native String h4GameFolder();  // menu_button_android.cpp
+    private static native String h4FilterLabel(boolean uk);  // the scaling filter (F10's)
+    private static native void h4NextFilter();
 
     // A folder in the settings: its title (bold) with Open at the right (open: null, no button),
     // the path under them (small, selectable).
@@ -548,6 +550,17 @@ public class HeroesActivity extends SDLActivity {
                 }
             });
             box.addView(ci);
+        }
+        try {  // the scaling filter: each tap the next one (shown over the game behind the dialog)
+            final android.widget.Button scaling = new android.widget.Button(a);
+            scaling.setAllCaps(false);
+            scaling.setText(h4FilterLabel(uk));
+            scaling.setOnClickListener(v -> {
+                h4NextFilter();
+                scaling.setText(h4FilterLabel(uk));
+            });
+            box.addView(scaling);
+        } catch (UnsatisfiedLinkError e) {
         }
         if (sidePanelsPath != null && !sidePanelsPath.isEmpty()) {
             android.widget.CheckBox sides = new android.widget.CheckBox(a);

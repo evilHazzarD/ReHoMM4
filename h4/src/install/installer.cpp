@@ -9,7 +9,11 @@
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
 #endif
-static int setenv(const char* name, const char* value, int) { return _putenv_s(name, value); }
+// POSIX's: an existing variable kept unless `overwrite`.
+static int setenv(const char* name, const char* value, int overwrite) {
+  if (!overwrite && std::getenv(name)) return 0;
+  return _putenv_s(name, value);
+}
 #endif
 #if defined(__APPLE__)
 #include <copyfile.h>

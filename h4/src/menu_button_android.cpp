@@ -10,6 +10,7 @@
 #include <string>
 
 #include "language.h"
+#include "filter_notice.h"
 #include "intro.h"
 #include "menu_button.h"
 #include "pad_config.h"
@@ -156,19 +157,28 @@ extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h
   return env->NewStringUTF(s.c_str());
 }
 
+// The scaling filter's line in the settings ("Масштабування: FSR"), and the next filter (F10's).
+extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4FilterLabel(JNIEnv* env, jclass,
+                                                                                           jboolean uk) {
+  return env->NewStringUTF(h4::FilterLabel(uk).c_str());
+}
+extern "C" JNIEXPORT void JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4NextFilter(JNIEnv*, jclass) {
+  h4::NextFilter();
+}
+
 // The game's folder (GameFolder, main.cpp), shown in the settings; "" before it is found.
 extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4GameFolder(JNIEnv* env, jclass) {
   return env->NewStringUTF(h4::GameFolder().c_str());
 }
 
-// key: "enabled" (value 0 or 1), "pointer", "scroll", "preset" (its index), "reset", or "button<i>"
-// (value: the action's index).
+// key: "pointer", "scroll", "preset" (its index), "reset", or "button<i>" (value: the action's index).
+// (ba1f46f dropped the "enabled" key's line and left the rest hanging on `if (k)`'s else: none applied.)
 extern "C" JNIEXPORT void JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4PadSet(JNIEnv* env, jclass, jstring key,
                                                                                     jfloat value) {
   const char* k = env->GetStringUTFChars(key, nullptr);
   const std::string name = k ? k : "";
   if (k) env->ReleaseStringUTFChars(key, k);
-  else if (name == "pointer") h4::SetPadPointerSpeed(value);
+  if (name == "pointer") h4::SetPadPointerSpeed(value);
   else if (name == "scroll") h4::SetPadScrollSpeed(value);
   else if (name == "preset") h4::ApplyPadPreset(int(value));
   else if (name == "reset") h4::ResetPadConfig();

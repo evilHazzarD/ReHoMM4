@@ -273,7 +273,8 @@ stopped. What happens to the installer files afterwards: see below.
 The ⚙ button in the top right corner of the main menu opens the settings: the version and the
 update check at the top, the game's language (a dropdown; a translation is downloaded when it is
 first chosen, and the game restarts with it on Android, the Mac and Linux, at the next start
-elsewhere), fullscreen (Mac, Linux), skipping the intro movies, save sync (? tells how to set it up
+elsewhere), fullscreen (Mac, Linux), the picture scaling (iPhone, iPad, Android: see
+[Controls](#picture-scaling)), skipping the intro movies, save sync (? tells how to set it up
 on Android and Linux), the gamepad, and the game's and saves' folders. On iPhone and iPad ⚙ opens a
 menu with the same choices.
 
@@ -342,11 +343,35 @@ game files): change them or add your own; `example.txt` explains the format.
 ## Controls
 
 As in the original game; on touch screens a tap is a click and a long press a right-click. In
-addition, **F10** switches the picture smoothing filter. A gamepad works everywhere (Joy-Cons,
+addition, **F10** switches the picture scaling (below). A gamepad works everywhere (Joy-Cons,
 Steam Deck, Xbox, PlayStation, MFi): left stick the pointer, **A** click, **B** right-click, right
 stick scrolls the map, the other buttons are the game's shortcuts (**X** spell, **Y** wait,
 **R** defend/dig, **L** next hero, **+** end turn, **−** save…). All the gestures and buttons:
 [`platforms/README.md`](platforms/README.md#controls).
+
+### Picture scaling
+
+The game draws its picture at its own resolution; it is stretched to the screen by one of these
+filters. **F10** picks the next one; on iPhone, iPad and Android, where there is no F10, it is
+**⚙ → Scaling** (each tap the next one). The filter chosen is shown for two seconds at the top of
+the screen with its number ("Scaling 7/7: FSR"; after 7 comes 1 again). It is remembered: the game
+starts with it next time (it is kept in the file `filter` in the player folder, see
+[If something goes wrong](#if-something-goes-wrong)).
+
+| № | Filter | Looks |
+|---|---|---|
+| 1 | Nearest | sharp square pixels |
+| 2 | Bilinear | soft, a little blurred; the cheapest |
+| 3 | Sharp bilinear | crisp pixels, smoothed only at their edges |
+| 4 | Bicubic | softer than nearest, sharper than bilinear |
+| 5 | Lanczos | very sharp; light halos at contrasting edges |
+| 6 | Sharp bicubic | bicubic with extra sharpening |
+| 7 | **FSR** (the default) | AMD FidelityFX Super Resolution 1.0: the sharpest; two passes, the most work for the GPU |
+
+On a laptop on battery, Bilinear saves the most. The Switch and the browser version draw the picture
+without the GPU and have one filter, so F10 does nothing there. Start the game with the environment
+variable `H4_FILTER=<name>` (`nearest`, `bilinear`, `sharp`, `bicubic`, `lanczos`, `bicubic-sharp`,
+`fsr`) to set it regardless of what was chosen.
 
 ## Saves on several devices
 
@@ -752,7 +777,8 @@ iOS / iPadOS 18.2+; на Android — Chrome), ~3 ГБ вільної пам'ят
 Кнопка ⚙ у правому верхньому куті головного меню відкриває налаштування: угорі версію й перевірку
 оновлень, мову гри (випадний список; переклад завантажується, коли його обрано вперше, і гра
 перезапускається з ним на Android, Маку й Linux, деінде — з наступного запуску), повноекранний режим
-(Мак, Linux), пропуск вступних відео, синхронізацію збережень («?» пояснює, як її налаштувати, на
+(Мак, Linux), масштабування картинки (iPhone, iPad, Android: див.
+[Масштабування картинки](#масштабування-картинки)), пропуск вступних відео, синхронізацію збережень («?» пояснює, як її налаштувати, на
 Android і Linux), геймпад, теки гри й збережень. На iPhone і iPad ⚙ відкриває меню з тими самими
 пунктами.
 
@@ -822,11 +848,34 @@ Linux — `~/.local/share/ReHoMM4` (файли гри й збереження).
 ### Керування
 
 Як в оригінальній грі; на сенсорних екранах дотик — це клік, довге натискання — правий клік.
-Додатково: **F10** перемикає фільтр згладжування картинки. Геймпад працює всюди (Joy-Con, Steam
+Додатково: **F10** перемикає масштабування картинки (нижче). Геймпад працює всюди (Joy-Con, Steam
 Deck, Xbox, PlayStation, MFi): лівий стік — курсор, **A** — клік, **B** — правий клік, правий стік
 прокручує мапу, решта кнопок — гарячі клавіші гри (**X** — магія, **Y** — чекати, **R** —
 захист/копати, **L** — наступний герой, **+** — кінець ходу, **−** — збереження…). Усі жести й
 кнопки: [`platforms/README.md`](platforms/README.md#controls).
+
+### Масштабування картинки
+
+Гра малює картинку у власній роздільності, а на екран її розтягує один із цих фільтрів. **F10**
+вмикає наступний; на iPhone, iPad і Android, де F10 немає, — **⚙ → «Масштабування»** (кожен дотик —
+наступний фільтр). Обраний фільтр дві секунди показано вгорі екрана разом із номером
+(«Масштабування 7/7: FSR»; після 7 знову 1). Вибір запам'ятовується: наступного разу гра стартує з
+ним (він у файлі `filter` у теці гравця, див. [Якщо щось пішло не так](#якщо-щось-пішло-не-так)).
+
+| № | Фільтр | Як виглядає |
+|---|---|---|
+| 1 | Без згладжування | чіткі квадратні пікселі |
+| 2 | Білінійне | м'яко, трохи розмито; найдешевше |
+| 3 | Чітке білінійне | чіткі пікселі, згладжені лише на краях |
+| 4 | Бікубічне | м'якше, ніж без згладжування, чіткіше за білінійне |
+| 5 | Ланцош | дуже чітко; легкі ореоли на контрастних краях |
+| 6 | Чітке бікубічне | бікубічне з додатковою різкістю |
+| 7 | **FSR** (типово) | AMD FidelityFX Super Resolution 1.0: найчіткіше; два проходи, найбільше роботи для відеокарти |
+
+Ноутбуку від батареї найбільше збереже «Білінійне». Switch і версія для браузера малюють картинку без
+відеокарти й мають один фільтр, тож F10 там нічого не робить. Змінна середовища
+`H4_FILTER=<назва>` (`nearest`, `bilinear`, `sharp`, `bicubic`, `lanczos`, `bicubic-sharp`, `fsr`)
+задає фільтр незалежно від обраного.
 
 ### Збереження на кількох пристроях
 

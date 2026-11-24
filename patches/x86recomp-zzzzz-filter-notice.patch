@@ -1,0 +1,248 @@
+diff -ru a/src/runtime/gfx/device.cpp b/src/runtime/gfx/device.cpp
+--- a/src/runtime/gfx/device.cpp	2026-11-24 00:58:47
++++ b/src/runtime/gfx/device.cpp	2026-11-24 05:04:05
+@@ -1,6 +1,7 @@
+ // Backend selection and presentation geometry for gfx::Device.
+ 
+ #include <algorithm>
++#include <atomic>
+ #include <cmath>
+ #include "runtime/gfx/device.h"
+ 
+@@ -95,7 +96,7 @@
+   return m;
+ }
+ PresentPicture* Pictures() {
+-  static PresentPicture p[2];
++  static PresentPicture p[3];
+   return p;
+ }
+ }  // namespace present_state
+@@ -107,12 +108,13 @@
+ }
+ 
+ namespace {
+-void SetPicture(int i, const uint32_t* argb, int w, int h) {
++void SetPicture(int i, const uint32_t* argb, int w, int h, float density = 1.0f) {
+   std::lock_guard<std::mutex> l(present_state::PictureMutex());
+   present_state::PresentPicture& p = present_state::Pictures()[i];
+   p.image.assign(argb, argb + size_t(w > 0 ? w : 0) * size_t(h > 0 ? h : 0));
+   p.iw = w;
+   p.ih = h;
++  p.density = density > 0.0f ? density : 1.0f;
+   p.gen++;
+ }
+ void SetPicturePos(int i, int x, int y, bool shown) {
+@@ -127,7 +129,24 @@
+ void SetPresentCursor(const uint32_t* argb, int w, int h) { SetPicture(0, argb, w, h); }
+ void SetPresentCursorPos(int x, int y, bool shown) { SetPicturePos(0, x, y, shown); }
+ void SetPresentBadge(const uint32_t* argb, int w, int h) { SetPicture(1, argb, w, h); }
++void SetPresentBadgeDense(const uint32_t* argb, int w, int h, float density) {
++  SetPicture(1, argb, w, h, density);
++}
+ void SetPresentBadgePos(int x, int y, bool shown) { SetPicturePos(1, x, y, shown); }
++void SetPresentNotice(const uint32_t* argb, int w, int h) { SetPicture(2, argb, w, h); }
++void SetPresentNoticeDense(const uint32_t* argb, int w, int h, float density) {
++  SetPicture(2, argb, w, h, density);
++}
++void SetPresentNoticePos(int x, int y, bool shown) { SetPicturePos(2, x, y, shown); }
++
++namespace {
++std::atomic<PresentFilterHook> g_filter_hook{nullptr};
++std::atomic<bool> g_next_filter{false};
++}  // namespace
++void RequestNextPresentFilter() { g_next_filter = true; }
++bool TakeNextPresentFilterRequest() { return g_next_filter.exchange(false); }
++void SetPresentFilterHook(PresentFilterHook hook) { g_filter_hook = hook; }
++PresentFilterHook GetPresentFilterHook() { return g_filter_hook; }
+ 
+ Presentation LastPresentation() {
+   std::lock_guard<std::mutex> l(g_present_mu);
+diff -ru a/src/runtime/gfx/device.h b/src/runtime/gfx/device.h
+--- a/src/runtime/gfx/device.h	2026-11-24 00:58:47
++++ b/src/runtime/gfx/device.h	2026-11-24 05:04:05
+@@ -77,7 +77,23 @@
+ // 0x80 transparent, at its top-left corner in the frame): the app's own
+ // controls drawn over the game (a button, a note).
+ void SetPresentBadge(const uint32_t* argb, int w, int h);
++// The same drawn finer than the frame: `density` of its pixels to a frame pixel (2: w x h covers
++// w/2 x h/2 of the frame), so text in it stays sharp where the frame is scaled up.
++void SetPresentBadgeDense(const uint32_t* argb, int w, int h, float density);
+ void SetPresentBadgePos(int x, int y, bool shown);
++// A third one over the badge and under the pointer, for the app's short
++// notices (which filter F10 chose): the same rules.
++void SetPresentNotice(const uint32_t* argb, int w, int h);
++void SetPresentNoticeDense(const uint32_t* argb, int w, int h, float density);
++void SetPresentNoticePos(int x, int y, bool shown);
++// Called (on the presenting thread) with the filter's name (SetPresentFilter's
++// names) whenever F10 has chosen another; null: none.
++using PresentFilterHook = void (*)(const char* name);
++void SetPresentFilterHook(PresentFilterHook hook);
++PresentFilterHook GetPresentFilterHook();
++// Asks for the next filter, as F10 does (any thread; at the next frame shown, the hook told).
++void RequestNextPresentFilter();
++bool TakeNextPresentFilterRequest();  // (the backends)
+ void EncodePixel(uint8_t* p, Format f, uint32_t argb);
+ // Raw pixel value (as stored) for colour keys and fills.
+ uint32_t RawPixel(const uint8_t* p, Format f);
+@@ -349,12 +365,13 @@
+ struct PresentPicture {
+   std::vector<uint32_t> image;  // ARGB, iw x ih
+   int iw = 0, ih = 0;
++  float density = 1.0f;  // its pixels to a frame pixel (SetPresentBadgeDense)
+   uint64_t gen = 0;  // bumped when the picture changes
+   int x = 0, y = 0;
+   bool shown = false;
+ };
+ std::mutex& PictureMutex();
+-PresentPicture* Pictures();  // [0] the pointer, [1] the badge
++PresentPicture* Pictures();  // [0] the pointer, [1] the badge, [2] the notice
+ }  // namespace present_state
+ 
+ // Backends call this when they show the front buffer.
+diff -ru a/src/runtime/gfx/gpu_device.cpp b/src/runtime/gfx/gpu_device.cpp
+--- a/src/runtime/gfx/gpu_device.cpp	2026-11-24 00:58:47
++++ b/src/runtime/gfx/gpu_device.cpp	2026-11-24 05:04:05
+@@ -380,21 +380,24 @@
+ // under the pointer.
+ using present_state::PresentPicture;
+ std::mutex& g_cursor_mu = present_state::PictureMutex();
+-PresentPicture* const g_pics = present_state::Pictures();  // [0] the pointer, [1] the badge
++PresentPicture* const g_pics = present_state::Pictures();  // [0] the pointer, [1] the badge, [2] the notice
+ 
+-// The pointer: its picture as it is, the transparent pixels dropped.
++// The pointer: its picture as it is, the transparent pixels dropped. The badge and the notice
++// the same, but sampled smoothly (text in them is not left blocky when the frame is scaled up)
++// from premultiplied texels (opts.x 1): the colour divided back by the alpha, so the transparent
++// pixels around them do not darken their edges.
+ constexpr const char* kCursorFrag = R"(#version 450
+ layout(location = 0) in vec2 uv;
+ layout(location = 0) out vec4 frag;
+ layout(set = 2, binding = 0) uniform sampler2D img;
+ layout(std140, set = 3, binding = 0) uniform Params {
+-  vec4 unused;
++  vec4 opts;
+ };
+ 
+ void main() {
+   vec4 c = texture(img, uv);
+   if (c.a < 0.5) discard;
+-  frag = vec4(c.rgb, 1.0);
++  frag = vec4(opts.x > 0.5 ? c.rgb / c.a : c.rgb, 1.0);
+ }
+ )";
+ 
+@@ -2312,13 +2315,14 @@
+           name);
+   }
+ 
+-  // F10: the next filter.
++  // F10 (or RequestNextPresentFilter): the next filter.
+   void PollFilterKey() {
+     const bool* keys = SDL_GetKeyboardState(nullptr);
+     const bool down = keys && keys[SDL_SCANCODE_F10];
+-    if (down && !filter_key_down_) {
++    if ((down && !filter_key_down_) | TakeNextPresentFilterRequest()) {
+       filter_ = (filter_ + 1) % kFilterCount;
+       WarnF("gfx: filter %s\n", kFilterNames[filter_]);
++      if (PresentFilterHook hook = GetPresentFilterHook()) hook(kFilterNames[filter_]);
+     }
+     filter_key_down_ = down;
+   }
+@@ -2755,18 +2759,28 @@
+   // before the Flush that precedes a present, like the overlays.
+   void SyncCursor() {
+     std::lock_guard<std::mutex> cl(g_cursor_mu);
+-    for (int i = 0; i < 2; i++) {
++    for (int i = 0; i < 3; i++) {
+       const PresentPicture& g = g_pics[i];
+       if (cursor_gen_[i] == g.gen) continue;
+       cursor_gen_[i] = g.gen;
+       if (cursor_tex_[i]) DestroyTexture(cursor_tex_[i]);
+       cursor_tex_[i] = 0;
+-      cursor_iw_[i] = g.iw;
+-      cursor_ih_[i] = g.ih;
++      cursor_iw_[i] = int(float(g.iw) / g.density + 0.5f);  // (in frame pixels)
++      cursor_ih_[i] = int(float(g.ih) / g.density + 0.5f);
+       if (g.iw <= 0 || g.ih <= 0 || g.image.size() < size_t(g.iw) * g.ih) continue;
+       cursor_tex_[i] = CreateTexture(g.iw, g.ih, 1, Format::A8R8G8B8, false);
+-      if (cursor_tex_[i])
++      if (!cursor_tex_[i]) continue;
++      if (i == 0) {
+         UpdateTexture(cursor_tex_[i], 0, Rect{0, 0, g.iw, g.ih}, g.image.data(), uint32_t(g.iw) * 4);
++        continue;
++      }
++      std::vector<uint32_t> pm(g.image.begin(), g.image.begin() + size_t(g.iw) * size_t(g.ih));
++      for (uint32_t& v : pm) {  // premultiplied (kCursorFrag)
++        const uint32_t a = v >> 24;
++        auto ch = [&](int s) { return (((v >> s) & 0xFFu) * a + 127u) / 255u << s; };
++        v = (a << 24) | ch(16) | ch(8) | ch(0);
++      }
++      UpdateTexture(cursor_tex_[i], 0, Rect{0, 0, g.iw, g.ih}, pm.data(), uint32_t(g.iw) * 4);
+     }
+   }
+ 
+@@ -2776,6 +2790,7 @@
+   // the pointer is left out where it would reach past the output (sw x sh).
+   void DrawCursor(SDL_GPUCommandBuffer* cmd, SDL_GPUTexture* sc, const RectF& zr, int sw, int sh) {
+     DrawPicture(1, cmd, sc, zr, sw, sh);  // the badge, under
++    DrawPicture(2, cmd, sc, zr, sw, sh);  // the notice, over it
+     DrawPicture(0, cmd, sc, zr, sw, sh);
+   }
+   void DrawPicture(int i, SDL_GPUCommandBuffer* cmd, SDL_GPUTexture* sc, const RectF& zr, int sw, int sh) {
+@@ -2800,10 +2815,10 @@
+       return;
+     }
+     SDL_SetGPUViewport(rp, &vp);
+-    SDL_GPUTextureSamplerBinding b{textures_[cursor_tex_[i]].tex, cursor_sampler_};
++    SDL_GPUTextureSamplerBinding b{textures_[cursor_tex_[i]].tex, i == 0 ? cursor_sampler_ : picture_sampler_};
+     SDL_BindGPUFragmentSamplers(rp, 0, &b, 1);
+-    const float unused[4] = {};
+-    SDL_PushGPUFragmentUniformData(cmd, 0, unused, sizeof unused);
++    const float opts[4] = {i == 0 ? 0.0f : 1.0f, 0.0f, 0.0f, 0.0f};
++    SDL_PushGPUFragmentUniformData(cmd, 0, opts, sizeof opts);
+     SDL_DrawGPUPrimitives(rp, 3, 1, 0, 0);
+     SDL_EndGPURenderPass(rp);
+   }
+@@ -2821,6 +2836,8 @@
+       si.address_mode_u = si.address_mode_v = si.address_mode_w =
+           SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+       cursor_sampler_ = SDL_CreateGPUSampler(dev_, &si);
++      si.min_filter = si.mag_filter = SDL_GPU_FILTER_LINEAR;
++      picture_sampler_ = SDL_CreateGPUSampler(dev_, &si);
+     }
+     if (cursor_pipe_) SDL_ReleaseGPUGraphicsPipeline(dev_, cursor_pipe_);
+     SDL_GPUColorTargetDescription ct{};
+@@ -3544,11 +3561,12 @@
+   SDL_GPUGraphicsPipeline* overlay_pipe_ = nullptr;
+   SDL_GPUTextureFormat overlay_fmt_ = SDL_GPU_TEXTUREFORMAT_INVALID;
+   // The pointer (SyncCursor, DrawCursor).
+-  TextureId cursor_tex_[2] = {0, 0};  // the pointer, the badge
+-  uint64_t cursor_gen_[2] = {0, 0};
+-  int cursor_iw_[2] = {0, 0}, cursor_ih_[2] = {0, 0};
++  TextureId cursor_tex_[3] = {0, 0, 0};  // the pointer, the badge, the notice
++  uint64_t cursor_gen_[3] = {0, 0, 0};
++  int cursor_iw_[3] = {0, 0, 0}, cursor_ih_[3] = {0, 0, 0};
+   SDL_GPUShader* cursor_fs_ = nullptr;
+   SDL_GPUSampler* cursor_sampler_ = nullptr;
++  SDL_GPUSampler* picture_sampler_ = nullptr;  // the badge's and the notice's (smooth)
+   SDL_GPUGraphicsPipeline* cursor_pipe_ = nullptr;
+   SDL_GPUTextureFormat cursor_fmt_ = SDL_GPU_TEXTUREFORMAT_INVALID;
+   SDL_GPUTexture* dummy_ = nullptr;
+diff -ru a/src/runtime/gfx/soft_device.cpp b/src/runtime/gfx/soft_device.cpp
+--- a/src/runtime/gfx/soft_device.cpp	2026-11-24 01:19:30
++++ b/src/runtime/gfx/soft_device.cpp	2026-11-24 05:04:05
+@@ -326,10 +326,10 @@
+         if (pic_tex_[i]) {
+           SDL_UpdateTexture(pic_tex_[i], nullptr, img.data(), p.iw * 4);
+           SDL_SetTextureBlendMode(pic_tex_[i], SDL_BLENDMODE_BLEND);
+-          SDL_SetTextureScaleMode(pic_tex_[i], SDL_SCALEMODE_NEAREST);
++          SDL_SetTextureScaleMode(pic_tex_[i], i == 0 ? SDL_SCALEMODE_NEAREST : SDL_SCALEMODE_LINEAR);
+         }
+-        pic_w_[i] = p.iw;
+-        pic_h_[i] = p.ih;
++        pic_w_[i] = int(float(p.iw) / p.density + 0.5f);  // (in frame pixels)
++        pic_h_[i] = int(float(p.ih) / p.density + 0.5f);
+       }
+     }
+     *x = p.x;

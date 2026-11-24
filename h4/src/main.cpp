@@ -28,7 +28,11 @@
 #include <shlobj.h>
 #include <direct.h>
 // MinGW exposes the Microsoft spellings only. Keep the app code below POSIX-shaped.
-static int setenv(const char* name, const char* value, int) { return _putenv_s(name, value); }
+// POSIX's: an existing variable kept unless `overwrite`.
+static int setenv(const char* name, const char* value, int overwrite) {
+  if (!overwrite && std::getenv(name)) return 0;
+  return _putenv_s(name, value);
+}
 static int mkdir(const char* path, int) { return _mkdir(path); }
 #endif
 // The Linux (Steam Deck) and Mac app builds (H4_DESKTOP_APP, platforms/build.sh linux|macos-*) work
@@ -47,6 +51,7 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 #endif
 
 #if defined(H4_MOBILE)
+#include "filter_notice.h"
 #include "install/installer.h"
 #include "intro.h"
 #include "window_mode.h"
@@ -338,6 +343,7 @@ std::string MobileSetup() {
   setvbuf(stderr, nullptr, _IOLBF, 0);
 #endif
   h4::LoadSkipIntro(data + "/skip_intro");
+  h4::LoadFilter(data + "/filter");  // before the default below
   h4::LoadPadConfig(data + "/gamepad.conf");
 #if defined(H4_DESKTOP_APP)
   h4::LoadWindowMode(data + "/windowed");
