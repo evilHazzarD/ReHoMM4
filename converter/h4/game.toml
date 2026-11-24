@@ -29,6 +29,38 @@ size = 6885376
 sha256 = "b7c2f6caeeba640b1c5f1d812b172938bb4dd4ec62e34ec93ad827bd1ffaec87"
 variants = ["gog-en-76223"]
 [binary.discover]
-# An extra SEH entry that the existing native lifter receives from
-# h4/lifter.manifest. The adapter will import its replacement/resume rules.
-seeds = [0x008e3adc]
+# The first two are functions the analyser cannot find alone. The third is
+# ReHoMM4's extra SEH entry from h4/lifter.manifest.
+seeds = [0x0051ae60, 0x0051ba20, 0x008e3adc]
+no_return = [0x008e2cc5]
+returns = [0x008e5aa5]
+
+[[binary]]
+name = "binkw32.dll"
+role = "library"
+treatment = "lift"
+size = 261120
+sha256 = "545f402be018bc905c03305322072e194d77b1a5ec20b62c34cdbc4c81c961fa"
+variants = ["gog-en-76223"]
+[binary.discover]
+returns = [0x1002b0a5]
+seeds = [0x1002ac8e, 0x1002ac93, 0x1002ace8, 0x1002aced]
+
+[[binary]]
+name = "Mss32.dll"
+role = "library"
+treatment = "hle"
+size = 348160
+sha256 = "2a515199cc7a2e1ccd8d756efdaab07cedd5c3052309ef1c7499c2560e2097bd"
+variants = ["gog-en-76223"]
+
+[[binary]]
+name = "Mp3dec.asi"
+role = "library"
+treatment = "lift"
+size = 125952
+sha256 = "0a6db88a5fad28168c1dac700473c5709b17802c33e36b2668c3300c1e580fad"
+variants = ["gog-en-76223"]
+[binary.discover]
+returns = [0x26f0b205]
+seeds = [0x26f0adee, 0x26f0adf3, 0x26f0ae48, 0x26f0ae4d]
