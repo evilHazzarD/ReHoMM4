@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {manifestPlan, parseManifest} from '../src/manifest.js';
 import {fileOffsetForVa, parsePe32, validateManifestAddresses} from '../src/pe.js';
+import {prepareConversion} from '../src/session.js';
 import {validateInstallerNames} from '../src/validate.js';
 
 const valid = validateInstallerNames([
@@ -38,4 +39,8 @@ assert.equal(fileOffsetForVa(pe, 0x401020), 0x220);
 assert.equal(fileOffsetForVa(pe, 0x402000), null);
 assert.equal(validateManifestAddresses(pe, [{address: 0x401020}]), true);
 assert.throws(() => validateManifestAddresses(pe, [{address: 0x402000}]), /outside executable/);
+await assert.rejects(
+  prepareConversion({exe: {arrayBuffer: async () => fixture.buffer}, installerFiles: [], manifestText: 'replace 00401020 test'}),
+  /Choose both GOG offline-installer files/,
+);
 console.log('converter validator: ok');
