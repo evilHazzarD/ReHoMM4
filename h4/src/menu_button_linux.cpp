@@ -10,6 +10,10 @@
 // by its sync.conf, save_sync.h; the Switch does not), the intro setting (a checkbox row: intro.h), the
 // gamepad's panel (pad_button.argb opens it: MakeGamepad, pad_config.h) and, on Linux, the update check.
 #include <SDL3/SDL.h>
+#if defined(_WIN32)
+#include <windows.h>
+#include <shellapi.h>
+#endif
 #include <unistd.h>
 
 #include <algorithm>
@@ -71,12 +75,16 @@ bool Load(const std::string& dir, const std::string& name, Picture* p) {
 std::string UiDir() {
 #if defined(__SWITCH__)
   return "romfs:/ui";  // in the .nro (platforms/switch/package.sh)
-#endif
+#elif defined(_WIN32)
+  const char* base = SDL_GetBasePath();  // beside ReHoMM4.exe (platforms/windows/package.sh)
+  return std::string(base ? base : "") + "ui";
+#else
   char exe[4096];
   const ssize_t n = readlink("/proc/self/exe", exe, sizeof exe - 1);
   if (n <= 0) return "ui";
   std::string s(exe, size_t(n));
   return s.substr(0, s.rfind('/')) + "/ui";
+#endif
 }
 
 std::mutex g_mu;
@@ -221,9 +229,12 @@ bool PadEvent(const SDL_Event& e) {
   }
 }
 
-// The author's Ko-fi page in the desktop's browser (xdg-open; Linux only: the Switch has none).
+// The author's Ko-fi page in the desktop's browser (xdg-open, Windows' default browser; none on
+// the Switch).
 void OpenKofi() {
-#if defined(H4_LINUX_APP)
+#if defined(_WIN32)
+  ShellExecuteW(nullptr, L"open", L"https://ko-fi.com/hazzard", nullptr, nullptr, SW_SHOWNORMAL);
+#elif defined(H4_LINUX_APP)
   pid_t pid = 0;
   const char* argv[] = {"xdg-open", "https://ko-fi.com/hazzard", nullptr};
   if (posix_spawnp(&pid, "xdg-open", nullptr, nullptr, const_cast<char* const*>(argv), environ) == 0)
@@ -523,17 +534,19 @@ bool LoadChoices() {
                   Load(UiDir(), "sides_on", &g_sides_pic[1]);
 #endif
   if (!g_has_pad) g_has_pad = Load(UiDir(), "pad_button", &g_pad_button) && LoadGamepad();
-#if defined(H4_LINUX_APP)
+#if defined(H4_LINUX_APP) || defined(H4_WINDOWS_APP)
   if (g_kofi_gear.argb.empty() && !Load(UiDir(), "kofi_gear", &g_kofi_gear)) g_kofi_gear = Picture{};
 #if !defined(H4_WEB_APP)  // the browser: the page's full screen; the saves stay in the browser
   if (!g_has_full) g_has_full = Load(UiDir(), "full_off", &g_full_pic[0]) && Load(UiDir(), "full_on", &g_full_pic[1]);
 #endif
+#if defined(H4_LINUX_APP)  // the updates: Linux's .tar.gz (none for Windows yet)
   if (!g_has_upd) {
     static const char* const kMsg[kUpdCount] = {"upd_checking", "upd_latest", "upd_newer",
                                                 "upd_downloading", "upd_done", "upd_failed"};
     g_has_upd = Load(UiDir(), "upd_button", &g_upd_button);
     for (int i = 0; i < kUpdCount && g_has_upd; i++) g_has_upd = Load(UiDir(), kMsg[i], &g_upd_msg[i]);
   }
+#endif
 #if !defined(H4_WEB_APP)
   if (!g_has_sync) g_has_sync = Load(UiDir(), "sync_button", &g_sync_button) && Load(UiDir(), "sync_help", &g_sync_help);
 #endif

@@ -105,7 +105,7 @@ if(TARGET h4_lifted)
     add_executable(h4 ${_h4_sources} src/install/installer.cpp src/install/gog.cpp src/install/inno.cpp
                    src/install/manifest.cpp src/install/json.cpp src/install/hash.cpp src/install/platform_windows.cpp
                    src/language.cpp src/intro.cpp src/window_mode.cpp src/pad_config.cpp src/save_sync.cpp
-                   windows_icon.rc $<TARGET_OBJECTS:h4_lifted>)
+                   src/menu_button_linux.cpp windows_icon.rc $<TARGET_OBJECTS:h4_lifted>)
     set_target_properties(h4 PROPERTIES OUTPUT_NAME heroes4)
     target_compile_definitions(h4 PRIVATE H4_DESKTOP_APP=1 H4_WINDOWS_APP=1)
     target_link_libraries(h4 PRIVATE ${H4_INNOEXTRACT} ${H4_LZMA} ${H4_ZLIB} winhttp shell32 ole32 uuid)

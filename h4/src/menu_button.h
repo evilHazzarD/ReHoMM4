@@ -23,7 +23,7 @@ const std::string& GameFolder();
 void SetGameFolder(const std::string& path);
 
 #if defined(__ANDROID__) || (defined(__APPLE__) && (TARGET_OS_IOS || defined(H4_DESKTOP_APP))) || \
-    defined(H4_LINUX_APP) || defined(H4_SWITCH_APP)
+    defined(H4_LINUX_APP) || defined(H4_WINDOWS_APP) || defined(H4_SWITCH_APP)
 // What the settings offer: the current language ("en", "uk") and the file the choice is saved
 // to (main.cpp, at start). Without it no languages in them (Linux, the Switch: no button).
 void SetLanguageChoice(const std::string& lang, const std::string& saved_path);

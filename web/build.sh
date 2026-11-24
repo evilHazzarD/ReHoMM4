@@ -68,7 +68,10 @@ emcmake cmake -S "$WEB" -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DFETCHCONTENT_SOURCE_DIR_SOFTFLOAT="$HOST_DEPS/softfloat-src" \
   -DFETCHCONTENT_SOURCE_DIR_COREMATH="$HOST_DEPS/coremath-src" -DFETCHCONTENT_FULLY_DISCONNECTED=ON \
   -DH4_RES_DIR="$RES" "${LANG_ARGS[@]}" >"$B.configure.log" 2>&1 || { tail -40 "$B.configure.log"; exit 1; }
-{ cmake --build "$B" --target h4 -j"$JOBS" 2>&1 | grep -E 'error|FAILED|warning: undefined|Linking' || true; } | head -80
+# Its own log: a failed compile must stop here, not leave the last build's binary to be packed.
+build_ok=1; cmake --build "$B" --target h4 -j"$JOBS" >"$B.build.log" 2>&1 || build_ok=0
+{ grep -E 'error|FAILED|warning: undefined|Linking' "$B.build.log" || true; } | head -80
+[[ $build_ok == 1 ]] || die "the build failed (log: $B.build.log)"
 [[ -f "$B/heroes4.wasm" ]] || die "heroes4.wasm was not built (log above)"
 
 # The site.
