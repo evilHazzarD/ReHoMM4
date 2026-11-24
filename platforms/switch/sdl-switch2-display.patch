@@ -150,3 +150,15 @@
 +}
 +
 +#endif /* SDL_VIDEO_DRIVER_SWITCH */
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3423,2 +3423,9 @@ elseif(NINTENDO_SWITCH)
+     CheckOpenGLES()
++    # The Switch backend uses EGL/GLES. Upstream probes GLES but does not
++    # enable SDL's GLES2 renderer, leaving SDL_CreateRenderer without a driver.
++    if(SDL_OPENGLES)
++      set(HAVE_OPENGLES TRUE)
++      set(SDL_VIDEO_OPENGL_ES2 1)
++      set(SDL_VIDEO_RENDER_OGL_ES2 1)
++    endif()
+     CheckOpenGL()
