@@ -932,6 +932,32 @@ bool PadEvent(const SDL_Event& e) {
 
 // The ⚙︎ button, its top-right corner at (x, y) in the frame; the ☁️ one (when the settings
 // show it) just left of it, and "ReHoMM4 <version>" left of them.
+// While the window is being resized the buttons are hidden: they are placed when the game shows
+// its next frame, and would lag behind the window's edge meanwhile.
+bool g_resizing = false;
+
+void ApplyHidden() {
+  const bool shown = g_shown && !g_resizing;
+  g_cloud.hidden = !shown || !ShowSyncButton();
+  g_button.hidden = !shown;
+  g_kofi.hidden = !shown;
+  g_title.hidden = YES;  // "ReHoMM4 <version>" is in the settings now
+}
+
+void WatchLiveResize(NSWindow* w) {
+  NSNotificationCenter* nc = NSNotificationCenter.defaultCenter;
+  [nc addObserverForName:NSWindowWillStartLiveResizeNotification object:w queue:nil
+              usingBlock:^(NSNotification*) {
+                g_resizing = true;
+                ApplyHidden();
+              }];
+  [nc addObserverForName:NSWindowDidEndLiveResizeNotification object:w queue:nil
+              usingBlock:^(NSNotification*) {
+                g_resizing = false;
+                ApplyHidden();  // placed again at the next frame (the view's size changed)
+              }];
+}
+
 void ShowLanguageButton(bool shown, int x, int y, int left) {
   static int last_x = -1, last_y = -1, last_left = -1;
   static bool last_sync = false;
@@ -967,6 +993,7 @@ void ShowLanguageButton(bool shown, int x, int y, int left) {
       [view addSubview:g_kofi];
       g_title = MakeTitle();
       [view addSubview:g_title];
+      WatchLiveResize(view.window);
     }
     if (shown) {
       float vx, vy;
@@ -1011,10 +1038,7 @@ void ShowLanguageButton(bool shown, int x, int y, int left) {
         [view addSubview:g_overlay positioned:NSWindowAbove relativeTo:nil];
       }
     }
-    g_cloud.hidden = !shown || !ShowSyncButton();
-    g_button.hidden = !shown;
-    g_kofi.hidden = !shown;
-    g_title.hidden = YES;  // "ReHoMM4 <version>" is in the settings now
+    ApplyHidden();
     static bool tested = false;  // H4_TEST_SETTINGS=1: the settings open at the first main menu (=gamepad: its panel)
     if (shown && !tested && std::getenv("H4_TEST_SETTINGS")) {
       tested = true;

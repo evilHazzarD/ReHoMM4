@@ -49,6 +49,8 @@ replace 008D0C70 present
 replace 00720530 paint_dirty
 replace 0071E6D0 window_ctor
 replace 0063B840 read_setting
+replace 005A29A0 button_group_add
+replace 006ECB80 dialog_add_button
 
 # Dev instrumentation (src/debug_hooks.cpp; uncomment together with
 # H4_DEBUG_HOOKS=ON):

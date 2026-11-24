@@ -1,0 +1,53 @@
+diff --git a/src/runtime/hle/user32_window.cpp b/src/runtime/hle/user32_window.cpp
+--- a/src/runtime/hle/user32_window.cpp
++++ b/src/runtime/hle/user32_window.cpp
+@@ -818,18 +818,40 @@
+ // after anything that changes a window's placement, visibility or mode,
+ // or the screen size. Leaving it gives the host window the client size
+ // again.
++// A window the player can resize: the frame is scaled to the window as in fullscreen, so it keeps
++// the client's aspect (no bars).
++void MakeResizable(SDL_Window* sdl, int cw, int ch) {
++  if (cw > 0 && ch > 0) {
++    const float aspect = float(cw) / float(ch);
++    SDL_SetWindowAspectRatio(sdl, aspect, aspect);
++  }
++  SDL_SetWindowResizable(sdl, true);
++}
++
+ void UpdateFullscreen(uint32_t hwnd) {
+   using F = GameConfig::Fullscreen;
+   SDL_Window* sdl;
+   bool want;
+   int sw, sh, cw, ch;
++  bool unchanged = false;
+   {
+     std::lock_guard<std::recursive_mutex> l(g_mu);
+     Window* w = Win(hwnd);
+     if (!w || !w->sdl) return;
+     want = FullscreenPolicy() != F::Window && CoversScreen(*w);
+     ScreenFor(*w, &sw, &sh);
+-    if (want == w->fullscreen && (!want || (w->fs_w == sw && w->fs_h == sh))) return;
++    unchanged = want == w->fullscreen && (!want || (w->fs_w == sw && w->fs_h == sh));
++    sdl = w->sdl;
++    GameClientSize(*w, &cw, &ch);
++  }
++  if (unchanged) {
++    if (!want) MakeResizable(sdl, cw, ch);  // in a window from the start: resizable all the same
++    return;
++  }
++  {
++    std::lock_guard<std::recursive_mutex> l(g_mu);
++    Window* w = Win(hwnd);
++    if (!w || !w->sdl) return;
+     w->fullscreen = want;
+     w->fs_w = sw;
+     w->fs_h = sh;
+@@ -889,6 +911,7 @@
+     }
+     SDL_SetWindowSize(sdl, pw, ph);
+     if (fit) SDL_SetWindowPosition(sdl, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
++    MakeResizable(sdl, cw, ch);
+   }
+ }
+ 

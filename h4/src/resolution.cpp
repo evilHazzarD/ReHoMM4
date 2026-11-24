@@ -38,9 +38,13 @@
 #include <set>
 
 #include <SDL3/SDL.h>
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 
 #include "intro.h"
 #include "window_mode.h"
+#include "renderer.h"
 #include "menu_button.h"
 #include "random_map/hero_card.h"
 #include "random_map_ui.h"
@@ -56,6 +60,8 @@
 namespace recomp::gen {
 
 void f_008D3750_lifted(::recomp::Ctx& c);
+void f_005A29A0_lifted(::recomp::Ctx& c);
+void f_006ECB80_lifted(::recomp::Ctx& c);
 void f_008D1360_lifted(::recomp::Ctx& c);
 void f_00598170_lifted(::recomp::Ctx& c);
 void f_004ACBB0_lifted(::recomp::Ctx& c);
@@ -82,6 +88,7 @@ constexpr uint32_t kSetRect = 0x71EEE0;  // window::move(const RECT*, bool repai
 constexpr uint32_t kTopWindow = 0xABACF4;
 constexpr uint32_t kScreenW = 0xAD2508;  // the size set_mode last set
 constexpr uint32_t kInvalidate = 0x71FD10;  // window::invalidate(const RECT* local), thiscall
+constexpr uint32_t kButtonUpdate = 0x5A1200;  // button::update_state(), thiscall: its look after a change
 constexpr uint32_t kMapResize = 0x4F5480;   // adventure_map_window::on_size(const RECT*), thiscall
 
 struct Screen {
@@ -1666,7 +1673,13 @@ void f_008D0C70(::recomp::Ctx& c) {
   g_presents++;
   KeepWide(c);
   KeepScreenKeyboard();
+#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
+  const auto t0 = std::chrono::steady_clock::now();
   f_008D0C70_lifted(c);
+  h4::NotePresent(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count());
+#else
+  f_008D0C70_lifted(c);
+#endif
   WingsWhileBuilding(c);
   if (GpuCursorOn()) GpuCursorPlace();  // its own loops (a drag) present here
 }
@@ -1736,7 +1749,51 @@ void f_0076D9B0(::recomp::Ctx& c) {
   Narrowed(c, f_0076D9B0_lifted);
 }
 void f_0076DEB0(::recomp::Ctx& c) { Narrowed(c, f_0076DEB0_lifted); }
-void f_007CA0D0(::recomp::Ctx& c) { Narrowed(c, f_007CA0D0_lifted); }  // t_options_dialog
+// t_options_dialog's constructor (thiscall). The app sets the screen's size (wide, or the window's
+// on the desktop), so the dialog's 800x600 / 1024x768 / 1280x1024 choice is shown disabled: the
+// buttons its resolution group (+0x104) gets while it is built (button_group_add below) are marked
+// as the game marks a disabled button (+0xE4) and redrawn (0x5A1200).
+uint32_t g_options_dialog = 0;
+std::vector<uint32_t> g_resolution_buttons;
+uint32_t g_fullscreen_box = 0;  // the box made right after the resolution group's three buttons
+
+void f_007CA0D0(::recomp::Ctx& c) {
+  const bool app_size = TheScreen().w != 0;
+  if (app_size) {
+    g_options_dialog = c.ecx;
+    g_resolution_buttons.clear();
+    g_fullscreen_box = 0;
+  }
+  Narrowed(c, f_007CA0D0_lifted);
+  if (!app_size) return;
+  g_options_dialog = 0;
+  const uint32_t eax = c.eax, ecx = c.ecx;
+  std::vector<uint32_t> off = g_resolution_buttons;
+#if !defined(H4_DESKTOP_APP)
+  if (g_fullscreen_box) off.push_back(g_fullscreen_box);  // ticked (read_setting), not to be changed
+#endif
+  for (const uint32_t b : off) {
+    GPtr(b + 0xE4)[0] = 1;
+    c.ecx = b;
+    CallGuest(c, kButtonUpdate, {});
+  }
+  c.eax = eax;
+  c.ecx = ecx;
+}
+
+// The dialog's add_button(layout), thiscall -> the button.
+void f_006ECB80(::recomp::Ctx& c) {
+  const uint32_t dialog = c.ecx;
+  f_006ECB80_lifted(c);
+  if (g_options_dialog && dialog == g_options_dialog && g_resolution_buttons.size() == 3 && !g_fullscreen_box)
+    g_fullscreen_box = c.eax;
+}
+
+// button_group::add(button*), thiscall.
+void f_005A29A0(::recomp::Ctx& c) {
+  if (g_options_dialog && c.ecx == g_options_dialog + 0x104) g_resolution_buttons.push_back(Rd32(c.esp + 4));
+  f_005A29A0_lifted(c);
+}
 
 // window::window(const RECT* rect, window* parent), thiscall: no rectangle
 // means the parent's whole area. Screens made that way right under the top
@@ -1750,6 +1807,31 @@ void f_0071E6D0(::recomp::Ctx& c) {
     f_0071E6D0_lifted(c);
 }
 
+// The game's "full screen": the page's in the browser, the desktop apps' setting, always on
+// elsewhere.
+bool AppFullscreen() {
+#if defined(H4_WEB_APP)
+  return MAIN_THREAD_EM_ASM_INT({ return document.fullscreenElement ? 1 : 0; }) != 0;
+#elif defined(H4_DESKTOP_APP)
+  return h4::Fullscreen();
+#else
+  return true;
+#endif
+}
+
+// The player's choice in the Options dialog.
+void SetAppFullscreen(bool on) {
+#if defined(H4_WEB_APP)
+  // The page's enterFullscreen / leaveFullscreen (web/shell/index.html), in answer to the click
+  // on OK (the browser's user activation still holds).
+  MAIN_THREAD_ASYNC_EM_ASM({ if (Module.h4Status) Module.h4Status('fullscreen', $0); }, on ? 1 : 0);
+#elif defined(H4_DESKTOP_APP)
+  h4::SetFullscreen(on);
+#else
+  (void)on;
+#endif
+}
+
 // read_setting(const char* name, uint32_t* out, bool user) -> found. Wide,
 // "resolution" (the screen width the game picks its layout and buffers
 // by) reads 1024 whatever was saved: the Options dialog, which shows the
@@ -1759,13 +1841,36 @@ void f_0071E6D0(::recomp::Ctx& c) {
 void f_0063B840(::recomp::Ctx& c) {
   const uint32_t name = Rd32(c.esp + 4), out = Rd32(c.esp + 8);
   f_0063B840_lifted(c);
-  if (!TheScreen().wide || !(c.eax & 0xFF) || !out || !name) return;
-  if (GStr(name) == "resolution") Wr32(out, 1024);
+  const Screen& s = TheScreen();
+  if (!out || !name) return;
+  // The Options dialog's "full screen" box shows the app's own setting (⚙, window_mode.h), so a
+  // set_mode with another value (below) is the player's change; elsewhere the game is always
+  // full screen (the box is shown ticked and disabled, f_007CA0D0).
+  if (s.w && GStr(name) == "full_screen") {
+    Wr32(out, AppFullscreen() ? 1 : 0);
+    c.eax = (c.eax & ~0xFFu) | 1;
+    return;
+  }
+  if (!s.wide || !(c.eax & 0xFF) || GStr(name) != "resolution") return;
+  Wr32(out, 1024);
 }
 
 void f_008D3750(::recomp::Ctx& c) {
   const uint32_t args = c.esp + 4;  // width, height, repaint, full_screen
   const Screen& s = TheScreen();
+#if defined(H4_DESKTOP_APP)
+  // The Options dialog's "full screen" box (its OK and the toggle pass repaint 1; the start's call,
+  // repaint 0, has the game's own guess, which is not the player's): the app's window and setting
+  // (the page's full screen in the browser) follow it, as ⚙ does.
+  bool full_now = AppFullscreen();
+  if (const bool full = (Rd32(args + 12) & 0xFF) != 0; (Rd32(args + 8) & 0xFF) && full != full_now) {
+    SetAppFullscreen(full);
+    full_now = full;
+  }
+  if (s.w) Wr32(args + 12, full_now ? 1 : 0);
+#else
+  if (s.w) Wr32(args + 12, 1);
+#endif
   // Windowed too (the game's full_screen setting off): the host shows the
   // window like a full screen, fitted to the display.
   if (s.w) {
