@@ -27,9 +27,10 @@ any game file.
 | platform template | ReHoMM4 runtime, UI/assets and per-platform packaging metadata | No |
 | output | Player-owned build containing their own game data/code | Yes, local only |
 
-`converter-core` and the web worker will be adapted from the MIT converter architecture used by
-GameRecomp. ReHoMM4-specific entry points, replacements and compatibility rules come from
-`h4/lifter.manifest`; no GameRecomp game runtime is linked into ReHoMM4.
+`third_party/game-recomp` is a pinned MIT-licensed submodule used only for its dynamic conversion
+crates (`rc-convert`, `rc-emit-wasm`, PE parsing and browser worker plumbing). ReHoMM4-specific
+entry points, replacements and compatibility rules come from `h4/lifter.manifest`; no GameRecomp
+game runtime, templates, UI, game data or Polish target is linked into ReHoMM4.
 
 ## Delivery order
 
