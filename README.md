@@ -350,7 +350,11 @@ of 31 more (rings, spiders, mirrors, team maps, labyrinths…). A template made 
 players or map sizes sets them when picked. Then the map size, the players (each human or
 computer, with faction, team and starting hero; the hero's card shows the skills, army and
 biography), water, underground, monsters, obelisks, treasures and the seed. Most can be
-**Random**. **OK** makes the map; it is at the top of the list of scenarios.
+**Random**. **Create map** makes the map; it is at the top of the list of scenarios.
+
+![The random map buttons under the list of scenarios, a random map selected and its settings in the description](docs/random_map_buttons.jpg)
+
+![The random map's settings, and the starting hero's card: skills, statistics, army, biography](docs/random_map_panel.jpg)
 
 With a random map selected in the list, **Edit random map** brings its settings back and
 **Update map** makes it again in its place; **Remove random map** deletes it. Each map keeps its full settings in its description, so the same seed and settings make
@@ -872,8 +876,12 @@ Windows — `%LOCALAPPDATA%\ReHoMM4`, на Linux — `~/.local/share/ReHoMM4` (�
 дзеркала, командні карти, лабіринти…). Шаблон для іншої кількості гравців чи розміру карти сам їх
 виставляє. Далі — розмір карти, гравці (кожен — людина чи комп'ютер, із фракцією, командою й
 стартовим героєм; картка героя показує навички, армію й біографію), вода, підземелля, монстри,
-оракули, скарби й зерно. Майже все може бути **Випадково**. **Гаразд** створює карту; вона
+оракули, скарби й зерно. Майже все може бути **Випадково**. **Створити** створює карту; вона
 з'являється вгорі списку сценаріїв.
+
+![Кнопки випадкової карти під списком сценаріїв; обрано випадкову карту, її налаштування в описі](docs/random_map_buttons.jpg)
+
+![Налаштування випадкової карти й картка стартового героя: навички, характеристики, армія, біографія](docs/random_map_panel.jpg)
 
 Коли в списку обрано випадкову карту, **Редагувати випадкову карту** повертає її налаштування, а
 **Оновити карту** створює її заново на тому ж місці; **Видалити випадкову карту** її видаляє. Кожна карта зберігає всі свої налаштування в описі, тож те саме зерно й
