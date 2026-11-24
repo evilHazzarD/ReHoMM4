@@ -1,0 +1,73 @@
+name: ReHoMM4 web
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Deploy the verified web build to GitHub Pages
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rehomm4-web-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install build tools
+        run: |
+          brew install cmake ninja pkgconf
+          cargo install wasm-bindgen-cli --version 0.2.130 --locked
+      - name: Build the game-code-free player and converter
+        run: |
+          node converter/test/emitter.mjs
+          bash web/build.sh --dynamic
+      - name: Stage verified web files
+        run: |
+          site=.cache/outputs/web/dist-dynamic
+          test -f "$site/index.html"
+          test -s "$site/heroes4.wasm"
+          test -s "$site/converter/rehomm4_emit_wasm_bg.wasm"
+          if [[ -n "$(find "$site" \( -type l -o -iname '*.exe' -o -iname '*.h4r' -o -iname 'code*.wasm' \) -print)" ]]; then
+            echo 'The web package contains a symlink or player-owned data.' >&2
+            exit 1
+          fi
+          cp -R "$site" "$RUNNER_TEMP/rehomm4-web"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rehomm4-web
+          path: ${{ runner.temp }}/rehomm4-web
+          if-no-files-found: error
+      - name: Upload Pages artifact
+        if: inputs.publish
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/rehomm4-web
+
+  deploy:
+    if: inputs.publish
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

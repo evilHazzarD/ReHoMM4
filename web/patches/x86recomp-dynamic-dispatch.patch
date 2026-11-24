@@ -1,0 +1,20 @@
+--- dispatch.cpp
++++ dispatch.cpp
+@@ -384,6 +384,8 @@
+                          (unsigned long long)target, (unsigned long long)va);
+ }
+-
++
++extern "C" int h4_call_worker_original(uint32_t address, Ctx* ctx);
++
+ void Dispatch(Ctx& c, uint32_t target, uint32_t va) {
+   const CodeRange* r = &g_exe;
+   if (target - r->lo >= r->size) {
+@@ -399,6 +401,7 @@
+     fn(c);
+     return;
+   }
++  if (h4_call_worker_original(target, &c)) return;
+   FatalF("indirect branch to unlifted address %08X from %08X "
+          "(add it to the manifest as a function entry)", target, va);
+ }

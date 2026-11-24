@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>ReHoMM4 local dynamic smoke test</title>
+<canvas id="canvas" width="1024" height="768" tabindex="0"></canvas>
+<script src="heroes4.js"></script>
+<script type="module">
+// Use only a dedicated loopback test origin with the developer's own game.
+const log = message => console.log('[dynamic-smoke]', message);
+try {
+  if (!crossOriginIsolated) throw new Error('Missing cross-origin isolation');
+  if (new URLSearchParams(location.search).has('compile')) {
+    const response = await fetch('game-files/heroes4.exe');
+    if (!response.ok) throw new Error('Missing loopback heroes4.exe');
+    const exe = new File([await response.blob()], 'heroes4.exe');
+    const worker = new Worker('./converter/emit_worker.mjs', {type: 'module'});
+    try {
+      await new Promise((resolve, reject) => {
+        worker.onmessage = ({data}) => {
+          if (data.type === 'done') {
+            log('browser generated ' + data.size + ' bytes of lifted code');
+            resolve();
+          } else if (data.type === 'error') {
+            reject(new Error(data.message));
+          }
+        };
+        worker.onerror = reject;
+        worker.postMessage({type: 'emit', exe});
+      });
+    } finally {
+      worker.terminate();
+    }
+  } else {
+    const root = await navigator.storage.getDirectory();
+    const app = await root.getDirectoryHandle('ReHoMM4', {create: true});
+    const exe = await fetch('game-files/heroes4.exe');
+    if (!exe.ok) throw new Error('Missing loopback heroes4.exe');
+    const digestBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', await exe.arrayBuffer()));
+    const digest = Array.from(digestBytes, b => b.toString(16).padStart(2, '0')).join('');
+    const file = await app.getFileHandle(`code-${digest}.wasm`, {create: true});
+    const response = await fetch('diagnostic-code.wasm');
+    if (!response.ok) throw new Error('Missing local diagnostic-code.wasm');
+    await response.body.pipeTo(await file.createWritable());
+  }
+  log('local lifted code staged');
+  const canvas = document.getElementById('canvas');
+  const workerLogs = new BroadcastChannel('h4-log');
+  workerLogs.onmessage = ({data}) => log(data.t);
+  window.h4Module = await createHeroes4({
+    canvas,
+    h4Env: {H4_WEB_STREAM: 'game-files', H4_SKIP_INTRO: '1', H4_LANG: 'en'},
+    h4Status: (kind, value) => log(kind + ' ' + value),
+    print: log,
+    printErr: log,
+    onAbort: reason => log('abort ' + reason),
+  });
+  log('shell runtime initialized');
+} catch (error) {
+  log(error.stack ?? error.message);
+}
+</script>

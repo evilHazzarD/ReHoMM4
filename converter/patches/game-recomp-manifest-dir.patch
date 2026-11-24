@@ -31,3 +31,19 @@ index 5381266..f2b03c5 100644
      println!("cargo:rerun-if-changed={}", games.display());
      if let Ok(d) = std::fs::read_dir(&games) {
          for e in d.filter_map(Result::ok) {
+@@ -50,3 +53,7 @@ fn main() {
+-    list.sort();
++    let relative = |p: &Path| {
++        p.strip_prefix(&crates).or_else(|_| p.strip_prefix(&games))
++            .unwrap_or(p).to_path_buf()
++    };
++    list.sort_by_key(|p| relative(p));
+     // FNV-1a over the names (relative) and contents.
+     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+@@ -58,5 +65,5 @@ fn main() {
+     for p in &list {
+-        let rel = p.strip_prefix(&crates).unwrap_or(p);
++        let rel = relative(p);
+         eat(rel.to_string_lossy().replace('\\', "/").as_bytes());
+         eat(&fs::read(p).unwrap_or_default());
+     }

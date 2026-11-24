@@ -79,9 +79,9 @@ aliases = [
   { size = 6885376, sha256 = "bfc9eb079fbc3c74c879a9e90486479970f2a7cd450a6adad31ca12372809e93", variants = ["gog-es-76223"] },
 ]
 [binary.discover]
-# The first two are functions the analyser cannot find alone. The third is
-# ReHoMM4's extra SEH entry from h4/lifter.manifest.
-seeds = [0x0051ae60, 0x0051ba20, 0x008e3adc]
+# Functions the analyser cannot find alone. stage_manifest.mjs adds the
+# discovery entries from h4/lifter.manifest to the marked list.
+seeds = [0x0051ae60, 0x0051ba20] # rehomm4-lifter-seeds
 no_return = [0x008e2cc5]
 returns = [0x008e5aa5]
 

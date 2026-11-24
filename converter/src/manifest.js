@@ -13,14 +13,13 @@ export function parseManifest(text) {
   const rules = [];
   for (const [offset, raw] of String(text).split(/\r?\n/).entries()) {
     const line = offset + 1;
-    const words = raw.replace(/#.*/, '').trim().split(/\s+/).filter(Boolean);
-    if (!words.length) continue;
-    const [kind, at, symbol] = words;
+    const source = raw.replace(/#.*/, '').trim();
+    if (!source) continue;
+    const [, kind, at, symbol] = /^(\S+)(?:\s+(\S+))?(?:\s+(.+))?$/.exec(source);
     if (!DIRECTIVES.has(kind)) throw new Error(`manifest line ${line}: unsupported directive ${kind}`);
     if (!at) throw new Error(`manifest line ${line}: ${kind} needs an address`);
     if (kind === 'resume' && symbol) throw new Error(`manifest line ${line}: resume has no symbol`);
-    if (kind !== 'resume' && !symbol) throw new Error(`manifest line ${line}: ${kind} needs a symbol`);
-    rules.push(Object.freeze({kind, address: address(at, line), symbol: symbol || null}));
+    rules.push(Object.freeze({kind, address: address(at, line), symbol: symbol ?? (kind === 'probe' ? 'probe' : null)}));
   }
   if (!rules.some(rule => rule.kind === 'replace')) throw new Error('manifest has no ReHoMM4 replacements');
   return Object.freeze(rules);
@@ -28,10 +27,18 @@ export function parseManifest(text) {
 
 export function manifestPlan(rules) {
   const count = kind => rules.filter(rule => rule.kind === kind).length;
+  // The native lifter adds entry, probe, and replace addresses to discovery.
+  const discoverySeeds = new Set();
+  for (const rule of rules) {
+    if (rule.kind === 'entry' || rule.kind === 'probe' || rule.kind === 'replace') {
+      discoverySeeds.add(rule.address);
+    }
+  }
   return Object.freeze({
     entries: count('entry'),
     replacements: count('replace'),
     resumes: count('resume'),
+    discoverySeeds: Object.freeze([...discoverySeeds].sort((a, b) => a - b)),
     rules,
   });
 }

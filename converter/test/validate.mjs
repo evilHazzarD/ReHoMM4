@@ -17,6 +17,11 @@ const polish = validateInstallerNames([
 ]);
 assert.equal(polish.ok, false);
 assert.match(polish.error, /Polish/);
+assert.match(validateInstallerNames([{name: 'setup_heroes_of_might_and_magic_4_complete_polski_76223.exe'}]).error, /Polish/);
+assert.match(validateInstallerNames([
+  {name: valid.setup},
+  {name: 'setup_heroes_of_might_and_magic_4_complete_3.0_(german)_(76223)-1.bin'},
+]).error, /same GOG offline installer/);
 
 assert.deepEqual(Object.values(SUPPORTED_GOG_30).map(v => v.language).sort(), ['de', 'en', 'es', 'fr', 'it']);
 assert.equal(Object.keys(SUPPORTED_GOG_30).length, 5);
@@ -27,6 +32,13 @@ const manifest = parseManifest(await readFile(new URL('../../h4/lifter.manifest'
 const plan = manifestPlan(manifest);
 assert.ok(plan.replacements > 20);
 assert.ok(manifest.some(rule => rule.kind === 'replace' && rule.symbol === 'set_mode'));
+const optionalNames = manifestPlan(parseManifest(
+  'entry 00401000\nprobe 00401000\nname 00401000 a diagnostic label\nreplace 00402000\nresume 00403000',
+));
+assert.deepEqual(optionalNames.discoverySeeds, [0x401000, 0x402000]);
+assert.equal(optionalNames.rules[1].symbol, 'probe');
+assert.equal(optionalNames.rules[2].symbol, 'a diagnostic label');
+assert.throws(() => parseManifest('resume 00403000 unexpected'), /resume has no symbol/);
 assert.throws(() => parseManifest('polish 008D3750 nope'), /unsupported directive/);
 
 const fixture = new Uint8Array(0x400);

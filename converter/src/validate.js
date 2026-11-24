@@ -9,7 +9,7 @@ export const SUPPORTED_GOG_30 = Object.freeze({
   bfc9eb079fbc3c74c879a9e90486479970f2a7cd450a6adad31ca12372809e93: {language: 'es', variant: 'gog-es-76223'},
 });
 
-const POLISH = /\b(polish|polski|polska)\b/i;
+const POLISH = /(?:^|[^a-z])(polish|polski|polska)(?:[^a-z]|$)/i;
 
 export function hex(bytes) {
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
@@ -31,6 +31,8 @@ export function validateInstallerNames(files) {
   const bin = names.find(name => /^setup_heroes_of_might_and_magic_4_complete_.*-1\.bin$/i.test(name));
   if (!setup || !bin)
     return {ok: false, error: 'Choose both GOG offline-installer files: setup_….exe and setup_…-1.bin.'};
+  if (setup.slice(0, -4).toLowerCase() !== bin.slice(0, -6).toLowerCase())
+    return {ok: false, error: 'Choose the .exe and -1.bin from the same GOG offline installer.'};
   return {ok: true, setup, bin};
 }
 
