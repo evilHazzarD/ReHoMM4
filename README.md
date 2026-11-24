@@ -48,7 +48,7 @@ below is the release's number (for example `0.3`; releases before 0.3 named them
 | Mac | `reHoMM4-v<version>-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
-| Windows PC | `reHoMM4-v<version>-windows-x86_64.zip` (from 0.4) |
+| Windows PC | `reHoMM4-v<version>-windows-x86_64.zip` (from 0.4.1) |
 | Linux PC, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-bit ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 | Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (from 0.4; not the Switch one) |
@@ -572,7 +572,7 @@ Windows, Linux і Steam Deck, Nintendo Switch і Switch 2, а також у бр
 | Мак | `reHoMM4-v<version>-macos-arm64.dmg` (процесор Apple, M1 або новіший) або `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
 | iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
 | Android | `reHoMM4-v<version>-android_arm64.apk` |
-| ПК з Windows | `reHoMM4-v<version>-windows-x86_64.zip` (з 0.4) |
+| ПК з Windows | `reHoMM4-v<version>-windows-x86_64.zip` (з 0.4.1) |
 | ПК з Linux, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-бітний ARM) |
 | Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
 | Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (з 0.4; не той, що для Switch) |
