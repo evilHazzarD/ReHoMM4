@@ -21,8 +21,9 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca  # stable
         with:
+          toolchain: stable
           targets: wasm32-unknown-unknown
       - name: Install wasm-bindgen
         run: cargo install wasm-bindgen-cli --version 0.2.130 --locked
@@ -30,7 +31,7 @@ jobs:
         run: node converter/test/emitter.mjs
       - name: Build the ReHoMM4 browser emitter
         run: bash converter/tools/build_web_emitter.sh build/converter-core
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: rehomm4-converter-core
           path: build/converter-core
