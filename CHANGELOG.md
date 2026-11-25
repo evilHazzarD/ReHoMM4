@@ -2,6 +2,107 @@
 
 Each release's notes on GitHub are its section here (tools/release/make_release.sh). Newest first.
 
+## 0.5.1
+
+A fix for GOG's German edition.
+
+| Device | File |
+|---|---|
+| Mac, macOS 13+ | `reHoMM4-v0.5.1-macos-arm64.dmg` (Apple Silicon) or `reHoMM4-v0.5.1-macos-x86_64.dmg` (Intel) |
+| iPhone and iPad, iOS / iPadOS 17+ | `reHoMM4-v0.5.1-ios.ipa` |
+| Android 10+, 64-bit | `reHoMM4-v0.5.1-android_arm64.apk` |
+| Windows 10 or 11, 64-bit | `reHoMM4-v0.5.1-windows-x86_64.zip` |
+| Linux and Steam Deck | `reHoMM4-v0.5.1-linux-x86_64.tar.gz` or `reHoMM4-v0.5.1-linux-arm64.tar.gz` |
+| Switch (homebrew) | `reHoMM4-v0.5.1-switch.nro` |
+| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.5.1-switch2.nro` |
+| Web browser | `reHoMM4-v0.5.1-web.zip` |
+
+**Fixed**
+
+- **GOG's German edition installs.** Its installer names the game `Heroes4.exe`, and the app refused it ("is not one the app is made for"). Any capitalisation of the name is accepted now.
+- The installer screen names the editions that install directly: English, German, French, Italian and Spanish.
+
+## 0.5
+
+Settings drawn in the game's style on every device, "What's new" and update checks, more readable layouts on small screens, and more GOG editions.
+
+| Device | File |
+|---|---|
+| Mac, macOS 13+ | `reHoMM4-v0.5-macos-arm64.dmg` (Apple Silicon) or `reHoMM4-v0.5-macos-x86_64.dmg` (Intel) |
+| iPhone and iPad, iOS / iPadOS 17+ | `reHoMM4-v0.5-ios.ipa` |
+| Android 10+, 64-bit | `reHoMM4-v0.5-android_arm64.apk` |
+| Windows 10 or 11, 64-bit | `reHoMM4-v0.5-windows-x86_64.zip` |
+| Linux and Steam Deck | `reHoMM4-v0.5-linux-x86_64.tar.gz` or `reHoMM4-v0.5-linux-arm64.tar.gz` |
+| Switch (homebrew) | `reHoMM4-v0.5-switch.nro` |
+| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.5-switch2.nro` |
+| Web browser | `reHoMM4-v0.5-web.zip` |
+
+**New**
+
+- **Settings in the game's style everywhere.** Mac, iPhone, iPad and Android now use the same ⚙ panel as Linux, Windows and the web, drawn with the game's frame and parchment. Above the main menu: ☁ (save sync, when on), ☕ and ⚙, each with a tooltip.
+- **What's new.** ⚙ → **What's new?** shows the notes of the releases newer than yours (or this one's), page by page, with a link to the releases.
+- **Update check.** ⚙ → **Check for updates** on Mac, Android, Linux and Windows (iPhone and iPad: the release page). The Mac app opens the downloaded .dmg; Android installs the APK.
+- **Folders.** On Mac, iPhone, iPad and Android, ⚙ → **Folders** shows where the saves and the game are (Mac and Android: **Open**).
+- **Screen layouts.** Choose 800×600, 1024×768 or 1280×1024 in the game's Options. Smaller layouts make text and controls larger, and the adventure map widens to fit the screen. Switch keeps separate handheld and docked choices.
+- **Interface language.** The app's settings can follow the game's language or use a separate language. App text is available in English, Ukrainian, German, French, Italian, Spanish, Polish and Russian.
+- **More GOG editions.** Supported English, German, French, Italian and Spanish editions install directly. The Polish edition requires the executable from the supported English edition. See the README for the supported GOG build.
+- **Renderer setting** (Mac, iPhone, iPad, Android). Choose Auto, GPU or CPU. On Android, Auto can fall back to CPU rendering on the next launch when it detects a slow GPU.
+
+**Changed**
+
+- Web: the start page keeps only the language; **Skip the intro movies** and **Black side panels** are in ⚙ (your earlier choice is kept), and **Start** always opens full screen. The ☕ button opens Ko-fi in a new tab.
+- Changing the game's language restarts the app on Linux, Mac and Android.
+
+**Fixed**
+
+- Web: copying the game into the browser's storage failed in Safari ("An operation that depends on state cached in an interface object…").
+- The game's fullscreen option now controls the app window or the browser's fullscreen mode where available.
+- Android keeps the game clear of display cutouts and rounded corners.
+- The Windows launcher starts the game from its game directory.
+- Switch 2 uses SDL's OpenGL ES renderer.
+
+## 0.4.1
+
+Windows, the scaling filter's name on screen, better random maps, and fixes.
+
+| Device | File |
+|---|---|
+| Mac, macOS 13+ | `reHoMM4-v0.4.1-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v0.4.1-macos-x86_64.dmg` (Intel) |
+| iPhone, iPad, iOS / iPadOS 17+ | `reHoMM4-v0.4.1-ios.ipa` (install with AltStore or Sideloadly) |
+| Android 10+, 64-bit | `reHoMM4-v0.4.1-android_arm64.apk` |
+| Windows 10 or 11, 64-bit | `reHoMM4-v0.4.1-windows-x86_64.zip`: unzip, start `ReHoMM4\ReHoMM4.exe` |
+| Linux, Steam Deck | `reHoMM4-v0.4.1-linux-x86_64.tar.gz` (x86-64) or `reHoMM4-v0.4.1-linux-arm64.tar.gz` (64-bit ARM) |
+| Switch (homebrew) | `reHoMM4-v0.4.1-switch.nro` |
+| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.4.1-switch2.nro` |
+| Web browser (computer, phone or tablet; 64-bit Chrome, Edge, Firefox, Safari) | `reHoMM4-v0.4.1-web.zip`: unzip, run `python3 serve.py` in it, open http://localhost:8080 (or put it on an HTTPS server) |
+
+**New**
+- **Windows**: a portable app for 64-bit Windows 10 and 11 (Vulkan drivers), with the side panels, ⚙ settings, save sync and fullscreen. It is not signed: if Windows says "Windows protected your PC", **More info** → **Run anyway** (README: Windows).
+- **The picture scaling on screen**: F10 (or **⚙ → Scaling** on iPhone, iPad and Android) shows the filter chosen and its number for two seconds, "Scaling 7/7: FSR". The choice is remembered for the next start. README: Picture scaling, with the seven filters.
+- **Random maps**:
+  - the panel in the game's style: its dialog frame, parchment and big buttons, a bigger title, sharp button text;
+  - the hero's card: the name, faction and class under the portrait, the skills beside it, the army the game really gives, the biography larger and scrolling;
+  - a template made for some number of players sets it (Three on three: 6), and its teams (Allies, Three on three);
+  - the random map button also in the New Scenario dialog opened from the adventure map;
+  - the failures' reasons in Ukrainian, in red.
+
+**Changed**
+- Random maps (generator 3: a seed now makes another map than in 0.4):
+  - paths are no longer covered by trees, and there are fewer walls of forest;
+  - on large and extra large island maps the sea between the islands is wider, by the seed;
+  - every player can be made human in the game's setup (computers were computer only);
+  - no extra starting army on top of the game's own (a Life hero had 16 squires and 6 swordsmen more than the game gives).
+
+**Fixed**
+- Random maps: obelisks are on the map (they were written as another object and not shown).
+- The adventure map's frame: the top right corner under the dragon on wide screens.
+- Android: the gamepad settings (pointer and scroll speed, the buttons) were not applied.
+
+**Known limits**
+- The Mac and Windows apps are not signed: the first time, right-click the Mac app → **Open** → **Open**; on Windows see above.
+- The Switch app has been tested only in the Astris emulator, not on a real console.
+- The Switch 2 app has not been tested on a console.
+
 ## 0.4
 
 Random maps, Switch 2, the game in a web browser, a new icon, and fixes.

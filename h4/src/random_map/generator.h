@@ -17,7 +17,7 @@ namespace h4::random_map {
 // The generator's version, written into each map's description: raised whenever the same
 // settings and seed give another map than before (tests/random_map's hashes change), so that an
 // older map's editor can tell it will not be made again the same.
-constexpr int kGeneratorVersion = 2;
+constexpr int kGeneratorVersion = 3;  // 3: forests thinner, the paths' sides clear
 
 struct PlayerSetup {
   bool human = true;

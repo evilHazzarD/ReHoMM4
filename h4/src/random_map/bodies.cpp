@@ -153,17 +153,4 @@ std::vector<uint8_t> HeroArmy(uint8_t owner, const HeroRecord& h) {
   return o.b;
 }
 
-std::vector<std::pair<int16_t, uint16_t>> StartArmy(int faction) {
-  // Creature numbers: the exe's creature list order (upstream's heroinfo.CREATURES).
-  switch (faction) {
-    case 0: return {{54, 16}, {12, 6}};  // squire, crossbowman
-    case 1: return {{18, 14}, {29, 9}};  // dwarf, halfling
-    case 2: return {{53, 19}, {33, 11}};  // skeleton, imp
-    case 3: return {{46, 12}, {3, 10}};  // orc, bandit
-    case 4: return {{65, 11}, {55, 9}};  // wolf, sprite
-    case 5: return {{6, 14}, {9, 4}};    // berserker, centaur
-    default: return {};
-  }
-}
-
 }  // namespace h4::random_map

@@ -16,7 +16,7 @@ import java.io.IOException;
 
 // The app's files (getExternalFilesDir: game/, player/... with the saves) as a place of the
 // system's Files app (DocumentsUI): Android 11+ lets no file manager into Android/data, so the
-// settings' Open buttons (HeroesActivity.openFolder) open the folders here, and the player can
+// settings' Open buttons (HeroesActivity.h4OpenFolder) open the folders here, and the player can
 // copy saves and the game's files in and out. A document's id: "root", or "root/" + its path below
 // the root (DocumentsUI takes no empty id).
 public final class FilesProvider extends DocumentsProvider {

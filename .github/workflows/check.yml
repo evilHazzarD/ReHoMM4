@@ -19,6 +19,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          submodules: recursive
       - name: publish check (tree + history)
         run: python3 tools/release/publish_check.py --history ${{ github.event.repository.private && '--private' || '' }}
       - name: release rule (Ukrainian + English versions, README says how to get each)
@@ -26,6 +27,13 @@ jobs:
         run: python3 tools/release/publish_check.py --release ${{ github.event.repository.private && '--private' || '' }}
       - name: python tools compile
         run: python3 -m py_compile tools/re/*.py tools/release/*.py platforms/*.py platforms/macos-dmg/*.py platforms/tools/*.py tools/re/collage/*.py
+      - name: browser converter contract
+        run: |
+          node converter/test/validate.mjs
+          node converter/test/dynamic_abi.mjs
+          python3 converter/test/game_manifest.py
+      - name: dynamic converter adaptation applies
+        run: git -C third_party/game-recomp apply --check "$GITHUB_WORKSPACE/converter/patches/game-recomp-manifest-dir.patch"
       - name: shell scripts parse
         run: for f in tools/*.sh tools/release/*.sh platforms/*.sh platforms/*/*.sh assets/icon/*.sh tests/scripts/*.sh; do bash -n "$f"; done
       - name: collage tool compiles

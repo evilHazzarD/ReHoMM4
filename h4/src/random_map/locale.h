@@ -1,23 +1,14 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <string_view>
-#include <utility>
-#include <vector>
 
 namespace h4::random_map {
 
-// The generator's own words (its panel, buttons and messages) in the game's language. The game's
-// fonts hold a Windows code page's bytes, not UTF-8: a translation's words are kept in UTF-8
-// (translations.cpp) and given as the code page of its language.
-//
-// A new language: a block in translations.cpp (its code as the settings give it, H4_LANG, and
-// the English words it has); a word left out shows in English.
-struct Translation {
-  const char* code;  // "uk"
-  std::vector<std::pair<const char*, const char*>> words;  // English -> UTF-8
-};
-const std::vector<Translation>& Translations();
+// The generator's own words (its panel, buttons and messages) in the game's language: the app's
+// words (ui_text.h, h4/ui_text/<code>.json). The game's fonts hold a Windows code page's bytes, not
+// UTF-8: they are given as the code page of the language.
 
 // The code page of the game's fonts in a language ("uk": 1251, "pl": 1250; else 1252).
 int CodePage(std::string_view code);
@@ -36,7 +27,7 @@ class Locale {
  private:
   std::string code_ = "en";
   int code_page_ = 1252;
-  const Translation* translation_ = nullptr;
+  const std::map<std::string, std::string>* words_ = nullptr;  // UiWords(code_)
 };
 
 }  // namespace h4::random_map

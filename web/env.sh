@@ -23,7 +23,8 @@ export CFLAGS="$WEB_FLAGS" CXXFLAGS="$WEB_FLAGS" LDFLAGS="-pthread -fwasm-except
 web_emsdk() {  # the SDK on PATH (installed the first time)
   if [[ ! -f "$EMSDK/emsdk_env.sh" ]]; then
     git clone -q --depth 1 https://github.com/emscripten-core/emsdk.git "$EMSDK"
-    "$EMSDK/emsdk" install latest && "$EMSDK/emsdk" activate latest >/dev/null
+    local sdk_version="${H4_EMSDK_VERSION:-7.0.1}"
+    "$EMSDK/emsdk" install "$sdk_version" && "$EMSDK/emsdk" activate "$sdk_version" >/dev/null
     rm -rf "$EMSDK/downloads"
   fi
   # shellcheck disable=SC1091

@@ -87,7 +87,10 @@ if [[ $TARGET == ios ]]; then
 elif [[ $TARGET == android ]]; then
   cmake -S "$ROOT/h4" -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo "${CMAKE_TARGET_ARGS[@]}" \
     "${FETCH[@]}" "${HOSTTOOLS[@]}" "${LANG_ARGS[@]}" >"$B.configure.log" 2>&1 || { tail -40 "$B.configure.log"; exit 1; }
-  { cmake --build "$B" --target h4 -j"$JOBS" 2>&1 | grep -E 'error|FAILED|Linking' || true; } | head -40
+  # Its own log: a failed compile must stop here, not leave the last build's binary to be packed.
+  build_ok=1; cmake --build "$B" --target h4 -j"$JOBS" >"$B.build.log" 2>&1 || build_ok=0
+  { grep -E 'error|FAILED|Linking' "$B.build.log" || true; } | head -40
+  [[ $build_ok == 1 ]] || die "the build failed (log: $B.build.log)"
   [[ -f "$B/libmain.so" ]] || die "libmain.so was not built (log above)"
   python3 -I "$ROOT/platforms/notices.py" android "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null
   # The launcher icon (assets/icon, as the iOS one).
@@ -112,7 +115,10 @@ if [[ $TARGET == linux* || $TARGET == macos-* || $TARGET == windows-* ]]; then
   cmake -S "$ROOT/h4" -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo "${CMAKE_TARGET_ARGS[@]}" \
     "${FETCH[@]}" "${HOSTTOOLS[@]}" "${LANG_ARGS[@]}" "${desktop_args[@]}" \
     >"$B.configure.log" 2>&1 || { tail -40 "$B.configure.log"; exit 1; }
-  { cmake --build "$B" --target h4 -j"$JOBS" 2>&1 | grep -E 'error|FAILED|Linking' || true; } | head -40
+  # Its own log: a failed compile must stop here, not leave the last build's binary to be packed.
+  build_ok=1; cmake --build "$B" --target h4 -j"$JOBS" >"$B.build.log" 2>&1 || build_ok=0
+  { grep -E 'error|FAILED|Linking' "$B.build.log" || true; } | head -40
+  [[ $build_ok == 1 ]] || die "the build failed (log: $B.build.log)"
   [[ -f "$B/heroes4" || -f "$B/heroes4.exe" ]] || die "heroes4 was not built (log above)"
   notice_target="${TARGET%%-*}"; [[ $TARGET == windows-* ]] && notice_target=windows
   python3 -I "$ROOT/platforms/notices.py" "$notice_target" "$B" "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" >/dev/null

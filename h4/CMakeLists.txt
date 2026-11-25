@@ -40,11 +40,11 @@ if(TARGET h4_lifted)
   # multiply-add) so a seed makes the same map on every target.
   set(_h4_random_map src/random_map/bodies.cpp src/random_map/catalog.cpp src/random_map/container.cpp
       src/random_map/font.cpp src/random_map/generator.cpp src/random_map/objects.cpp
-      src/random_map/hero_card.cpp src/random_map/locale.cpp src/random_map/map_settings.cpp src/random_map/panel.cpp
-      src/random_map/resources.cpp src/random_map/scenario.cpp src/random_map/translations.cpp
+      src/random_map/hero_card.cpp src/random_map/locale.cpp src/random_map/map_settings.cpp src/random_map/panel.cpp src/random_map/art.cpp
+      src/random_map/resources.cpp src/random_map/scenario.cpp
       src/random_map/storage.cpp src/random_map/template.cpp src/random_map/templates_shipped.cpp src/random_map/tiles.cpp src/random_map/transitions.cpp)
   set_source_files_properties(${_h4_random_map} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
-  list(APPEND _h4_sources src/random_map_ui.cpp ${_h4_random_map})
+  list(APPEND _h4_sources src/random_map_ui.cpp src/filter_notice.cpp src/renderer.cpp src/ui_text.cpp ${_h4_random_map})
   set(_h4_libs recomp_runtime recomp_mss32 recomp_dsound recomp_bink recomp_d3d7)
   # H4_DESKTOP_APP: the Linux (Steam Deck) and Mac app builds, made like the mobile ones
   # (platforms/build.sh linux|macos-*): one binary with the in-app installer, the translation and the
@@ -60,6 +60,8 @@ if(TARGET h4_lifted)
     list(APPEND _h4_sources src/install/installer.cpp src/install/gog.cpp src/install/inno.cpp
          src/install/manifest.cpp src/install/json.cpp src/install/hash.cpp
          src/language.cpp src/intro.cpp src/window_mode.cpp src/pad_config.cpp)
+    # The settings over the main menu, drawn into the frame (src/menu_button.h, src/app_ui/).
+    list(APPEND _h4_sources src/menu_button_drawn.cpp src/app_ui/text.cpp src/app_ui/ui.cpp)
     find_library(H4_INNOEXTRACT recomp_innoextract REQUIRED)
     find_library(H4_LZMA lzma REQUIRED)
     find_path(H4_INNOEXTRACT_INCLUDE recomp_innoextract.h REQUIRED)
@@ -82,7 +84,7 @@ if(TARGET h4_lifted)
     target_compile_definitions(h4 PRIVATE H4_DESKTOP_APP=1)
     target_link_libraries(h4 PRIVATE ${H4_INNOEXTRACT} ${H4_LZMA} z bz2 iconv "-framework AppKit" "-framework WebKit")
   elseif(H4_SWITCH_APP)
-    add_executable(h4 ${_h4_sources} src/install/platform_switch.cpp src/menu_button_linux.cpp
+    add_executable(h4 ${_h4_sources} src/install/platform_switch.cpp
                    $<TARGET_OBJECTS:h4_lifted>)
     set_target_properties(h4 PROPERTIES OUTPUT_NAME heroes4 SUFFIX ".elf")
     target_compile_definitions(h4 PRIVATE H4_SWITCH_APP=1)
@@ -91,7 +93,7 @@ if(TARGET h4_lifted)
     # Threads without a stack size get 8 MB, not libnx's 128 KB (install/platform_switch.cpp).
     target_link_options(h4 PRIVATE "-Wl,--wrap=pthread_create")
   elseif(H4_DESKTOP_APP)
-    add_executable(h4 ${_h4_sources} src/install/platform_desktop.cpp src/menu_button_linux.cpp
+    add_executable(h4 ${_h4_sources} src/install/platform_desktop.cpp
                    src/save_sync.cpp $<TARGET_OBJECTS:h4_lifted>)
     set_target_properties(h4 PROPERTIES OUTPUT_NAME heroes4 BUILD_WITH_INSTALL_RPATH ON
                           INSTALL_RPATH "$ORIGIN/lib")
@@ -200,6 +202,15 @@ if(TARGET h4_lifted)
       target_compile_definitions(h4 PRIVATE H4_LANGUAGES_INC="${H4_LANGUAGES_INC}")
       set_property(SOURCE src/language.cpp APPEND PROPERTY OBJECT_DEPENDS "${H4_LANGUAGES_INC}")
     endif()
+  endif()
+  # The app's words in the game's languages (src/ui_text.h): h4/ui_text/*.json built in.
+  include(cmake/ui_text.cmake)
+  h4_ui_text(h4)
+  if(ANDROID OR IOS OR H4_DESKTOP_APP OR H4_WINDOWS_APP OR H4_SWITCH_APP)
+    # The settings' own fonts (src/app_ui/text.h): h4/fonts/*.ttf built in, drawn with stb_truetype.
+    include(cmake/ui_fonts.cmake)
+    h4_ui_fonts(h4)
+    target_include_directories(h4 PRIVATE third_party/stb)
   endif()
   # Our HLE handlers (hle_extra.cpp, ...) override the runtime's in any link order.
   target_compile_definitions(h4 PRIVATE RECOMP_HLE_PRIORITY=1)

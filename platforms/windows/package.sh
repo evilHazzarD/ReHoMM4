@@ -18,13 +18,17 @@ WINPTHREAD="$(x86_64-w64-mingw32-g++ -print-sysroot)/x86_64-w64-mingw32/bin/libw
 [[ -f "$WINPTHREAD" ]] || { echo "no libwinpthread-1.dll in the MinGW toolchain" >&2; exit 1; }
 cp "$WINPTHREAD" "$D/libwinpthread-1.dll"
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$D/THIRD_PARTY_NOTICES.txt"
+# As the Linux app: the side panels and the translations built in.
+[[ -d "$MOBILE_CACHE/res/wings" ]] && cp -R "$MOBILE_CACHE/res/wings" "$D/wings"
+for p in "$MOBILE_CACHE"/res/*.h4p; do [[ -f "$p" ]] || continue; cp "$p" "$D/"; done
 cat > "$D/README.txt" <<'TXT'
 Heroes of Might and Magic IV for Windows (ReHoMM4)
 
-This archive contains no game files. Buy Heroes of Might and Magic IV: Complete from GOG, then
-start ReHoMM4.exe. The first start installs the game from your GOG account, GOG's offline
-installer files, or an already installed game folder. Saves and settings are in
+This archive contains no game files. Unpack its contents directly into the GOG game's folder, beside
+heroes4.exe, then start ReHoMM4.exe. It does not replace the game files. Saves and settings are in
 %LOCALAPPDATA%\\ReHoMM4; save sync uses Documents\\ReHOMM4 (or `folder=` in player\\sync.conf).
+The older preview location %LOCALAPPDATA%\\ReHoMM4\\game also still works.
 TXT
-(cd "$OUT" && zip -qry "HeroesIV-windows-x86_64.zip" ReHoMM4)
+# Keep the archive flat: extract it directly into a GOG game's directory.
+(cd "$D" && zip -qry "$OUT/HeroesIV-windows-x86_64.zip" .)
 echo "$TARGET: $OUT/HeroesIV-windows-x86_64.zip ($(du -sh "$OUT/HeroesIV-windows-x86_64.zip" | cut -f1))"

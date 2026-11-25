@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
   // Keys go to the game only while the canvas has the focus (the page's own controls keep theirs).
   SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
   SDL_SetHint(SDL_HINT_EMSCRIPTEN_CANVAS_SELECTOR, "#canvas");
-  chdir("/");  // ui/ (menu_button_linux.cpp's UiDir falls back to it relative)
+  chdir("/");
   std::printf("h4-web: starting (storage: %s)\n", kept ? "OPFS" : "memory");
   std::fflush(stdout);
   const int code = h4_game_main(argc, argv);

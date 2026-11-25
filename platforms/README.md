@@ -32,8 +32,9 @@ platforms/build.sh windows-x86_64     # -> .cache/outputs/windows-x86_64/dist/He
 ```
 
 The Windows build is cross-compiled on the Mac with Homebrew's MinGW-w64 (`brew install mingw-w64`).
-It is a portable folder containing `ReHoMM4.exe` and `SDL3.dll`; it uses an existing GOG game
-installation passed with `--game-dir` (or `H4_GAME_DIR`).
+Its ZIP is intentionally flat: unpack its contents into an existing GOG game directory (beside
+`heroes4.exe`) and start `ReHoMM4.exe`. The older preview game location
+`%LOCALAPPDATA%\ReHoMM4\game` is still detected; `--game-dir` and `H4_GAME_DIR` remain overrides.
 
 `tools/build.sh` also builds the Mac DMG; for the mobile builds only its first steps are needed
 (stop it after "Recompiling the game" if you like). It applies every `patches/x86recomp-*.patch`,
@@ -82,8 +83,9 @@ the APK's certificate against `platforms/android/release-cert.sha256`. Keep copi
 and its password somewhere safe (a password manager, an encrypted drive): if they are lost, no
 update can ever be made for the installed app.
 
-**The game files.** Without them the app opens its installer (English Heroes IV Complete, the GOG
-version this port is made for):
+**The game files.** Without them the app opens its installer (Heroes IV Complete, the GOG version
+3.0 win11 GOG 0.2 this port is made for: its English, German, French, Italian and Spanish
+`heroes4.exe` are the same program; the Polish one needs the English `heroes4.exe` beside it):
 
 - **Sign in to GOG.com and download.** GOG's own login page opens in the app; the app checks that
   your account owns *Heroes of Might and Magic 4: Complete* and downloads its files (1.0 GB) from
@@ -133,9 +135,10 @@ managed and released on their own; this repository does not include it (its `TRA
 explains how to add a language). They reach players **only through a release** of it (its
 `tools/release.sh`). Its
 `languages.json` lists each language with its pack (`<code>.h4p`: the difference between the
-game's archives and the translated ones, ~34 MB for Ukrainian). On Linux and the Switch the
-button and the list are put together from generic pictures in the app ("🌐 UK": the language's
-code), so a new language needs nothing more there.
+game's archives and the translated ones, ~34 MB for Ukrainian). In every app the settings draw
+their own text (`h4/src/app_ui`: the game's font, or the app's
+Noto Sans in `h4/fonts`), so a new language needs nothing more there unless its script is new to
+those fonts.
 
 - **The app** reads the latest release's `languages.json` at every start, in the background, and
   keeps it in `<player files>/languages.json`. A new language shows in the list at once. A
@@ -423,7 +426,7 @@ folder with `heroes4`, `lib/libSDL3.so.0`, the wings and (when built in) the tra
 the mobile app's way of working: the in-app installer (GOG sign-in in the browser: the address
 it ends on is copied or pasted back; or the GOG installer files from `~/Downloads`, or picked with
 the desktop's dialog: kdialog/zenity), the game and saves in `~/.local/share/ReHoMM4/`, the
-language button drawn into the frame (pictures in `ui/`, made by `platforms/linux/render_ui.swift`),
+settings drawn into the frame in the game's dialogs' look (`h4/src/app_ui`),
 the translation downloaded when first chosen (or built in). Video: SDL3 on X11 (Game Mode's gamescope
 and the desktop's Xwayland) with Vulkan; audio through PipeWire, PulseAudio or ALSA, all loaded at
 run time, so the binary needs only libc, libm and zlib.
@@ -467,7 +470,7 @@ faults, no watchdog); file views are copies. Input: the touch screen as on the p
 On the SD card: `sdmc:/switch/ReHoMM4/ReHoMM4.nro` and, beside it, the GOG installer files
 (`setup_heroes_of_might_and_magic_4_complete_...exe` and `-1.bin`): the installer finds them there
 (no file picker or GOG sign-in on the Switch); the game goes to `.../ReHoMM4/game`, saves to
-`.../player`. The wings, the language button's pictures and (when built in) the translation are
+`.../player`. The wings and (when built in) the translation are
 in the .nro's romfs.
 
 ### Nintendo Switch 2

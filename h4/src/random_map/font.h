@@ -18,9 +18,10 @@ class Font {
   bool Load(const Resources& res, std::string_view name);
   int Height() const { return line_; }
   int Width(std::string_view text) const;
-  // Draws `text` with its top-left at (x, y) into an ARGB canvas of w x h.
+  // Draws `text` with its top-left at (x, y) into an ARGB canvas of w x h; `shadow` false: without
+  // the font's dark shadow (dark ink on parchment, as the game's own dialogs write).
   void Draw(std::vector<uint32_t>& canvas, int w, int h, int x, int y, std::string_view text,
-            uint32_t ink) const;
+            uint32_t ink, bool shadow = true) const;
 
  private:
   struct Glyph {

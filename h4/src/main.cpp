@@ -28,7 +28,11 @@
 #include <shlobj.h>
 #include <direct.h>
 // MinGW exposes the Microsoft spellings only. Keep the app code below POSIX-shaped.
-static int setenv(const char* name, const char* value, int) { return _putenv_s(name, value); }
+// POSIX's: an existing variable kept unless `overwrite`.
+static int setenv(const char* name, const char* value, int overwrite) {
+  if (!overwrite && std::getenv(name)) return 0;
+  return _putenv_s(name, value);
+}
 static int mkdir(const char* path, int) { return _mkdir(path); }
 #endif
 // The Linux (Steam Deck) and Mac app builds (H4_DESKTOP_APP, platforms/build.sh linux|macos-*) work
@@ -45,8 +49,14 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 #if defined(H4_SWITCH_APP)
 #include <switch.h>
 #endif
+#if defined(H4_WEB_APP)
+#include <emscripten.h>
+#endif
 
 #if defined(H4_MOBILE)
+#include "filter_notice.h"
+#include "renderer.h"
+#include "ui_text.h"
 #include "install/installer.h"
 #include "intro.h"
 #include "window_mode.h"
@@ -63,7 +73,23 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 #if defined(__APPLE__) && TARGET_OS_IOS
 namespace h4 {
 bool IosSafeAreaMargin(float* fraction);
+bool IosPhone();     // an iPhone (not an iPad)
+bool IosIpadMini();  // an iPad mini
+bool IosBigPhone();  // a Plus or Pro Max iPhone
 }
+#endif
+#if defined(__ANDROID__)
+namespace h4 {
+bool AndroidSafeAreaMargin(float* fraction);  // menu_button_android.cpp: the camera notch's side
+bool AndroidSmallScreen();  // a phone's screen (smallest width under 600 dp)
+}
+#endif
+
+#if defined(H4_SWITCH_APP)
+namespace h4 {
+// In the hands (not in the dock): resolution.cpp follows a change while the game runs.
+bool SwitchHandheld() { return appletGetOperationMode() == AppletOperationMode_Handheld; }
+}  // namespace h4
 #endif
 
 namespace {
@@ -77,6 +103,23 @@ bool IsFile(const std::string& p) {
   struct stat st;
   return stat(p.c_str(), &st) == 0 && S_ISREG(st.st_mode);
 }
+
+#if defined(H4_WINDOWS_APP)
+// The earlier Windows preview kept its downloaded game under LocalAppData.  Keep
+// that location readable after the portable release started living beside the
+// game's own heroes4.exe.
+std::string WindowsStorageDir() {
+  PWSTR known = nullptr;
+  if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &known))) {
+    const int n = WideCharToMultiByte(CP_UTF8, 0, known, -1, nullptr, 0, nullptr, nullptr);
+    std::string base(n > 0 ? n - 1 : 0, '\0');
+    if (n > 1) WideCharToMultiByte(CP_UTF8, 0, known, -1, base.data(), n, nullptr, nullptr);
+    CoTaskMemFree(known);
+    return base + "/ReHoMM4";
+  }
+  return "./ReHoMM4";
+}
+#endif
 
 #if defined(H4_MOBILE)
 void MakeDirs(const std::string& p) {
@@ -195,7 +238,7 @@ void ChooseLanguage(const std::string& game, const std::string& data) {
   }
   if (IsFile(data + "/uk.h4p")) all.push_back(data + "/uk.h4p");
   auto downloaded = [&](const h4::LanguageInfo& l) {
-    return packs + "/" + l.code + "-" + l.sha256.substr(0, 12) + ".h4p";
+    return h4::DownloadedPack(data, l);
   };
   std::string lang = "en";
   if (FILE* f = std::fopen(saved_path.c_str(), "r")) {
@@ -277,6 +320,13 @@ void MobileDirs(std::string* user_files, std::string* data) {
   // $XDG_DATA_HOME (~/.local/share); Mac: ~/Library/Application Support.
   const char* home = std::getenv("HOME");
 #if defined(_WIN32)
+#if defined(H4_WINDOWS_APP)
+  // The portable executable is put beside heroes4.exe.  Player data stays out
+  // of the game installation, so an update never touches saves or settings.
+  const char* base = SDL_GetBasePath();
+  *user_files = base ? base : ".";
+  *data = WindowsStorageDir() + "/player";
+#else
   PWSTR known = nullptr;
   if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &known))) {
     const int n = WideCharToMultiByte(CP_UTF8, 0, known, -1, nullptr, 0, nullptr, nullptr);
@@ -287,6 +337,8 @@ void MobileDirs(std::string* user_files, std::string* data) {
   } else {
     *user_files = "./ReHoMM4";
   }
+  *data = *user_files + "/player";
+#endif
 #elif defined(__APPLE__)
   *user_files = std::string(home ? home : ".") + "/Library/Application Support/ReHoMM4";
 #else
@@ -294,7 +346,9 @@ void MobileDirs(std::string* user_files, std::string* data) {
   *user_files = (xdg && *xdg ? std::string(xdg) : std::string(home ? home : ".") + "/.local/share") +
                 "/ReHoMM4";
 #endif
+#if !defined(H4_WINDOWS_APP)
   *data = *user_files + "/player";
+#endif
 #elif defined(__ANDROID__)
   // The app's external files dir: adb push/pull reach it (a release build's internal storage is
   // closed to adb), and it is removed with the app like the internal one.
@@ -337,7 +391,51 @@ std::string MobileSetup() {
   setvbuf(stdout, nullptr, _IOLBF, 0);
   setvbuf(stderr, nullptr, _IOLBF, 0);
 #endif
+  // Testing on a device whose environment cannot be set (a phone): <player>/env, one KEY=VALUE a
+  // line (H4_GFX=soft, H4_FPS_REPORT=5...), read before anything looks at them.
+  if (FILE* f = std::fopen((data + "/env").c_str(), "r")) {
+    char line[256];
+    while (std::fgets(line, sizeof line, f)) {
+      std::string s(line);
+      while (!s.empty() && (s.back() == '\n' || s.back() == '\r' || s.back() == ' ')) s.pop_back();
+      const size_t eq = s.find('=');
+      if (s.empty() || s[0] == '#' || eq == std::string::npos || eq == 0) continue;
+      setenv(s.substr(0, eq).c_str(), s.substr(eq + 1).c_str(), 1);
+      std::printf("h4: env %s\n", s.c_str());
+    }
+    std::fclose(f);
+  }
   h4::LoadSkipIntro(data + "/skip_intro");
+  h4::LoadUiLanguageChoice(data);  // the interface's language, if not the game's (ui_text.h)
+#if defined(__ANDROID__) || defined(__APPLE__)
+  h4::LoadRenderer(data);  // before the graphics device is made
+#endif
+  // The layout when none is chosen: 800x600 on phones (in their browsers too), 1024x768 on
+  // the big iPhones (Plus, Pro Max), Android tablets and the iPad mini, 1280x1024 on the other iPads and on desktops whose screen has the pixels for it (else 1024x768); the Switch 800x600 in the
+  // hands and 1024x768 on the TV, each kept apart.
+#if defined(__ANDROID__)
+  h4::LoadLayout(data, h4::AndroidSmallScreen() ? "800" : "1024");
+#elif defined(__APPLE__) && TARGET_OS_IOS
+  h4::LoadLayout(data, h4::IosPhone() ? (h4::IosBigPhone() ? "1024" : "800") : h4::IosIpadMini() ? "1024" : "1280");
+#elif defined(H4_SWITCH_APP)
+  if (h4::SwitchHandheld())
+    h4::LoadLayout(data, "800", "layout_handheld");
+  else
+    h4::LoadLayout(data, "1024", "layout_docked");
+#elif defined(H4_WEB_APP)
+  {
+    const int kind = MAIN_THREAD_EM_ASM_INT({
+      const touch = matchMedia('(pointer: coarse)').matches;
+      const short_side = Math.min(screen.width, screen.height);
+      return touch && short_side < 600 ? 0 : touch ? 1 : 2;  // a phone, a tablet, a computer
+    });
+    // (a computer: 1280x1024, as it always was; the window is scaled to the page anyway)
+    h4::LoadLayout(data, kind == 0 ? "800" : kind == 1 ? "1024" : "1280");
+  }
+#else  // the desktop apps
+  h4::LoadLayout(data, "desktop");
+#endif
+  h4::LoadFilter(data + "/filter");  // before the default below
   h4::LoadPadConfig(data + "/gamepad.conf");
 #if defined(H4_DESKTOP_APP)
   h4::LoadWindowMode(data + "/windowed");
@@ -362,31 +460,63 @@ std::string MobileSetup() {
     std::printf("h4: safe area: %.1f%% of the width kept clear on each side\n", margin * 100);
   }
 #endif
+#if defined(__ANDROID__)
+  {  // The same off the camera notch (the app draws under it: windowLayoutInDisplayCutoutMode).
+    const char* sa = std::getenv("H4_SAFE_AREA");
+    float margin = 0;
+    if (!(sa && !std::strcmp(sa, "0")) && h4::AndroidSafeAreaMargin(&margin) && margin > 0) {
+      recomp::gfx::SetOutputInsets(margin, margin);
+      std::printf("h4: safe area: %.1f%% of the width kept clear on each side (the notch)\n", margin * 100);
+    } else {
+      std::printf("h4: safe area: no notch\n");
+    }
+  }
+#endif
   setenv("H4_SIDE_PANELS_FILE", (data + "/side-panels.txt").c_str(), 0);
+  // H4_SIDE_PANELS (black, wings) with no setting yet: the browser page's choice of older versions
+  // (or its default, black), kept as the setting.
+  if (const char* sp = std::getenv("H4_SIDE_PANELS"); sp && *sp) {
+    if (FILE* f = std::fopen(h4::SidePanelsPath(), "r")) std::fclose(f);
+    else h4::SaveBlackSidePanels(std::strcmp(sp, "black") == 0);
+  }
   // The player's own wings/ folder first, else the app's.
   if (IsDir(files + "/wings")) setenv("H4_WINGS_DIR", (files + "/wings").c_str(), 0);
   else if (const std::string w = AppWings(); !w.empty()) setenv("H4_WINGS_DIR", w.c_str(), 0);
+  auto use_game = [&](const std::string& game) {
+    std::printf("h4: game %s, player files %s\n", game.c_str(), data.c_str());
+    ChooseLanguage(game, data);
+    h4::SetGameFolder(game);
+    std::fflush(stdout);
+    return game;
+  };
+  // The portable Windows release is unpacked directly into an existing GOG
+  // installation, so its launcher and heroes4.exe are siblings.
+#if defined(H4_WINDOWS_APP)
+  if (IsFile(files + "/heroes4.exe")) return use_game(files);
+#endif
   // A translated copy made by hand (game-<code>) when that language is asked for, else game/.
   const char* lang = std::getenv("H4_LANG");
   const std::string own = lang && *lang && std::strcmp(lang, "en") ? std::string("game-") + lang : "";
   for (const std::string& d : {own, std::string("game")}) {
     if (!d.empty() && IsDir(files + "/" + d)) {
-      std::printf("h4: game %s/%s, player files %s\n", files.c_str(), d.c_str(), data.c_str());
-      if (d == "game") ChooseLanguage(files + "/" + d, data);
-      h4::SetGameFolder(files + "/" + d);
-      std::fflush(stdout);
-      return files + "/" + d;
+      return use_game(files + "/" + d);
     }
   }
+  std::string install_files = files;
+#if defined(H4_WINDOWS_APP)
+  // Existing preview installs remain usable.  New installs still go to the
+  // private storage, not into a possibly read-only GOG directory.
+  install_files = WindowsStorageDir();
+  if (install_files != files) {
+    for (const std::string& d : {own, std::string("game")})
+      if (!d.empty() && IsDir(install_files + "/" + d)) return use_game(install_files + "/" + d);
+  }
+#endif
   // No game yet: the in-app installer (GOG.com download or GOG's offline installer).
   std::fflush(stdout);
-  const std::string installed = h4::install::RunInstaller(files, g_install_auto);
+  const std::string installed = h4::install::RunInstaller(install_files, g_install_auto);
   if (!installed.empty()) {
-    std::printf("h4: game %s, player files %s\n", installed.c_str(), data.c_str());
-    ChooseLanguage(installed, data);
-    h4::SetGameFolder(installed);
-    std::fflush(stdout);
-    return installed;
+    return use_game(installed);
   }
   return "";
 }
@@ -479,6 +609,10 @@ int main(int argc, char** argv) {
   // (smooth.cpp) is updated at most every 16 ms, so faster only costs GPU
   // work and battery. H4_MAX_FPS=0 shows every refresh.
   game.max_frame_rate = 60;
+#if H4_WEB_DYNAMIC
+  extern bool h4_prepare_dynamic_game(const char* path);
+  if (!h4_prepare_dynamic_game(exe.c_str())) return 2;
+#endif
   return recomp::RunProcess(game, exe, game_dir, game_args);
 }
 

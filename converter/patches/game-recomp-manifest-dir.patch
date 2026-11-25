@@ -1,0 +1,49 @@
+diff --git a/recomp/crates/rc-convert/build.rs b/recomp/crates/rc-convert/build.rs
+index 0eca081..d731257 100644
+--- a/recomp/crates/rc-convert/build.rs
++++ b/recomp/crates/rc-convert/build.rs
+@@ -7,5 +7,11 @@ use std::path::PathBuf;
+ fn main() {
+-    let games = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../games");
++    println!("cargo:rerun-if-env-changed=RC_MANIFESTS_DIR");
++    let games = std::env::var_os("RC_MANIFESTS_DIR")
++        .map(PathBuf::from)
++        .unwrap_or_else(|| {
++            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
++                .join("../../../games")
++        });
+     println!("cargo:rerun-if-changed={}", games.display());
+     let mut list: Vec<PathBuf> = std::fs::read_dir(&games)
+         .map(|d| {
+diff --git a/recomp/crates/rc-web/build.rs b/recomp/crates/rc-web/build.rs
+index 5381266..f2b03c5 100644
+--- a/recomp/crates/rc-web/build.rs
++++ b/recomp/crates/rc-web/build.rs
+@@ -37,7 +37,10 @@ fn main() {
+         files(&d.join("src"), &mut list);
+         list.push(d.join("Cargo.toml"));
+     }
+-    let games = crates.join("../../games");
++    println!("cargo:rerun-if-env-changed=RC_MANIFESTS_DIR");
++    let games = std::env::var_os("RC_MANIFESTS_DIR")
++        .map(PathBuf::from)
++        .unwrap_or_else(|| crates.join("../../games"));
+     println!("cargo:rerun-if-changed={}", games.display());
+     if let Ok(d) = std::fs::read_dir(&games) {
+         for e in d.filter_map(Result::ok) {
+@@ -50,3 +53,7 @@ fn main() {
+-    list.sort();
++    let relative = |p: &Path| {
++        p.strip_prefix(&crates).or_else(|_| p.strip_prefix(&games))
++            .unwrap_or(p).to_path_buf()
++    };
++    list.sort_by_key(|p| relative(p));
+     // FNV-1a over the names (relative) and contents.
+     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+@@ -58,5 +65,5 @@ fn main() {
+     for p in &list {
+-        let rel = p.strip_prefix(&crates).unwrap_or(p);
++        let rel = relative(p);
+         eat(rel.to_string_lossy().replace('\\', "/").as_bytes());
+         eat(&fs::read(p).unwrap_or_default());
+     }

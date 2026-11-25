@@ -17,9 +17,10 @@ void LoadSkipIntro(const std::string& path) {
   if (FILE* f = std::fopen(path.c_str(), "r")) {
     g_on = std::fgetc(f) == '1';
     std::fclose(f);
+  } else if (const char* env = std::getenv("H4_SKIP_INTRO"); env && *env) {
+    // H4_SKIP_INTRO=1 or 0, no setting yet: the browser page's choice of older versions, kept.
+    SetSkipIntro(*env == '1');
   }
-  // H4_SKIP_INTRO=1 or 0: the browser's page (index.html) chooses it, not the file.
-  if (const char* env = std::getenv("H4_SKIP_INTRO"); env && *env) g_on = *env == '1';
   SkipIntroMovies(g_on);
   std::printf("h4: intro movies %s\n", g_on ? "skipped (settings)" : "shown");
 }

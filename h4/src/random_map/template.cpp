@@ -214,6 +214,19 @@ bool ParseTemplates(const std::string& text, std::vector<Template>& out, std::st
       ids[z.id] = int(cur.zones.size());
       cur.zones.push_back(std::move(z));
       if (cur.zones.size() > 40) return fail("40 zones at most");
+    } else if (key == "teams") {
+      // teams 1,3 2,4: players 1 and 3 one team, 2 and 4 another (the panel sets them so)
+      if (words.size() < 3) return fail("teams: two or more groups of players, as 1,3 2,4");
+      cur.teams.assign(6, -1);
+      for (size_t g = 1; g < words.size(); ++g) {
+        std::stringstream group(words[g]);
+        std::string n;
+        while (std::getline(group, n, ',')) {
+          const int p = std::atoi(n.c_str());
+          if (p < 1 || p > 6 || cur.teams[size_t(p - 1)] >= 0) return fail("teams: players 1 to 6, each once");
+          cur.teams[size_t(p - 1)] = int(g - 1);
+        }
+      }
     } else if (key == "link") {
       if (words.size() < 3) return fail("link <zone> <zone> [open|weak|normal|strong|deadly]");
       const auto a = ids.find(words[1]), b = ids.find(words[2]);
@@ -252,6 +265,17 @@ std::string TemplateSum(const std::string& text) {
   return out;
 }
 
+std::string TemplateMapSum(const std::string& text) {
+  std::string kept;
+  std::istringstream in(text);
+  for (std::string line; std::getline(in, line);) {
+    line = Trim(line.substr(0, line.find('#')));
+    if (line.empty() || Lower(line.substr(0, line.find_first_of(" \t"))) == "teams") continue;
+    kept += line + "\n";
+  }
+  return TemplateSum(kept);
+}
+
 std::vector<TemplateInfo> TemplatesOf(const std::string& text) {
   std::vector<TemplateInfo> list;
   std::vector<Template> ts;
@@ -266,7 +290,7 @@ std::vector<TemplateInfo> TemplatesOf(const std::string& text) {
       info->name = t.name;
       info->text = text;
     }
-    info->variants.push_back({t.min_players, t.max_players, t.min_size, t.max_size});
+    info->variants.push_back({t.min_players, t.max_players, t.min_size, t.max_size, t.teams});
   }
   return list;
 }
@@ -302,6 +326,9 @@ const char* const kTemplateExample = R"(# A random map template for ReHoMM4's ra
 #   name <the template's name>
 #   players <from>-<to>          (2 to 6; at most the start zones' number; default: 2 to it)
 #   sizes <from>-<to>            (small, medium, large, huge; default: all)
+#   teams <players> <players>... the teams the generator's settings get when the template is
+#                                chosen, as 1,3 2,4 (players 1 and 3 against 2 and 4); they can
+#                                be changed there (default: none, everyone alone)
 #   zone <id> start              a player's start (in order: player 1, 2, ...); the starts past
 #                                the players' number become treasure zones
 #   zone <id> treasure [rich] [town] [size=N]

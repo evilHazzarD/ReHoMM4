@@ -1,0 +1,116 @@
+# ReHoMM4's browser-converter target. This is deliberately independent of
+# GameRecomp's Heroes IV manifest: ReHoMM4 accepts the verified GOG 3.0
+# 76223 builds in DE, EN, FR, IT and ES. Polish is deliberately excluded.
+schema = 1
+
+[game]
+id = "rehomm4"
+title = "Heroes of Might and Magic IV (ReHoMM4)"
+title_de = "Heroes of Might and Magic IV (ReHoMM4)"
+engine = "h4"
+gog_id = "1207658915"
+
+[[variant]]
+id = "gog-en-76223"
+store = "gog"
+language = "en"
+content = ["base", "gathering-storm", "winds-of-war"]
+notes = "GOG Complete 3.0, win11 gog 0.2 (build 76223); verified ReHoMM4 build."
+media = [
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(76223).exe", kind = "inno", size = 827904, sha256 = "933fa0285e9f08044e86946054a42236e0fe34a8a23709b6ba7101f84cd92f0e" },
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(76223)-1.bin", kind = "slice", size = 1132493510, sha256 = "bbf6fc0aca8dfb500e05881c47f69136732659769cfb5d71e58292aec6ec2970" },
+]
+
+[[variant]]
+id = "gog-de-76223"
+store = "gog"
+language = "de"
+content = ["base", "gathering-storm", "winds-of-war"]
+notes = "GOG Complete 3.0, win11 gog 0.2 (build 76223); verified ReHoMM4 build."
+media = [
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(german)_(76223).exe", kind = "inno", size = 828336, sha256 = "f39c83b6ca36dbb608bcba05fde55303d4f460dc2c855763caa7c6e366ce03ad" },
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(german)_(76223)-1.bin", kind = "slice", size = 1155287336, sha256 = "cf469bde6cf70f5cc5bb78eff4bd7beb38ad433705d29294ac3e7a4fdfb5a1e9" },
+]
+
+[[variant]]
+id = "gog-fr-76223"
+store = "gog"
+language = "fr"
+content = ["base", "gathering-storm", "winds-of-war"]
+notes = "GOG Complete 3.0, win11 gog 0.2 (build 76223); verified ReHoMM4 build."
+media = [
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(french)_(76223).exe", kind = "inno", size = 828160, sha256 = "6753f43835d89cb88b082d53f3775c6efe38096de61911235681d7d34203c16e" },
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(french)_(76223)-1.bin", kind = "slice", size = 1181855524, sha256 = "987018f59fb596d63e596e2dc7489554e0807340f7b5db1c6c2e28a7e7abe7e2" },
+]
+
+[[variant]]
+id = "gog-it-76223"
+store = "gog"
+language = "it"
+content = ["base", "gathering-storm", "winds-of-war"]
+notes = "GOG Complete 3.0, win11 gog 0.2 (build 76223); verified ReHoMM4 build."
+media = [
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(italian)_(76223).exe", kind = "inno", size = 828528, sha256 = "48e67359c0691b8ef0f21d8399141a0cb507709d1ad2f5901c50ec8a493b6103" },
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(italian)_(76223)-1.bin", kind = "slice", size = 1152921337, sha256 = "2af67f4a627ab421f313cc4dac03e53fc0ea447c9d4cdd83ded8de91c03eb1a1" },
+]
+
+[[variant]]
+id = "gog-es-76223"
+store = "gog"
+language = "es"
+content = ["base", "gathering-storm", "winds-of-war"]
+notes = "GOG Complete 3.0, win11 gog 0.2 (build 76223); verified ReHoMM4 build."
+media = [
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(spanish)_(76223).exe", kind = "inno", size = 828392, sha256 = "019a4c33a56a4d396635f7b080c04fd67348a24f4c4b8a3c7ac314f646ea2a2f" },
+  { file = "setup_heroes_of_might_and_magic_4_complete_3.0_win11_gog_0.2_(spanish)_(76223)-1.bin", kind = "slice", size = 1149043163, sha256 = "2774dea2099c2fc067b435c0fbe05a9ef87870e399f3aa94a8556582537c1c2b" },
+]
+
+[[binary]]
+name = "heroes4.exe"
+role = "main"
+treatment = "lift"
+size = 6885376
+sha256 = "b7c2f6caeeba640b1c5f1d812b172938bb4dd4ec62e34ec93ad827bd1ffaec87"
+variants = ["gog-en-76223"]
+aliases = [
+  { size = 6885376, sha256 = "b171788633a63c38e28016b379ae97e033c880d259a5103fd006adcfcd4e4c57", variants = ["gog-de-76223"] },
+  { size = 6885376, sha256 = "a6f8d14af6add9e630addd37df29a7803f074f88fbc58a744817ae860cfa5701", variants = ["gog-fr-76223"] },
+  { size = 6885376, sha256 = "6a3c699d2d3d6e96d8f6fdc9c17fde6e03126a3073d1b7a754cb51bd5b32a023", variants = ["gog-it-76223"] },
+  { size = 6885376, sha256 = "bfc9eb079fbc3c74c879a9e90486479970f2a7cd450a6adad31ca12372809e93", variants = ["gog-es-76223"] },
+]
+[binary.discover]
+# Functions the analyser cannot find alone. stage_manifest.mjs adds the
+# discovery entries from h4/lifter.manifest to the marked list.
+seeds = [0x0051ae60, 0x0051ba20] # rehomm4-lifter-seeds
+no_return = [0x008e2cc5]
+returns = [0x008e5aa5]
+
+[[binary]]
+name = "binkw32.dll"
+role = "library"
+treatment = "lift"
+size = 261120
+sha256 = "545f402be018bc905c03305322072e194d77b1a5ec20b62c34cdbc4c81c961fa"
+variants = ["gog-en-76223", "gog-de-76223", "gog-fr-76223", "gog-it-76223", "gog-es-76223"]
+[binary.discover]
+returns = [0x1002b0a5]
+seeds = [0x1002ac8e, 0x1002ac93, 0x1002ace8, 0x1002aced]
+
+[[binary]]
+name = "Mss32.dll"
+role = "library"
+treatment = "hle"
+size = 348160
+sha256 = "2a515199cc7a2e1ccd8d756efdaab07cedd5c3052309ef1c7499c2560e2097bd"
+variants = ["gog-en-76223", "gog-de-76223", "gog-fr-76223", "gog-it-76223", "gog-es-76223"]
+
+[[binary]]
+name = "Mp3dec.asi"
+role = "library"
+treatment = "lift"
+size = 125952
+sha256 = "0a6db88a5fad28168c1dac700473c5709b17802c33e36b2668c3300c1e580fad"
+variants = ["gog-en-76223", "gog-de-76223", "gog-fr-76223", "gog-it-76223", "gog-es-76223"]
+[binary.discover]
+returns = [0x26f0b205]
+seeds = [0x26f0adee, 0x26f0adf3, 0x26f0ae48, 0x26f0ae4d]

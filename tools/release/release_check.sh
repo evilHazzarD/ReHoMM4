@@ -21,7 +21,7 @@ bad="$(find "$root" \( -iname '*.exe' -o -iname '*.dll' -o -iname '*.h4r' -o -in
 if [[ "$t" == *-windows-x86_64.zip ]]; then
   # The portable Windows archive carries its launcher and SDL runtime; game executables and DLLs
   # remain forbidden everywhere else in the archive.
-  bad="$(grep -vE "^$root/ReHoMM4/(ReHoMM4\\.exe|SDL3\\.dll|libwinpthread-1\\.dll)$" <<< "$bad" || true)"
+  bad="$(grep -vE "^$root/(ReHoMM4\\.exe|SDL3\\.dll|libwinpthread-1\\.dll)$" <<< "$bad" || true)"
 fi
 [[ "${ALLOW_HD_PACKS:-0}" == 1 ]] && bad="$(grep -vE "^$root/Heroes IV\.app/Contents/Resources/mods/hd_[a-z0-9_]+(/|\$)" <<< "$bad")"
 [[ "$t" == *.dmg ]] && hdiutil detach -quiet "$tmp"

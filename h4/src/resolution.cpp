@@ -38,10 +38,18 @@
 #include <set>
 
 #include <SDL3/SDL.h>
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 
 #include "intro.h"
 #include "window_mode.h"
+#include "renderer.h"
 #include "menu_button.h"
+#include "random_map/hero_card.h"
 #include "random_map_ui.h"
 #include "runtime/ctx.h"
 #include "runtime/gfx/device.h"
@@ -52,9 +60,18 @@
 #include "runtime/log.h"
 #include "runtime/runtime.h"
 
+// The game's Options dialog chooses the layout (800x600, 1024x768 or 1280x1024; renderer.h's
+// LoadLayout keeps it) in the apps (not the plain recompiled build, which has no player folder).
+#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS) || \
+    defined(H4_SWITCH_APP) || defined(H4_DESKTOP_APP) || defined(H4_WINDOWS_APP)
+#define H4_LAYOUT_CHOICE 1
+#endif
+
 namespace recomp::gen {
 
 void f_008D3750_lifted(::recomp::Ctx& c);
+void f_005A29A0_lifted(::recomp::Ctx& c);
+void f_006ECB80_lifted(::recomp::Ctx& c);
 void f_008D1360_lifted(::recomp::Ctx& c);
 void f_00598170_lifted(::recomp::Ctx& c);
 void f_004ACBB0_lifted(::recomp::Ctx& c);
@@ -76,11 +93,37 @@ void f_0063B840_lifted(::recomp::Ctx& c);
 
 namespace {
 
-constexpr int kLayoutW = 1280, kLayoutH = 1024;
+// The layout every screen is laid out in, centred (H4_LAYOUT: 1280, 1280x1024, the default, or
+// 1024, the game's 1024x768: everything a quarter larger on the same screen).
+int kLayoutW = 1280, kLayoutH = 1024;
+
+// The adventure frame's parts in that layout (layers.adventure.<width>), in the frame's coordinates:
+// where the right-hand panel (the right dragon column) starts, where the left edge ends, the
+// horizontal strips (left, top, bottom: their right ends vary) stretched over the widened width, and
+// how many rows at the top and the bottom are its thin gold lines (PaintDirty).
+struct FrameParts {
+  int panel, left;
+  struct Strip { int l, t, b; } strips[4];
+  int top_rows, bottom_rows;
+  // The widened map window's top and bottom (0: its own): clear of those gold lines, which are
+  // painted over the stretched part after the frame. 1024's map runs 9 rows under the top one and 5
+  // under the bottom one: redrawn, it painted over them, and they flickered.
+  int map_top, map_bottom;
+  // What else is over the map: 1280's and 1024's are the left dragons' ornaments (kept by the left
+  // edge); 800's (no dragons) its resource bar (whole, or only the gold), docked at the map's
+  // bottom right corner.
+  bool inner_left;
+};
+constexpr FrameParts kFrame1280{880, 58, {{0, 16, 80}, {58, 964, 1016}, {0, 0, 16}, {58, 1016, 1024}}, 17, 15, 0, 0, true};
+constexpr FrameParts kFrame1024{631, 21, {{20, 9, 75}, {0, 683, 756}, {21, 0, 9}, {0, 756, 768}}, 18, 17, 18, 751, true};
+// (800's frame has no dragons: plain gold lines all round)
+constexpr FrameParts kFrame800{480, 21, {{20, 11, 20}, {0, 577, 594}, {21, 0, 11}, {0, 594, 600}}, 20, 19, 20, 581, false};
+const FrameParts& Frame() { return kLayoutW == 1024 ? kFrame1024 : kLayoutW == 800 ? kFrame800 : kFrame1280; }
 constexpr uint32_t kSetRect = 0x71EEE0;  // window::move(const RECT*, bool repaint), thiscall
 constexpr uint32_t kTopWindow = 0xABACF4;
 constexpr uint32_t kScreenW = 0xAD2508;  // the size set_mode last set
 constexpr uint32_t kInvalidate = 0x71FD10;  // window::invalidate(const RECT* local), thiscall
+constexpr uint32_t kButtonUpdate = 0x5A1200;  // button::update_state(), thiscall: its look after a change
 constexpr uint32_t kMapResize = 0x4F5480;   // adventure_map_window::on_size(const RECT*), thiscall
 
 struct Screen {
@@ -88,24 +131,78 @@ struct Screen {
   bool wide = false;
 };
 
-const Screen& TheScreen() {
+// "wide": the layout's height at the host display's aspect.
+void WideSize(Screen* r) {
+  int dw = 0, dh = 0;
+  DesktopSize(&dw, &dh);
+  r->h = kLayoutH;
+  r->w = dh > 0 ? int(int64_t(dw) * kLayoutH / dh) & ~1 : kLayoutW;
+}
+
+Screen& MutableScreen() {
   static Screen s = [] {
     Screen r;
+    if (const char* l = Env("LAYOUT"); l && !std::strncmp(l, "1024", 4)) {
+      kLayoutW = 1024, kLayoutH = 768;
+    } else if (l && !std::strncmp(l, "800", 3)) {
+      kLayoutW = 800, kLayoutH = 600;
+    } else if (l && !std::strcmp(l, "desktop")) {
+      // A desktop's (and a computer's browser's) default: 1280x1024 where the screen has the
+      // pixels for it (its usable height in its own pixels, not points: a Retina or 150% screen
+      // shows 1280x1024 sharper than 1024x768 stretched; a window's title and the menu bar or task
+      // bar left out), else 1024x768.
+      int dw = 0, dh = 0;
+      DesktopSize(&dw, &dh);  // (SDL's video up)
+      int pixels = 0;
+#if defined(__EMSCRIPTEN__)
+      // (SDL gives the browser's screen in CSS pixels and no scale)
+      pixels = MAIN_THREAD_EM_ASM_INT({ return Math.round(screen.availHeight * (devicePixelRatio || 1)); });
+#else
+      const SDL_DisplayID display = SDL_GetPrimaryDisplay();
+      SDL_Rect u{};
+      if (SDL_GetDisplayUsableBounds(display, &u)) {
+        // (Windows and Linux say the desktop's zoom as the content scale, a Mac its Retina as the
+        // mode's pixel density)
+        float scale = std::max(1.0f, SDL_GetDisplayContentScale(display));
+        if (const SDL_DisplayMode* m = SDL_GetDesktopDisplayMode(display)) scale = std::max(scale, m->pixel_density);
+        pixels = int(float(u.h) * scale + 0.5f);
+      }
+#endif
+      const bool room = pixels <= 0 || pixels >= 1024;
+      if (!room) kLayoutW = 1024, kLayoutH = 768;
+      WarnF("h4: layout %dx%d (the screen's usable height %d pixels)\n", kLayoutW, kLayoutH, pixels);
+    }
     const char* e = Env("RESOLUTION");
     if (!e) return r;
     if (!std::strcmp(e, "wide")) {
-      int dw = 0, dh = 0;
-      DesktopSize(&dw, &dh);
-      r.h = kLayoutH;
-      r.w = dh > 0 ? int(int64_t(dw) * kLayoutH / dh) & ~1 : kLayoutW;
+      WideSize(&r);
     } else if (std::sscanf(e, "%dx%d", &r.w, &r.h) != 2) {
       r.w = r.h = 0;
     }
     r.wide = r.w > kLayoutW && r.h >= kLayoutH;
-    WarnF("h4: screen %dx%d%s\n", r.w, r.h, r.wide ? " (wide: 1280x1024 interface centred)" : "");
+    WarnF("h4: screen %dx%d%s%dx%d%s\n", r.w, r.h, r.wide ? " (wide: " : "", r.wide ? kLayoutW : 0,
+          r.wide ? kLayoutH : 0, r.wide ? " interface centred)" : "");
     return r;
   }();
   return s;
+}
+const Screen& TheScreen() { return MutableScreen(); }
+
+// "wide" only: the layout switched to `width`'s (800, 1024 or 1280, the Options dialog's choice).
+bool SwitchLayout(int width) {
+  const char* e = Env("RESOLUTION");
+  if (!e || std::strcmp(e, "wide") || (width != 800 && width != 1024 && width != 1280) || width == kLayoutW)
+    return false;
+  kLayoutW = width;
+  kLayoutH = width == 800 ? 600 : width == 1024 ? 768 : 1024;
+  Screen& s = MutableScreen();
+  WideSize(&s);
+  s.wide = s.w > kLayoutW && s.h >= kLayoutH;
+  WarnF("h4: layout %dx%d, screen %dx%d\n", kLayoutW, kLayoutH, s.w, s.h);
+#if defined(H4_LAYOUT_CHOICE)
+  h4::SaveLayout(width);
+#endif
+  return true;
 }
 
 // Wide layout in effect: a wide size set and the game in it (a mode change
@@ -322,13 +419,13 @@ void WideAdventure(::recomp::Ctx& c) {
   ForChildren(frame, [&](uint32_t w) {
     const Rect r = RectOf(w);
     g_layout_rects[w] = r;
-    const int rl = r.l - f.l, rr = r.r - f.l;  // in the 1280 layout
+    const int rl = r.l - f.l, rr = r.r - f.l;  // in the layout
     const int rt = r.t - f.t, rb = r.b - f.t;
     // The transparent dragon borders are separate from the thin Top/Bottom
-    // strips in layers.adventure.1280. Both must reach the shifted right edge.
-    const bool horizontal_border = rr == 880 &&
-        ((rl == 0 && rt == 16 && rb == 80) ||
-         (rl == 58 && rt == 964 && rb == 1016));
+    // strips in layers.adventure.<width>. Both must reach the shifted right edge.
+    const FrameParts& fp = Frame();
+    bool strip = false;
+    for (const auto& st : fp.strips) strip |= rl == st.l && rt == st.t && rb == st.b && rr <= fp.panel + 60;
     static const bool dump = Env("DUMP_WINDOWS") != nullptr;
     if (dump)
       WarnF("h4: widen %08X vt %08X %d,%d-%d,%d vis %u\n", w, Rd32(w), rl, r.t, rr, r.b,
@@ -337,17 +434,19 @@ void WideAdventure(::recomp::Ctx& c) {
       // Its own resize (vtable +0x44) only acts on a size that differs from
       // its rectangle, and window::move calls it after changing that: call
       // it first.
-      MoveMapWindow(c, w, {r.l - dx, r.t, r.r + dx, r.b});
-    } else if (rl >= 880) {  // the map's right edge, the panel
+      MoveMapWindow(c, w, {r.l - dx, fp.map_top ? std::max(r.t, f.t + fp.map_top) : r.t, r.r + dx,
+                           fp.map_bottom ? std::min(r.b, f.t + fp.map_bottom) : r.b});
+    } else if (rl >= fp.panel) {  // the map's right edge, the panel
       MoveWindow(c, w, {r.l + dx, r.t, r.r + dx, r.b});
-    } else if (rr <= 58) {  // the left edge
+    } else if (rr <= fp.left) {  // the left edge
       MoveWindow(c, w, {r.l - dx, r.t, r.r - dx, r.b});
-    } else if (horizontal_border || (rt == 0 && rb == 16 && rl == 0) ||
-               (rt == 1016 && rb == 1024 && rl == 58)) {
+    } else if (strip) {
       g_tiled.insert(w);
       MoveWindow(c, w, {r.l - dx, r.t, r.r + dx, r.b});
-    } else {  // the ornaments by the left corners
+    } else if (fp.inner_left) {  // the ornaments by the left corners
       MoveWindow(c, w, {r.l - dx, r.t, r.r - dx, r.b});
+    } else {  // 800's resource bar, by the map's right edge
+      MoveWindow(c, w, {r.l + dx, r.t, r.r + dx, r.b});
     }
   });
   g_refresh_map = 3;
@@ -1101,35 +1200,61 @@ constexpr uint32_t kReadMapFolder = 0x7B58A0, kStringAssign = 0x401D30, kStringT
 // and whatever the game keeps up under it) is on one side of it in the list, a window over it (a
 // message) would be on the other. So: the dialog at either end of the visible windows' list (the
 // tooltip and the cursor's window left out).
+// The scenario dialog (t_new_map_dialog) when it is shown and nothing is over it: 0 otherwise.
+// From the main menu it is a child of the top window; from a game (the system menu's New Game)
+// one of the adventure frame's, so it is looked for under the top window's children too. Each
+// window on the way must be the front (or back) one of its parent's shown children, as the
+// dialog itself. (Windows' rectangles are all in the same coordinates, a child's as its parent's.)
 uint32_t NewMapDialog() {
   const uint32_t top = Rd32(kTopWindow);
   if (!top) return 0;
   static uint32_t vtable = 0;   // t_new_map_dialog's, once seen
   static uint32_t balloon = 0;  // t_help_balloon's: the tooltip shown on hover, not a window over it
-  std::vector<uint32_t> shown;
-  int at = -1;
-  ForChildren(top, [&](uint32_t w) {
-    if (!GPtr(w + kVisible)[0]) return;
-    const uint32_t vt = Rd32(w);
-    if (vt == kCursorWindowVtable || (balloon && vt == balloon)) return;
-    if (!balloon && ClassOf(w) == ".?AVt_help_balloon@@") {
-      balloon = vt;
-      return;
-    }
-    if (!vtable && ClassOf(w) == ".?AVt_new_map_dialog@@") vtable = vt;
-    if (vtable && vt == vtable) at = int(shown.size());
-    shown.push_back(w);
-  });
-  if (at < 0) return 0;
-  const bool front = at == 0 || at == int(shown.size()) - 1;
-  static std::string last;  // what is up with it, when that changes (for the log)
+  auto shown_children = [&](uint32_t parent) {
+    std::vector<uint32_t> shown;
+    ForChildren(parent, [&](uint32_t w) {
+      if (!GPtr(w + kVisible)[0]) return;
+      const uint32_t vt = Rd32(w);
+      if (vt == kCursorWindowVtable || (balloon && vt == balloon)) return;
+      if (!balloon && ClassOf(w) == ".?AVt_help_balloon@@") {
+        balloon = vt;
+        return;
+      }
+      if (!vtable && ClassOf(w) == ".?AVt_new_map_dialog@@") vtable = vt;
+      shown.push_back(w);
+    });
+    return shown;
+  };
+  auto front = [](const std::vector<uint32_t>& shown, size_t at) { return at == 0 || at + 1 == shown.size(); };
+  const std::vector<uint32_t> level0 = shown_children(top);
+  uint32_t found = 0;
+  bool on_top = false;
   std::string now;
-  for (uint32_t w : shown) now += ClassOf(w) + " ";
+  for (size_t i = 0; i < level0.size() && !found; i++) {
+    if (vtable && Rd32(level0[i]) == vtable) {
+      found = level0[i];
+      on_top = front(level0, i);
+      for (uint32_t w : level0) now += ClassOf(w) + " ";
+      break;
+    }
+    if (i + 1 != level0.size()) continue;  // (a game's dialog: under the front screen only)
+    const std::vector<uint32_t> level1 = shown_children(level0[i]);
+    for (size_t j = 0; j < level1.size(); j++)
+      if (vtable && Rd32(level1[j]) == vtable) {
+        found = level1[j];
+        on_top = front(level1, j);
+        now = ClassOf(level0[i]) + " > ";
+        for (uint32_t w : level1) now += ClassOf(w) + " ";
+        break;
+      }
+  }
+  if (!found) return 0;
+  static std::string last;  // what is up with it, when that changes (for the log)
   if (now != last) {
-    std::fprintf(stderr, "h4: new map dialog %s: %s\n", front ? "on top" : "covered", now.c_str());
+    std::fprintf(stderr, "h4: new map dialog %s: %s\n", on_top ? "on top" : "covered", now.c_str());
     last = now;
   }
-  return front ? shown[size_t(at)] : 0;
+  return on_top ? found : 0;
 }
 
 std::string MapFolder(uint32_t dialog) {
@@ -1481,7 +1606,7 @@ void PaintDirty(::recomp::Ctx& c) {
       const Rect frame = RectOf(g_widened);
       if (frame.r - frame.l <= kLayoutW) return;
       const int left = std::max(0, frame.l + 336 - origin.l);
-      const int right = std::min(surface->width, frame.r - 400 - origin.l);
+      const int right = std::min(surface->width, frame.r - (kLayoutW - Frame().panel) - origin.l);
       if (left >= right) return;
       std::vector<Rect> overlays;
       auto collect = [&](uint32_t w) {
@@ -1520,8 +1645,43 @@ void PaintDirty(::recomp::Ctx& c) {
           }
         }
       };
-      band(frame.t - origin.t, 1, 17);
-      band(frame.b - origin.t - 1, -1, 15);
+      band(frame.t - origin.t, 1, Frame().top_rows);
+      band(frame.b - origin.t - 1, -1, Frame().bottom_rows);
+      // The top strip goes on under the right dragon column (to 934 of the 1280 layout, the
+      // column from 880), where the column's top is see-through; its art is cut at the join
+      // above, so nothing painted there and the map's old pixels showed. The strip's own end
+      // there (the dragon's head is on it), with the column laid over it by its alpha.
+      const h4::random_map::Image* strip = h4::AdventureTopStrip();
+      if (const h4::random_map::Image* dragon = h4::AdventureRightBorder();
+          kLayoutW == 1280 && dragon && strip && strip->w == 934 && strip->h >= 16) {
+        const int x0 = right, x1 = std::min(surface->width, frame.r - 346 - origin.l);
+        auto unpack = [](uint32_t v, int* r, int* g, int* b) { *r = (v >> 11) & 31, *g = (v >> 5) & 63, *b = v & 31; };
+        for (int i = 0; i < 16 && i < dragon->h; ++i) {
+          const int y = frame.t - origin.t + i;
+          if (y < 0 || y >= surface->height) continue;
+          auto* row = reinterpret_cast<uint16_t*>(GPtr(surface->mem + y * surface->pitch));
+          for (int x = x0; x < x1 && x - x0 < dragon->w; ++x) {
+            const bool covered = std::any_of(overlays.begin(), overlays.end(), [&](const Rect& r) {
+              return y + origin.t >= r.t && y + origin.t < r.b && x + origin.l >= r.l && x + origin.l < r.r;
+            });
+            if (covered) continue;
+            const uint32_t d = dragon->argb[size_t(i) * size_t(dragon->w) + size_t(x - x0)];
+            const uint32_t a = d >> 24;
+            if (a == 255) continue;
+            const uint32_t s = strip->argb[size_t(i) * size_t(strip->w) + size_t(880 + x - x0)];
+            const uint16_t under = uint16_t(((s >> 19) & 31) << 11 | ((s >> 10) & 63) << 5 | ((s >> 3) & 31));
+            if (a == 0) {
+              row[x] = under;
+              continue;
+            }
+            int ur, ug, ub;
+            unpack(under, &ur, &ug, &ub);
+            const int dr = int((d >> 19) & 31), dg = int((d >> 10) & 63), db = int((d >> 3) & 31);
+            auto mix = [&](int top, int bottom) { return (top * int(a) + bottom * int(255 - a) + 127) / 255; };
+            row[x] = uint16_t(mix(dr, ur) << 11 | mix(dg, ug) << 5 | mix(db, ub));
+          }
+        }
+      }
     }
     return;
   }
@@ -1599,17 +1759,86 @@ void f_0058D970(::recomp::Ctx& c) {
   f_0058D970_lifted(c);
 }
 
+// H4_FPS_REPORT=s: every s seconds, the game's frame rate (its presents) and the spread of the
+// intervals between them, in the log ("fps: ..."). The runtime's own report (PresentFrame) is
+// not reached: the game's present is this one.
+static void ReportFrameRate() {
+  static const double every = [] {
+    const char* e = std::getenv("H4_FPS_REPORT");
+    return e ? std::atof(e) : 0.0;
+  }();
+  if (!(every > 0)) return;
+  using Clock = std::chrono::steady_clock;
+  static Clock::time_point first, last;
+  static std::vector<double> gaps;
+  const Clock::time_point now = Clock::now();
+  if (first == Clock::time_point()) first = now;
+  else gaps.push_back(std::chrono::duration<double, std::milli>(now - last).count());
+  last = now;
+  const double span = std::chrono::duration<double>(now - first).count();
+  if (span < every || gaps.empty()) return;
+  std::sort(gaps.begin(), gaps.end());
+  auto at = [&](double q) { return gaps[size_t(q * double(gaps.size() - 1) + 0.5)]; };
+  std::fprintf(stderr, "fps: %.1f (frame ms: median %.1f p90 %.1f p99 %.1f max %.1f)\n",
+               double(gaps.size()) / span, at(0.5), at(0.9), at(0.99), gaps.back());
+  gaps.clear();
+  first = now;
+}
+
 // The game's present (dirty region to the screen).
 void f_008D0C70(::recomp::Ctx& c) {
   g_presents++;
+  ReportFrameRate();
   KeepWide(c);
   KeepScreenKeyboard();
+#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
+  const auto t0 = std::chrono::steady_clock::now();
   f_008D0C70_lifted(c);
+  h4::NotePresent(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count());
+#else
+  f_008D0C70_lifted(c);
+#endif
   WingsWhileBuilding(c);
   if (GpuCursorOn()) GpuCursorPlace();  // its own loops (a drag) present here
 }
 
+#if defined(H4_SWITCH_APP)
+}  // namespace recomp::gen
+namespace h4 {
+bool SwitchHandheld();  // main.cpp
+}
+namespace recomp::gen {
+namespace {
+// The Switch put in its dock or taken out (checked about once a second): the layout kept for that
+// mode (or its default: 800x600 in the hands, 1024x768 on the TV), set as the Options dialog sets it.
+void FollowDock(::recomp::Ctx& c) {
+  static int last = -1;
+  static uint64_t next = 0;
+  const uint64_t now = SDL_GetTicks();
+  if (now < next || g_narrowed) return;
+  next = now + 1000;
+  const int handheld = h4::SwitchHandheld() ? 1 : 0;
+  if (last < 0 || handheld == last) {
+    last = handheld;
+    return;
+  }
+  last = handheld;
+  const int w = h4::UseLayoutFile(handheld ? "layout_handheld" : "layout_docked", handheld ? 800 : 1024);
+  WarnF("h4: the Switch %s: layout %d\n", handheld ? "in the hands" : "in its dock", w);
+  if (w == kLayoutW || !TheScreen().wide) return;
+  const uint32_t eax = c.eax, ecx = c.ecx, edx = c.edx;
+  CallGuest(c, 0x8D3750, {uint32_t(w), uint32_t(w == 800 ? 600 : w == 1024 ? 768 : 1024), 1, 1});
+  c.eax = eax;
+  c.ecx = ecx;
+  c.edx = edx;
+}
+}  // namespace
+#endif
+
 void f_008D1360(::recomp::Ctx& c) {
+#if defined(H4_SWITCH_APP)
+  FollowDock(c);
+#endif
   KeepWide(c);
   KeepScreenKeyboard();
   if (GpuCursorOn()) GpuCursorPlace();
@@ -1670,11 +1899,60 @@ void f_008AC0C0(::recomp::Ctx& c) {
 // main_menu::layout(int width): picks its art by the width it is given (a
 // rectangle's, the screen's when the top window spans it).
 void f_0076D9B0(::recomp::Ctx& c) {
+  TheScreen();  // (the layout read)
   if (int32_t(Rd32(c.esp + 4)) > kLayoutW) Wr32(c.esp + 4, uint32_t(kLayoutW));
   Narrowed(c, f_0076D9B0_lifted);
 }
 void f_0076DEB0(::recomp::Ctx& c) { Narrowed(c, f_0076DEB0_lifted); }
-void f_007CA0D0(::recomp::Ctx& c) { Narrowed(c, f_007CA0D0_lifted); }  // t_options_dialog
+// t_options_dialog's constructor (thiscall). The app sets the screen's size (wide, or the window's
+// on the desktop), so the dialog's 800x600 / 1024x768 / 1280x1024 choice is shown disabled: the
+// buttons its resolution group (+0x104) gets while it is built (button_group_add below) are marked
+// as the game marks a disabled button (+0xE4) and redrawn (0x5A1200).
+uint32_t g_options_dialog = 0;
+std::vector<uint32_t> g_resolution_buttons;
+uint32_t g_fullscreen_box = 0;  // the box made right after the resolution group's three buttons
+
+void f_007CA0D0(::recomp::Ctx& c) {
+  const bool app_size = TheScreen().w != 0;
+  if (app_size) {
+    g_options_dialog = c.ecx;
+    g_resolution_buttons.clear();
+    g_fullscreen_box = 0;
+  }
+  Narrowed(c, f_007CA0D0_lifted);
+  if (!app_size) return;
+  g_options_dialog = 0;
+  const uint32_t eax = c.eax, ecx = c.ecx;
+  std::vector<uint32_t> off = g_resolution_buttons;
+#if defined(H4_LAYOUT_CHOICE)
+  // The apps: the three switch the layout (set_mode below).
+  if (TheScreen().wide && off.size() == 3) off.clear();
+#endif
+#if !defined(H4_DESKTOP_APP)
+  if (g_fullscreen_box) off.push_back(g_fullscreen_box);  // ticked (read_setting), not to be changed
+#endif
+  for (const uint32_t b : off) {
+    GPtr(b + 0xE4)[0] = 1;
+    c.ecx = b;
+    CallGuest(c, kButtonUpdate, {});
+  }
+  c.eax = eax;
+  c.ecx = ecx;
+}
+
+// The dialog's add_button(layout), thiscall -> the button.
+void f_006ECB80(::recomp::Ctx& c) {
+  const uint32_t dialog = c.ecx;
+  f_006ECB80_lifted(c);
+  if (g_options_dialog && dialog == g_options_dialog && g_resolution_buttons.size() == 3 && !g_fullscreen_box)
+    g_fullscreen_box = c.eax;
+}
+
+// button_group::add(button*), thiscall.
+void f_005A29A0(::recomp::Ctx& c) {
+  if (g_options_dialog && c.ecx == g_options_dialog + 0x104) g_resolution_buttons.push_back(Rd32(c.esp + 4));
+  f_005A29A0_lifted(c);
+}
 
 // window::window(const RECT* rect, window* parent), thiscall: no rectangle
 // means the parent's whole area. Screens made that way right under the top
@@ -1688,6 +1966,31 @@ void f_0071E6D0(::recomp::Ctx& c) {
     f_0071E6D0_lifted(c);
 }
 
+// The game's "full screen": the page's in the browser, the desktop apps' setting, always on
+// elsewhere.
+bool AppFullscreen() {
+#if defined(H4_WEB_APP)
+  return MAIN_THREAD_EM_ASM_INT({ return document.fullscreenElement ? 1 : 0; }) != 0;
+#elif defined(H4_DESKTOP_APP)
+  return h4::Fullscreen();
+#else
+  return true;
+#endif
+}
+
+// The player's choice in the Options dialog.
+void SetAppFullscreen(bool on) {
+#if defined(H4_WEB_APP)
+  // The page's enterFullscreen / leaveFullscreen (web/shell/index.html), in answer to the click
+  // on OK (the browser's user activation still holds).
+  MAIN_THREAD_ASYNC_EM_ASM({ if (Module.h4Status) Module.h4Status('fullscreen', $0); }, on ? 1 : 0);
+#elif defined(H4_DESKTOP_APP)
+  h4::SetFullscreen(on);
+#else
+  (void)on;
+#endif
+}
+
 // read_setting(const char* name, uint32_t* out, bool user) -> found. Wide,
 // "resolution" (the screen width the game picks its layout and buffers
 // by) reads 1024 whatever was saved: the Options dialog, which shows the
@@ -1697,13 +2000,51 @@ void f_0071E6D0(::recomp::Ctx& c) {
 void f_0063B840(::recomp::Ctx& c) {
   const uint32_t name = Rd32(c.esp + 4), out = Rd32(c.esp + 8);
   f_0063B840_lifted(c);
-  if (!TheScreen().wide || !(c.eax & 0xFF) || !out || !name) return;
-  if (GStr(name) == "resolution") Wr32(out, 1024);
+  const Screen& s = TheScreen();
+  if (!out || !name) return;
+  // The Options dialog's "full screen" box shows the app's own setting (⚙, window_mode.h), so a
+  // set_mode with another value (below) is the player's change; elsewhere the game is always
+  // full screen (the box is shown ticked and disabled, f_007CA0D0).
+  if (s.w && GStr(name) == "full_screen") {
+    Wr32(out, AppFullscreen() ? 1 : 0);
+    c.eax = (c.eax & ~0xFFu) | 1;
+    return;
+  }
+  if (!s.wide || !(c.eax & 0xFF) || GStr(name) != "resolution") return;
+  // (the Options dialog, while it is made, its choice marked: the layout in use)
+  Wr32(out, g_options_dialog ? uint32_t(kLayoutW) : 1024);
 }
 
 void f_008D3750(::recomp::Ctx& c) {
   const uint32_t args = c.esp + 4;  // width, height, repaint, full_screen
   const Screen& s = TheScreen();
+#if defined(H4_DESKTOP_APP)
+  // The Options dialog's "full screen" box (its OK and the toggle pass repaint 1; the start's call,
+  // repaint 0, has the game's own guess, which is not the player's): the app's window and setting
+  // (the page's full screen in the browser) follow it, as ⚙ does.
+  // Not the window procedure's on WM_ACTIVATE (0x8D169F: being activated while full screen, the
+  // game sets a window and full screen again, DirectDraw's way back to its surfaces): the first of
+  // those took the app to a window and saved that, so the next start was in a window.
+  const uint32_t ret = Rd32(c.esp);
+  const bool activation = ret == 0x8D16CE || ret == 0x8D1705 || ret == 0x8D170F;
+  bool full_now = AppFullscreen();
+  if (const bool full = (Rd32(args + 12) & 0xFF) != 0;
+      !activation && (Rd32(args + 8) & 0xFF) && full != full_now) {
+    SetAppFullscreen(full);
+    full_now = full;
+  }
+  if (s.w) Wr32(args + 12, full_now ? 1 : 0);
+#else
+  if (s.w) Wr32(args + 12, 1);
+#endif
+  // The Options dialog's 800x600 / 1024x768 / 1280x1024 (phones, tablets, the Switch; wide): the
+  // layout switched, the adventure frame put back in the old one first (the game lays it out anew
+  // for the new one).
+  if (const int w = int(Rd32(args)); (Rd32(args + 8) & 0xFF) && s.wide && w != kLayoutW &&
+      (w == 800 || w == 1024 || w == 1280)) {
+    if (g_widened) Unwiden(c, g_widened);
+    SwitchLayout(int(Rd32(args)));
+  }
   // Windowed too (the game's full_screen setting off): the host shows the
   // window like a full screen, fitted to the display.
   if (s.w) {

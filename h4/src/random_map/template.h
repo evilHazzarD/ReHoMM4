@@ -33,6 +33,7 @@ struct Template {
   std::string name;
   int min_players = 2, max_players = 6;
   int min_size = 76, max_size = 304;  // the map sizes it is for
+  std::vector<int> teams;  // the "teams" line: player i's team (0, 1, ...; -1 its own), empty none
   std::vector<TemplateZone> zones;
   std::vector<TemplateLink> links;
 };
@@ -43,6 +44,7 @@ struct TemplateInfo {
   std::string text;
   struct Variant {
     int min_players, max_players, min_size, max_size;
+    std::vector<int> teams;  // Template::teams: set in the panel when the template is chosen
   };
   std::vector<Variant> variants;  // none: any (Classic)
   // A variant for these players and size; players 0: any number, size 0: any size.
@@ -64,9 +66,13 @@ std::vector<TemplateInfo> BuiltInTemplates();
 // Reads a template file's text: its templates. false: `error` says what is wrong and on which line.
 bool ParseTemplates(const std::string& text, std::vector<Template>& out, std::string* error);
 
-// A short sum of a template file's text (8 hex digits), written with its name into a map: its
-// editor can tell when the file has changed since.
+// A short sum of a template file's text (8 hex digits): the shipped files' (whether the player has
+// changed one).
 std::string TemplateSum(const std::string& text);
+// The same of what makes the maps (comments, blank lines and the teams line, which only the
+// panel reads, left out), written with its name into a map: its editor can tell when the file has
+// changed since. (Maps of 0.4 have TemplateSum's.)
+std::string TemplateMapSum(const std::string& text);
 
 // The templates a file's text has, for the panel (none if it does not read).
 std::vector<TemplateInfo> TemplatesOf(const std::string& text);

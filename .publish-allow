@@ -27,3 +27,16 @@ assets/icon/ios/rehomm4-ios.png  # owner's decision 2026-11-23: the same icon, o
 reHoMM4-*web.zip:ReHoMM4/wings/*  # the same collages in the browser version
 reHoMM4-*web.zip:ReHoMM4/heroes4.wasm  # the browser version itself: the runtime, SDL3 and ffmpeg in one module
 reHoMM4-*web.zip:ReHoMM4/icon.png  # the same icon
+reHoMM4-*windows-x86_64.zip:ReHoMM4/wings/*  # the same collages in the Windows app
+reHoMM4-*windows-x86_64.zip:ReHoMM4/ReHoMM4.exe  # the Windows app itself, as the Linux one (SDL3 beside it)
+reHoMM4-*windows-x86_64.zip:ReHoMM4/SDL3.dll  # SDL3 (zlib license, in THIRD_PARTY_NOTICES.txt)
+reHoMM4-*windows-x86_64.zip:ReHoMM4/libwinpthread-1.dll  # MinGW-w64's threads library (its license in THIRD_PARTY_NOTICES.txt)
+docs/random_map_*.jpg  # owner's decision 2026-11-24: screenshots of the random map generator in README (our panel over the game's menu)
+reHoMM4-*windows-x86_64.zip:wings/*  # the Windows zip is flat from 0.5 on (unpacked into the GOG game's folder): the same collages
+reHoMM4-*windows-x86_64.zip:ReHoMM4.exe  # as the ReHoMM4/ReHoMM4.exe line above, the flat zip from 0.5 on
+reHoMM4-*windows-x86_64.zip:SDL3.dll  # as the ReHoMM4/SDL3.dll line above, the flat zip from 0.5 on
+reHoMM4-*windows-x86_64.zip:libwinpthread-1.dll  # as the ReHoMM4/libwinpthread-1.dll line above, the flat zip from 0.5 on
+h4/fonts/*.ttf  # Noto Sans fonts for the app's own text (SIL OFL 1.1, h4/fonts/OFL.txt), not game data
+rehomm4-web/wings/*  # the GitHub Pages site (web-pages workflow): the same combat-wing collages
+rehomm4-web/heroes4.wasm  # the GitHub Pages site: the game-code-free runtime, SDL3 and ffmpeg in one module
+rehomm4-web/icon.png  # the GitHub Pages site: the same icon

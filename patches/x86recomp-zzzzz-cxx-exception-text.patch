@@ -1,0 +1,68 @@
+--- a/src/runtime/hle/kernel32_seh.cpp	2026-11-24 00:07:28
++++ b/src/runtime/hle/kernel32_seh.cpp	2026-11-24 00:07:38
+@@ -10,7 +10,9 @@
+ 
+ 
+ #include <algorithm>
++#include <cstdio>
+ #include <cstring>
++#include <string>
+ 
+ #include "runtime/platform.h"
+ #include "runtime/hle/hle.h"
+@@ -179,13 +181,53 @@
+   }
+   c.esp = saved_esp;
+   return retval;
++}
++
++namespace {
++// A printable C string in guest memory at `a` (at most `max` bytes), else "".
++std::string GuestText(uint32_t a, size_t max) {
++  std::string s;
++  if (a < 0x10000) return s;
++  for (size_t i = 0; i < max; i++) {
++    const uint8_t ch = Rd8(a + uint32_t(i));
++    if (!ch) return s;
++    if (ch < 0x20 && ch != '\n' && ch != '\t') return "";
++    s += char(ch);
++  }
++  return s + "...";
++}
++
++// What an MSVC C++ exception (0xE06D7363) carries, for the fatal message:
++// the thrown types' decorated names (ThrowInfo -> CatchableTypeArray ->
++// TypeDescriptor) and, when the object's second word points at text (as
++// std::exception's message does), that text.
++std::string DescribeCxxException(uint32_t rec) {
++  if (Rd32(rec) != 0xE06D7363 || Rd32(rec + 0x10) < 3) return "";
++  const uint32_t object = Rd32(rec + 0x18), info = Rd32(rec + 0x1C);
++  if (!info) return " (a rethrow)";
++  char head[48];
++  std::snprintf(head, sizeof head, " C++ object %08X, types:", object);
++  std::string out = head;
++  const uint32_t types = Rd32(info + 0x0C);
++  const uint32_t n = types ? std::min<uint32_t>(Rd32(types), 8) : 0;
++  for (uint32_t i = 0; i < n; i++) {
++    const uint32_t ct = Rd32(types + 4 + 4 * i);
++    const uint32_t td = ct ? Rd32(ct + 4) : 0;
++    out += " " + (td ? GuestText(td + 8, 128) : std::string("?"));
++  }
++  if (object) {
++    const std::string what = GuestText(Rd32(object + 4), 256);
++    if (!what.empty()) out += "; text: \"" + what + "\"";
++  }
++  return out;
+ }
++}  // namespace
+ 
+ HLE("kernel32.dll", UnhandledExceptionFilter, 1) {
+   uint32_t ptrs = Arg(c, 0);
+   uint32_t rec = Rd32(ptrs);
+-  FatalF("UnhandledExceptionFilter: exception %08X at %08X", Rd32(rec),
+-         Rd32(rec + 0x0C));
++  FatalF("UnhandledExceptionFilter: exception %08X at %08X%s", Rd32(rec),
++         Rd32(rec + 0x0C), DescribeCxxException(rec).c_str());
+ }
+ 
+ // Host pages larger than the guest's 4 KiB (16 KiB on Apple Silicon) are

@@ -43,8 +43,10 @@
 #include <unistd.h>
 #include <vector>
 
+#include "ui_text.h"
 #include "menu_button.h"
 #include "save_sync.h"
+#include "app_ui/native.h"
 
 namespace {
 
@@ -679,16 +681,24 @@ void PassLoop() {
 @end
 
 namespace {
-// The Files picker for the folder to sync with, opening in iCloud Drive (its provider's root).
-void PickFolder(UIView* source) {
-  UIViewController* top = source.window.rootViewController;
-  while (top.presentedViewController) top = top.presentedViewController;
-  static H4SyncPicker* del = [H4SyncPicker new];
-  UIDocumentPickerViewController* p =
-      [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeFolder ]];
-  p.delegate = del;
-  p.directoryURL = [NSFileManager.defaultManager URLForUbiquityContainerIdentifier:nil].URLByDeletingLastPathComponent;
-  [top presentViewController:p animated:YES completion:nil];
+// The Files picker for the folder to sync with, opening in iCloud Drive (its provider's root); on
+// the main thread, from any.
+void PickFolderSoon() {
+  dispatch_async(dispatch_get_main_queue(), ^{
+    UIViewController* top = nil;
+    for (UIScene* sc in UIApplication.sharedApplication.connectedScenes)
+      if ([sc isKindOfClass:UIWindowScene.class])
+        for (UIWindow* w in ((UIWindowScene*)sc).windows)
+          if (w.isKeyWindow && w.rootViewController) top = w.rootViewController;
+    while (top.presentedViewController) top = top.presentedViewController;
+    if (!top) return;
+    static H4SyncPicker* del = [H4SyncPicker new];
+    UIDocumentPickerViewController* p =
+        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeFolder ]];
+    p.delegate = del;
+    p.directoryURL = [NSFileManager.defaultManager URLForUbiquityContainerIdentifier:nil].URLByDeletingLastPathComponent;
+    [top presentViewController:p animated:YES completion:nil];
+  });
 }
 }  // namespace
 
@@ -718,50 +728,6 @@ void StartSaveSync(const std::string& data_dir) {
   PassLoop();
 }
 
-void ShowSaveSyncSheet(void* source_view, bool ukrainian) {
-  UIView* source = (__bridge UIView*)source_view;
-  const std::string folder = FolderName();
-  std::string status;
-  {
-    std::lock_guard<std::mutex> lock(g_state);
-    status = g_status;
-  }
-  NSString* msg;
-  if (folder.empty())
-    msg = ukrainian ? @"Відкрийте iCloud Drive і натисніть «Відкрити»: гра створить там папку ReHOMM4 "
-                      @"і копіюватиме збереження туди й звідти — на всіх ваших пристроях з тим самим Apple ID."
-                    : @"Open iCloud Drive and tap Open: the game makes a ReHOMM4 folder there and copies "
-                      @"saved games there and back, on each of your devices with this Apple ID.";
-  else
-    msg = [NSString stringWithFormat:@"%@: %s\n%s", ukrainian ? @"Папка" : @"Folder", folder.c_str(),
-                                     status.c_str()];
-  UIAlertController* sheet =
-      [UIAlertController alertControllerWithTitle:ukrainian ? @"Збереження в iCloud" : @"Saves in iCloud"
-                                          message:msg
-                                   preferredStyle:UIAlertControllerStyleActionSheet];
-  UIViewController* top = source.window.rootViewController;
-  while (top.presentedViewController) top = top.presentedViewController;
-  [sheet addAction:[UIAlertAction
-                       actionWithTitle:folder.empty() ? (ukrainian ? @"Обрати папку…" : @"Choose a folder…")
-                                                      : (ukrainian ? @"Обрати іншу папку…" : @"Choose another folder…")
-                                 style:UIAlertActionStyleDefault
-                               handler:^(UIAlertAction*) { PickFolder(source); }]];
-  if (!folder.empty()) {
-    [sheet addAction:[UIAlertAction actionWithTitle:ukrainian ? @"Синхронізувати зараз" : @"Sync now"
-                                              style:UIAlertActionStyleDefault
-                                            handler:^(UIAlertAction*) { SyncSoon(); }]];
-    [sheet addAction:[UIAlertAction actionWithTitle:ukrainian ? @"Припинити синхронізацію" : @"Stop syncing"
-                                              style:UIAlertActionStyleDestructive
-                                            handler:^(UIAlertAction*) { StopSync(); }]];
-  }
-  [sheet addAction:[UIAlertAction actionWithTitle:ukrainian ? @"Скасувати" : @"Cancel"
-                                            style:UIAlertActionStyleCancel
-                                          handler:nil]];
-  sheet.popoverPresentationController.sourceView = source;
-  sheet.popoverPresentationController.sourceRect = source.bounds;
-  [top presentViewController:sheet animated:YES completion:nil];
-}
-
 bool ShowSyncButton() { return !FolderName().empty(); }
 std::string SavesFolder() { return g_data.empty() ? "" : std::string(LocalGames().UTF8String); }
 std::string SyncedFolder() {
@@ -778,13 +744,35 @@ bool AskSaveSyncFolder() {
   return true;
 }
 
-bool SetSaveSync(bool on, void* source_view) {
+bool SetSaveSync(bool on, void*) {
   if (!on) StopSync();
-  else if (FolderName().empty()) PickFolder((__bridge UIView*)source_view);  // on once picked
+  else if (FolderName().empty()) PickFolderSoon();  // on once picked
   return ShowSyncButton();
 }
 
 }  // namespace h4
+
+// app_ui/native.h's save sync on iOS: the Files picker for the folder (iCloud Drive at first).
+namespace h4::native {
+SyncPanel SyncPanelFor(const std::string& lang) {
+  const std::string folder = FolderName();
+  SyncPanel p;
+  p.title = h4::TrIn(lang, "Saves in iCloud");
+  if (folder.empty()) {
+    p.text = h4::TrIn(lang, "Open iCloud Drive and tap Open: the game makes a ReHOMM4 folder there and copies "
+                            "saved games there and back, on each of your devices with this Apple ID.");
+  } else {
+    std::lock_guard<std::mutex> lock(g_state);
+    p.text = h4::TrIn(lang, "Folder: {1}", {folder}) + "\n" + g_status;
+  }
+  p.buttons.push_back({h4::TrIn(lang, folder.empty() ? "Choose a folder…" : "Choose another folder…"), [] { PickFolderSoon(); }});
+  if (!folder.empty()) {
+    p.buttons.push_back({h4::TrIn(lang, "Sync now"), [] { SyncSoon(); }});
+    p.buttons.push_back({h4::TrIn(lang, "Stop syncing"), [] { StopSync(); }});
+  }
+  return p;
+}
+}  // namespace h4::native
 
 #else  // the Mac app
 
@@ -829,64 +817,59 @@ bool SetSaveSync(bool on, void*) {
   return ShowSyncButton();
 }
 
-// A panel over the game (ShowMacChoice; the game's frames go on), its buttons by what is set.
-void ShowSaveSyncSheet(void* source_view, bool ukrainian) {
-  NSView* source = (__bridge NSView*)source_view;
-  NSWindow* win = source.window;
-  if (!win) return;
-  const std::string folder = FolderName();
-  std::string status;
-  {
-    std::lock_guard<std::mutex> lock(g_state);
-    status = g_status;
-  }
-  std::string text;
-  if (folder.empty())
-    text = MacICloudDrive()
-        ? (ukrainian ? "Синхронізацію вимкнено. Увімкніть її, і гра копіюватиме збереження в iCloud Drive/ReHOMM4 "
-                       "і звідти — на всіх ваших пристроях з тим самим Apple ID."
-                     : "Syncing is off. Turn it on and the game copies saved games to iCloud Drive/ReHOMM4 and "
-                       "back, on each of your devices with this Apple ID.")
-        : (ukrainian ? "iCloud Drive на цьому Маці вимкнено (Системні параметри → Apple ID → iCloud)."
-                     : "iCloud Drive is off on this Mac (System Settings → Apple ID → iCloud).");
-  else
-    text = std::string(ukrainian ? "Папка" : "Folder") + ": " + folder + "\n" + status;
-  enum Action { kNow, kOn, kOther, kStop, kCancel };
-  std::vector<Action> acts;
-  std::vector<std::string> titles;
-  auto add = [&](const char* t, Action act) {
-    titles.push_back(t);
-    acts.push_back(act);
-  };
-  if (!folder.empty()) add(ukrainian ? "Синхронізувати зараз" : "Sync now", kNow);
-  else if (MacICloudDrive()) add(ukrainian ? "Увімкнути" : "Turn on", kOn);
-  add(ukrainian ? "Обрати іншу папку…" : "Choose another folder…", kOther);
-  if (!folder.empty()) add(ukrainian ? "Припинити синхронізацію" : "Stop syncing", kStop);
-  add(ukrainian ? "Скасувати" : "Cancel", kCancel);
-  ShowMacChoice(source_view, ukrainian ? "Збереження в iCloud" : "Saves in iCloud", text, titles,
-                [acts, win, ukrainian](int r) {
-              const Action act = r >= 0 && size_t(r) < acts.size() ? acts[size_t(r)] : kCancel;
-              if (act == kNow) SyncSoon();
-              if (act == kStop) StopSync();
-              if (act == kOn) SetSaveSync(true, nullptr);
-              if (act == kOther) {
-                // A sheet (the system's folder picker); ReHOMM4 is made inside what is picked (or it is ReHOMM4).
-                NSOpenPanel* p = [NSOpenPanel openPanel];
-                p.canChooseFiles = NO;
-                p.canChooseDirectories = YES;
-                p.canCreateDirectories = YES;
-                p.prompt = ukrainian ? @"Обрати" : @"Choose";
-                p.message = ukrainian ? @"Папка, у якій буде (або вже є) ReHOMM4"
-                                      : @"The folder to hold ReHOMM4 (or ReHOMM4 itself)";
-                p.directoryURL = MacICloudDrive();
-                [p beginSheetModalForWindow:win
-                          completionHandler:^(NSModalResponse pr) {
-                            if (pr == NSModalResponseOK) UsePicked(p.URL);
-                          }];
-              }
-            });
-}
-
 }  // namespace h4
 
+// app_ui/native.h's save sync on the Mac: iCloud Drive/ReHOMM4, or a folder picked (NSOpenPanel).
+namespace h4::native {
+SyncPanel SyncPanelFor(const std::string& lang) {
+  const std::string folder = FolderName();
+  SyncPanel p;
+  p.title = h4::TrIn(lang, "Saves in iCloud");
+  if (folder.empty()) {
+    p.text = MacICloudDrive()
+                 ? h4::TrIn(lang, "Syncing is off. Turn it on and the game copies saved games to iCloud Drive/ReHOMM4 "
+                                  "and back, on each of your devices with this Apple ID.")
+                 : h4::TrIn(lang, "iCloud Drive is off on this Mac (System Settings → Apple ID → iCloud).");
+  } else {
+    std::lock_guard<std::mutex> lock(g_state);
+    p.text = h4::TrIn(lang, "Folder: {1}", {folder}) + "\n" + g_status;
+  }
+  if (!folder.empty()) p.buttons.push_back({h4::TrIn(lang, "Sync now"), [] { SyncSoon(); }});
+  else if (MacICloudDrive()) p.buttons.push_back({h4::TrIn(lang, "Turn on"), [] { SetSaveSync(true, nullptr); }});
+  const std::string choose = h4::TrIn(lang, "Choose"), what = h4::TrIn(lang, "The folder to hold ReHOMM4 (or ReHOMM4 itself)");
+  p.buttons.push_back({h4::TrIn(lang, "Choose another folder…"), [choose, what] {
+                         // The system's folder picker (a window of its own; ReHOMM4 is made inside what
+                         // is picked, or it is ReHOMM4), on the main thread.
+                         dispatch_async(dispatch_get_main_queue(), ^{
+                           NSOpenPanel* o = [NSOpenPanel openPanel];
+                           o.canChooseFiles = NO;
+                           o.canChooseDirectories = YES;
+                           o.canCreateDirectories = YES;
+                           o.prompt = @(choose.c_str());
+                           o.message = @(what.c_str());
+                           o.directoryURL = MacICloudDrive();
+                           // A sheet on the game's window (a modal loop would stop the game's frames).
+                           NSWindow* w = NSApp.keyWindow ?: NSApp.mainWindow;
+                           if (!w) return;
+                           [o beginSheetModalForWindow:w
+                                     completionHandler:^(NSModalResponse r) {
+                                       if (r == NSModalResponseOK) UsePicked(o.URL);
+                                     }];
+                         });
+                       }});
+  if (!folder.empty()) p.buttons.push_back({h4::TrIn(lang, "Stop syncing"), [] { StopSync(); }});
+  return p;
+}
+}  // namespace h4::native
+
 #endif
+
+// app_ui/native.h: what both have.
+namespace h4::native {
+bool HasSyncChoice() { return true; }
+bool SyncOn() { return h4::ShowSyncButton(); }
+void SetSync(bool on) { h4::SetSaveSync(on, nullptr); }
+std::string SavesFolder() { return h4::SavesFolder(); }
+std::string SyncedFolder() { return h4::SyncedFolder(); }
+void DownloadApk(const std::string&, const std::string&) {}
+}  // namespace h4::native

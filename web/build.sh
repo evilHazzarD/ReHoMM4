@@ -4,6 +4,10 @@
 # cross-origin isolation headers (or with the service worker in it that adds them).
 #
 #   web/build.sh                 the site
+#   web/build.sh --dynamic       game-code-free shell and browser converter in dist-dynamic/
+#   ... --no-translations        no translations/ in the site: the page then reads the packs from
+#                                   the translations repository's own GitHub Pages site (the
+#                                   web-pages workflow: the site on <owner>.github.io)
 #   web/build.sh --save-patch    keeps the changes made in .cache/outputs/web/x86recomp as
 #                                   web/patches/x86recomp-web.patch (and builds nothing)
 #
@@ -27,8 +31,31 @@ if [[ "${1:-}" == --save-patch ]]; then
   exit 0
 fi
 
-ls "$ROOT"/h4/generated/gen_*.cpp >/dev/null 2>&1 || die "no lifted game in h4/generated: run tools/build.sh first"
-[[ -d "$HOST_DEPS/softfloat-src" ]] || die "no host build of x86recomp: run tools/build.sh first"
+SITE_TRANSLATIONS=1
+args=()
+for a in "$@"; do
+  if [[ "$a" == --no-translations ]]; then SITE_TRANSLATIONS=0; else args+=("$a"); fi
+done
+set -- "${args[@]+"${args[@]}"}"
+MODE_SUFFIX=""
+DYNAMIC=OFF
+if [[ "${1:-}" == --dynamic ]]; then
+  MODE_SUFFIX="-dynamic"
+  DYNAMIC=ON
+  bash "$ROOT/tools/prepare-x86recomp.sh"
+elif [[ -n "${1:-}" ]]; then
+  die "unknown option: $1"
+else
+  ls "$ROOT"/h4/generated/gen_*.cpp >/dev/null 2>&1 || die "no lifted game in h4/generated: run tools/build.sh first"
+fi
+HOST_ARGS=(-DFETCHCONTENT_FULLY_DISCONNECTED=OFF)
+if [[ -d "$HOST_DEPS/softfloat-src" && -d "$HOST_DEPS/coremath-src" ]]; then
+  HOST_ARGS=(-DFETCHCONTENT_SOURCE_DIR_SOFTFLOAT="$HOST_DEPS/softfloat-src"
+             -DFETCHCONTENT_SOURCE_DIR_COREMATH="$HOST_DEPS/coremath-src"
+             -DFETCHCONTENT_FULLY_DISCONNECTED=ON)
+elif [[ "$DYNAMIC" == OFF ]]; then
+  die "no host build of x86recomp: run tools/build.sh first"
+fi
 web_emsdk
 [[ -f "$PREFIX/lib/librecomp_innoextract.a" ]] || bash "$WEB/deps.sh"
 
@@ -44,8 +71,8 @@ fi
 rsync -a --delete "$BASE/" "$XR/"
 patch -s -p1 -d "$XR" < "$PATCH" || die "$PATCH does not apply to third_party/x86recomp"
 
-# What the module carries in its file system: the language button's pictures (ui/, as the Linux
-# app's) and the side panels (wings/, the project's art, when it is there).
+# What the module carries in its file system (nothing of its own now: the settings draw themselves,
+# h4/src/app_ui; the side panels are fetched, below).
 RES="$WEB_CACHE/res"
 mkdir -p "$RES"
 # The wings: on the site beside the module (dist/wings), not in it: fetched after the game starts
@@ -53,7 +80,7 @@ mkdir -p "$RES"
 rm -rf "$RES/wings"
 WINGS="$(bash "$ROOT/platforms/wings.sh" "$WEB_CACHE")"
 [[ -n "$WINGS" ]] || echo "warning: no art/combat_wings (HOMM4-extra-assets.zip: platforms/extra-assets.sh): black sides"
-swift "$ROOT/platforms/linux/render_ui.swift" "$RES/ui" "$H4_VERSION" >/dev/null
+rm -rf "$RES/ui"  # (the settings' pictures of older builds)
 # The translations: the latest release's list (platforms/languages.py), as the apps start with it.
 LANGS="$ROOT/.cache/shared/languages"
 LANG_URL="$(python3 -I "$ROOT/platforms/languages.py" "$LANGS" "$WEB_CACHE/packs" || true)"
@@ -61,22 +88,34 @@ LANG_ARGS=()
 [[ -f "$LANGS/languages.inc" ]] && LANG_ARGS+=(-DH4_LANGUAGES_INC="$LANGS/languages.inc")
 [[ -n "$LANG_URL" ]] && LANG_ARGS+=(-DH4_TRANSLATIONS_URL="$LANG_URL")
 
-B="$WEB_CACHE/build"
+B="$WEB_CACHE/build$MODE_SUFFIX"
+# The module's own files (heroes4.data) only when there are any: Emscripten refuses an empty folder.
+RES_ARG="$RES"
+[[ -n "$(ls -A "$RES")" ]] || { RES_ARG=""; rm -f "$B/heroes4.data"; }
 PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" PKG_CONFIG_PATH="" \
 emcmake cmake -S "$WEB" -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DH4_WEB_DYNAMIC="$DYNAMIC" \
   -DX86RECOMP_DIR="$XR" -DCMAKE_PREFIX_PATH="$PREFIX" -DCMAKE_FIND_ROOT_PATH="$PREFIX" \
-  -DFETCHCONTENT_SOURCE_DIR_SOFTFLOAT="$HOST_DEPS/softfloat-src" \
-  -DFETCHCONTENT_SOURCE_DIR_COREMATH="$HOST_DEPS/coremath-src" -DFETCHCONTENT_FULLY_DISCONNECTED=ON \
-  -DH4_RES_DIR="$RES" "${LANG_ARGS[@]}" >"$B.configure.log" 2>&1 || { tail -40 "$B.configure.log"; exit 1; }
-{ cmake --build "$B" --target h4 -j"$JOBS" 2>&1 | grep -E 'error|FAILED|warning: undefined|Linking' || true; } | head -80
+  "${HOST_ARGS[@]}" \
+  -DH4_RES_DIR="$RES_ARG" "${LANG_ARGS[@]}" >"$B.configure.log" 2>&1 || { tail -40 "$B.configure.log"; exit 1; }
+# Its own log: a failed compile must stop here, not leave the last build's binary to be packed.
+build_ok=1; cmake --build "$B" --target h4 -j"$JOBS" >"$B.build.log" 2>&1 || build_ok=0
+{ grep -E 'error|FAILED|warning: undefined|Linking' "$B.build.log" || true; } | head -80
+[[ $build_ok == 1 ]] || die "the build failed (log: $B.build.log)"
 [[ -f "$B/heroes4.wasm" ]] || die "heroes4.wasm was not built (log above)"
 
 # The site.
-D="$WEB_CACHE/dist"
+if [[ "$DYNAMIC" == ON ]]; then
+  bash "$ROOT/converter/tools/build_web_emitter.sh" "$B/converter"
+fi
+D="$WEB_CACHE/dist$MODE_SUFFIX"
 rm -rf "$D"; mkdir -p "$D"
 cp "$B"/heroes4.js "$B"/heroes4.wasm "$D/"
 [[ -f "$B/heroes4.data" ]] && cp "$B/heroes4.data" "$D/"
 cp "$WEB"/shell/index.html "$WEB"/shell/coi-sw.js "$D/"
+if [[ "$DYNAMIC" == ON ]]; then
+  cp -R "$B/converter" "$D/converter"
+fi
 sed -i '' "s/@H4_VERSION@/$H4_VERSION/g" "$D/index.html"
 bash "$ROOT/assets/icon/icon.sh" linux "$D/icon.png" >/dev/null 2>&1 || true
 [[ -d "$WEB_CACHE/wings" ]] && cp -R "$WEB_CACHE/wings" "$D/wings"
@@ -85,7 +124,7 @@ cp "$PREFIX/COPYING.ffmpeg.LGPLv2.1" "$D/"
 # The translations on the site (web_platform.cpp's HttpGet takes GitHub release files from here:
 # GitHub's downloads do not allow other sites' pages): the latest release's list and packs,
 # downloaded once into the cache (checked against the list's sha256).
-if [[ -n "$LANG_URL" ]]; then
+if [[ -n "$LANG_URL" && $SITE_TRANSLATIONS == 1 ]]; then
   T="$WEB_CACHE/translations"
   mkdir -p "$T" "$D/translations"
   if curl -fsSL "$LANG_URL" -o "$T/languages.json.part"; then mv "$T/languages.json.part" "$T/languages.json"; fi
@@ -118,4 +157,4 @@ PY
   fi
 fi
 echo "web: $D ($(du -sh "$D" | cut -f1); heroes4.wasm $(du -h "$D/heroes4.wasm" | cut -f1))"
-echo "serve: python3 web/serve.py   (then open http://localhost:8080)"
+echo "serve: python3 web/serve.py --dir '$D'   (then open http://localhost:8080)"

@@ -22,6 +22,7 @@
 
 #include "install/json.h"
 #include "install/platform.h"
+#include "ui_text.h"
 
 namespace h4 {
 
@@ -215,6 +216,7 @@ namespace {
 
 // Never destroyed: the refresh thread may still be running when the app exits.
 std::mutex& g_langs_mu = *new std::mutex;
+std::string& g_langs_data = *new std::string;  // LoadLanguages' folder: the downloaded packs' place
 std::vector<LanguageInfo>& g_langs = *new std::vector<LanguageInfo>;  // after English
 
 const LanguageInfo& English() {
@@ -295,6 +297,33 @@ void LoadLanguages(const std::string& data_dir) {
   const bool cached = ParseRelease(ReadFile(data_dir + "/languages.json"), &release);
   std::lock_guard<std::mutex> l(g_langs_mu);
   g_langs = cached ? Merge(release) : Baked();
+  g_langs_data = data_dir;
+}
+
+std::string DownloadedPack(const std::string& data_dir, const LanguageInfo& l) {
+  return data_dir + "/packs/" + l.code + "-" + l.sha256.substr(0, 12) + ".h4p";
+}
+
+std::string PackDownloadNote(const std::string& code, const std::string& ui_lang) {
+  const uint64_t size = PackDownloadSize(code);
+  if (!size) return "";
+  char mb[32];
+  std::snprintf(mb, sizeof mb, "%.1f", double(size) / (1024.0 * 1024.0));
+  return TrIn(ui_lang, "{1} needs its language pack ({2} MB): it is downloaded when the game starts again.",
+              {FindLanguage(code).name, mb});
+}
+
+uint64_t PackDownloadSize(const std::string& code) {
+  const LanguageInfo l = FindLanguage(code);
+  if (l.code == "en" || l.url.empty() || !BundledPack(l.code).empty()) return 0;
+  std::string data;
+  {
+    std::lock_guard<std::mutex> g(g_langs_mu);
+    data = g_langs_data;
+  }
+  struct stat st {};
+  if (!data.empty() && stat(DownloadedPack(data, l).c_str(), &st) == 0) return 0;
+  return l.size ? l.size : 1;
 }
 
 std::vector<LanguageInfo> Languages() {

@@ -1,0 +1,60 @@
+--- a/src/runtime/hle/kernel32_file.cpp	2026-11-24 00:07:05
++++ b/src/runtime/hle/kernel32_file.cpp	2026-11-24 00:07:04
+@@ -19,7 +19,12 @@
+ #ifndef O_CLOEXEC
+ #define O_CLOEXEC 0
+ #endif
++#else
++#define O_BINARY 0
+ #endif
++// O_BINARY: Windows' open() is in text mode unless told otherwise (CR LF read
++// as LF, 0x1A as the end of the file); a guest's files are bytes, as with
++// CreateFile on Windows.
+ 
+ #include <cstdlib>
+ #include <cstring>
+@@ -187,9 +192,9 @@
+ 
+ // Copies regular file `from` to `to` (created or truncated).
+ bool CopyHostFile(const std::string& from, const std::string& to) {
+-  int in = open(from.c_str(), O_RDONLY | O_CLOEXEC);
++  int in = open(from.c_str(), O_RDONLY | O_BINARY | O_CLOEXEC);
+   if (in < 0) return false;
+-  int out = open(to.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
++  int out = open(to.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY | O_CLOEXEC, 0644);
+   if (out < 0) {
+     close(in);
+     return false;
+@@ -387,7 +392,7 @@
+     // Make sure the parent exists in the per-user tree.
+     MakeDirs(path.substr(0, path.find_last_of('/')));
+   }
+-  int fd = open(path.c_str(), flags | O_CLOEXEC, 0644);
++  int fd = open(path.c_str(), flags | O_BINARY | O_CLOEXEC, 0644);
+   if (fd < 0) {
+     RECOMP_TRACE("  CreateFile(%s) -> %s: %s\n", gpath.c_str(), path.c_str(),
+               std::strerror(errno));
+@@ -622,12 +627,12 @@
+ HLE("kernel32.dll", CopyFileA, 3) {
+   std::string from = HostPath(GStr(Arg(c, 0)));
+   std::string to = HostPath(GStr(Arg(c, 1)), PathAccess::kWrite);
+-  int in = open(from.c_str(), O_RDONLY | O_CLOEXEC);
++  int in = open(from.c_str(), O_RDONLY | O_BINARY | O_CLOEXEC);
+   if (in < 0) {
+     SetLastError(ErrnoToWin(errno));
+     return 0;
+   }
+-  int flags = O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | (Arg(c, 2) ? O_EXCL : 0);
++  int flags = O_WRONLY | O_CREAT | O_TRUNC | O_BINARY | O_CLOEXEC | (Arg(c, 2) ? O_EXCL : 0);
+   int out = open(to.c_str(), flags, 0644);
+   if (out < 0) {
+     SetLastError(errno == EEXIST ? 80 /* ERROR_FILE_EXISTS */ : ErrnoToWin(errno));
+@@ -764,7 +769,7 @@
+   PutStr(Arg(c, 3), full);
+   if (!Arg(c, 2)) {
+     int fd = open(HostPath(full, PathAccess::kWrite).c_str(),
+-                  O_CREAT | O_WRONLY | O_CLOEXEC, 0644);
++                  O_CREAT | O_WRONLY | O_BINARY | O_CLOEXEC, 0644);
+     if (fd >= 0) close(fd);
+   }
+   return unique;

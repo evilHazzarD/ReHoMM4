@@ -1,25 +1,23 @@
-// menu_button.h on Android: HeroesActivity.h4LanguageButton (buttons over SDL's view: ⚙︎, a tap
-// opens the settings, the languages and the checkbox that shows the ☁️ one, the save sync dialog
-// of SaveSync.java, the gamepad's: showGamepad), called through JNI from the game's thread; and
-// the gamepad dialog's natives (h4PadState, h4PadSet).
+// Android's side of the app: what the settings (drawn into the game's frame, menu_button_drawn.cpp)
+// ask of the system (app_ui/native.h: the browser, the Files app, the save sync's folder picker,
+// the update's download, the app started again) and what main.cpp asks (a phone's screen, the
+// notch), through HeroesActivity's static methods (JNI, from the game's thread); and HeroesActivity.tr.
 #include <SDL3/SDL.h>
 #include <jni.h>
 
+#include <cstdint>
 #include <cstdio>
-#include <cstdlib>
 #include <string>
+#include <vector>
 
-#include "language.h"
-#include "intro.h"
+#include "app_ui/native.h"
 #include "menu_button.h"
-#include "pad_config.h"
-#include "runtime/hle/user32_window.h"
+#include "ui_text.h"
 
-namespace h4 {
+static jstring JString(JNIEnv* env, const std::string& s);
+static std::string Utf8(JNIEnv* env, jstring s);
 
 namespace {
-std::string g_lang, g_saved;
-bool g_shown = false;
 
 jclass Activity(JNIEnv* env) {
   static jclass cls = [&] {
@@ -35,142 +33,178 @@ jclass Activity(JNIEnv* env) {
   return cls;
 }
 
-// A gamepad's clicks (recomp::SetPadEventHook) reach the game only, never ⚙︎, ☕ and ☁️ (views of
-// their own over SDL's): a click (A, on release) on one of them is its tap
-// (HeroesActivity.h4PadClick); its press is not the game's either. The settings' dialogs take the
-// pad themselves (Android's focus: the D-pad and the stick move it, A presses, B goes back).
-float g_pad_x = -1, g_pad_y = -1;  // its pointer (its button events carry no place)
-bool g_pad_down_on = false;        // the left button went down on one of them
-bool PadEvent(const SDL_Event& e) {
-  if (e.type == SDL_EVENT_MOUSE_MOTION) {
-    g_pad_x = e.motion.x;
-    g_pad_y = e.motion.y;
-    return false;
-  }
-  if ((e.type != SDL_EVENT_MOUSE_BUTTON_DOWN && e.type != SDL_EVENT_MOUSE_BUTTON_UP) || !g_shown || g_pad_x < 0)
-    return false;
+// HeroesActivity.<name>(<sig>) called; false when it is not there (or threw).
+template <typename F>
+bool Call(const char* name, const char* sig, F&& call) {
   auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
   jclass cls = env ? Activity(env) : nullptr;
-  static jmethodID m = cls ? env->GetStaticMethodID(cls, "h4PadClick", "(FFZ)Z") : nullptr;
+  jmethodID m = cls ? env->GetStaticMethodID(cls, name, sig) : nullptr;
+  if (!m) {
+    if (env) env->ExceptionClear();
+    std::fprintf(stderr, "h4: no HeroesActivity.%s\n", name);
+    return false;
+  }
+  call(env, cls, m);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  return true;
+}
+
+bool CallBool(const char* name, const std::string& arg) {
+  bool r = false;
+  Call(name, "(Ljava/lang/String;)Z", [&](JNIEnv* env, jclass cls, jmethodID m) {
+    jstring a = JString(env, arg);
+    r = env->CallStaticBooleanMethod(cls, m, a);
+    env->DeleteLocalRef(a);
+  });
+  return r;
+}
+
+std::string CallString(const char* name) {
+  std::string r;
+  Call(name, "()Ljava/lang/String;", [&](JNIEnv* env, jclass cls, jmethodID m) {
+    auto s = static_cast<jstring>(env->CallStaticObjectMethod(cls, m));
+    r = Utf8(env, s);
+    if (s) env->DeleteLocalRef(s);
+  });
+  return r;
+}
+
+void CallVoid(const char* name) {
+  Call(name, "()V", [](JNIEnv* env, jclass cls, jmethodID m) { env->CallStaticVoidMethod(cls, m); });
+}
+
+}  // namespace
+
+namespace h4 {
+
+// A phone's screen: Android's smallest width under 600 dp (tablets have 600 and more).
+bool AndroidSmallScreen() {
+  auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
+  jclass cls = env ? Activity(env) : nullptr;
+  jmethodID m = cls ? env->GetStaticMethodID(cls, "h4SmallestWidthDp", "()I") : nullptr;
+  if (!m) {
+    if (env) env->ExceptionClear();
+    return true;
+  }
+  const int dp = env->CallStaticIntMethod(cls, m);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return true;
+  }
+  std::printf("h4: the screen's smallest width %d dp\n", dp);
+  return dp <= 0 || dp < 600;
+}
+
+// HeroesActivity.h4CutoutMargin: the camera notch's side, a fraction of the screen's width.
+bool AndroidSafeAreaMargin(float* fraction) {
+  auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
+  jclass cls = env ? Activity(env) : nullptr;
+  jmethodID m = cls ? env->GetStaticMethodID(cls, "h4CutoutMargin", "()F") : nullptr;
   if (!m) {
     if (env) env->ExceptionClear();
     return false;
   }
-  // Pixels of the window (SDL's view fills it): the pad's points are pixels on Android.
-  const bool up = e.type == SDL_EVENT_MOUSE_BUTTON_UP;
-  const bool hit = env->CallStaticBooleanMethod(cls, m, jfloat(g_pad_x), jfloat(g_pad_y),
-                                                jboolean(up && e.button.button == SDL_BUTTON_LEFT && g_pad_down_on));
-  if (env->ExceptionCheck()) env->ExceptionClear();
-  if (!up) g_pad_down_on = hit && e.button.button == SDL_BUTTON_LEFT;
-  return hit;
-}
-}  // namespace
-
-void SetLanguageChoice(const std::string& lang, const std::string& saved_path) {
-  g_lang = lang;
-  g_saved = saved_path;
-}
-
-void ShowLanguageButton(bool shown, int x, int y, int left) {
-  static bool hooked = false;
-  if (!hooked) {
-    hooked = true;
-    recomp::SetPadEventHook(PadEvent);
-  }
-  static int last_x = -1, last_y = -1, last_left = -1;
-  if (shown == g_shown && (!shown || (x == last_x && y == last_y && left == last_left))) return;
-  g_shown = shown;
-  last_x = x;
-  last_y = y;
-  last_left = left;
-  // Pixels of the window (SDL's view fills it; points are pixels on Android).
-  float vx = -1, vy = -1, lx = -1, ly = -1;
-  if (shown) {
-    int ww = 0, wh = 0;
-    int n = 0;
-    if (SDL_Window** wins = SDL_GetWindows(&n)) {  // the game's one window
-      if (n > 0) SDL_GetWindowSizeInPixels(wins[0], &ww, &wh);
-      SDL_free(wins);
-    }
-    if (ww > 0) {
-      FrameToView(x, y, float(ww), float(wh), &vx, &vy);
-      FrameToView(left >= 0 ? left : 0, y, float(ww), float(wh), &lx, &ly);
-    }
-    if (vx < 0) {
-      g_shown = false;  // nothing shown yet: tried again next pass
-      return;
-    }
-    static bool logged = false;
-    if (!logged) std::fprintf(stderr, "h4: language button at %.0f,%.0f of %dx%d\n", vx, vy, ww, wh);
-    logged = true;
-  }
-  auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
-  if (!env) return;
-  jclass cls = Activity(env);
-  if (!cls) {
-    std::fprintf(stderr, "h4: language button: no HeroesActivity class\n");
-    return;
-  }
-  static jmethodID m =
-      env->GetStaticMethodID(cls, "h4LanguageButton", "(ZFFFLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-  if (!m) {
-    std::fprintf(stderr, "h4: language button: no h4LanguageButton\n");
+  const float f = env->CallStaticFloatMethod(cls, m);
+  if (env->ExceptionCheck()) {
     env->ExceptionClear();
-    return;
+    return false;
   }
-  std::string list;  // as it is now (a new translations release can add to it)
-  if (const std::string gog = GogLanguage(); !gog.empty())  // installed from GOG in it: shown only
-    list = gog + "\t" + GogLanguageName(gog) + " (GOG)\t\n";
-  else
-    for (const LanguageInfo& lang : Languages()) list += lang.code + "\t" + lang.name + "\t" + lang.note + "\n";
-  jstring l = env->NewStringUTF(g_lang.c_str()), p = env->NewStringUTF(g_saved.c_str()),
-          all = env->NewStringUTF(list.c_str()), skip = env->NewStringUTF(SkipIntroPath().c_str());
-  jstring sides = env->NewStringUTF(SidePanelsPath());
-  env->CallStaticVoidMethod(cls, m, jboolean(shown), jfloat(vx), jfloat(vy), jfloat(lx), l, p, all, skip, sides);
-  env->DeleteLocalRef(sides);
-  env->DeleteLocalRef(skip);
-  env->DeleteLocalRef(l);
-  env->DeleteLocalRef(p);
-  env->DeleteLocalRef(all);
-  if (env->ExceptionCheck()) env->ExceptionClear();
+  *fraction = f;
+  return f > 0;
 }
+
+void RestartApp() { CallVoid("h4Restart"); }
 
 }  // namespace h4
 
-// The gamepad's dialog (HeroesActivity.showGamepad), on the UI thread: what it shows, and its changes.
-// h4PadState: lines of tab-separated fields: "enabled 1", "style <index> <its names...>",
-// "pointer <value> <min> <max>", "scroll <value> <min> <max>", "actions <name>...", then
-// "button <name> <action>" for each button (pad_config.h's order).
-extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4PadState(JNIEnv* env, jclass,
-                                                                                         jboolean uk) {
-  std::string s = "style\t" + std::to_string(h4::PadStyle());
-  for (int i = 0; i < h4::kPadStyles; i++) s += std::string("\t") + h4::PadStyleName(i);
-  char b[128];
-  std::snprintf(b, sizeof b, "\npointer\t%g\t%g\t%g\nscroll\t%g\t%g\t%g\nactions", h4::PadPointerSpeed(),
-                h4::kPointerMin, h4::kPointerMax, h4::PadScrollSpeed(), h4::kScrollMin, h4::kScrollMax);
-  s += b;
-  for (int a = 0; a < h4::PadActionCount(); a++) s += std::string("\t") + h4::PadActionName(a, uk);
-  s += "\n";
-  for (int i = 0; i < h4::kPadButtons; i++)
-    s += std::string("button\t") + h4::PadButtonName(i, uk) + "\t" + std::to_string(h4::PadBinding(i)) + "\n";
-  return env->NewStringUTF(s.c_str());
+namespace h4::native {
+
+bool OpenUrl(const std::string& url) { return CallBool("h4OpenUrl", url); }
+bool RevealFolder(const std::string& path) { return CallBool("h4OpenFolder", path); }
+bool HasSyncChoice() { return true; }
+bool SyncOn() {
+  bool on = false;
+  Call("h4SyncOn", "()Z", [&](JNIEnv* env, jclass cls, jmethodID m) { on = env->CallStaticBooleanMethod(cls, m); });
+  return on;
+}
+void SetSync(bool on) {
+  Call("h4SetSync", "(Z)V", [on](JNIEnv* env, jclass cls, jmethodID m) { env->CallStaticVoidMethod(cls, m, jboolean(on)); });
+}
+std::string SavesFolder() { return CallString("h4SavesFolder"); }
+std::string SyncedFolder() { return CallString("h4SyncedFolder"); }
+
+// The ☁️ panel (SaveSync.state: "<folder>\n<status>", the folder "" when off).
+SyncPanel SyncPanelFor(const std::string& lang) {
+  const std::string st = CallString("h4SyncState");
+  const size_t nl = st.find('\n');
+  const std::string folder = st.substr(0, nl), status = nl == std::string::npos ? "" : st.substr(nl + 1);
+  SyncPanel p;
+  p.title = h4::TrIn(lang, "Save sync");
+  if (folder.empty()) {
+    p.text = h4::TrIn(lang, "Pick a folder that Syncthing, Round Sync (rclone), Nextcloud or another app keeps in sync: "
+                            "the game makes a ReHOMM4 folder in it and copies saved games there and back.");
+    p.buttons.push_back({h4::TrIn(lang, "Choose a folder…"), [] { SetSync(true); }});
+  } else {
+    p.text = h4::TrIn(lang, "Folder: {1}", {folder}) + "\n" + status;
+    p.buttons.push_back({h4::TrIn(lang, "Sync now"), [] { CallVoid("h4SyncNow"); }});
+    p.buttons.push_back({h4::TrIn(lang, "Another folder…"), [] { SetSync(true); }});
+    p.buttons.push_back({h4::TrIn(lang, "Stop syncing"), [] { SetSync(false); }});
+  }
+  return p;
 }
 
-// The game's folder (GameFolder, main.cpp), shown in the settings; "" before it is found.
-extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4GameFolder(JNIEnv* env, jclass) {
-  return env->NewStringUTF(h4::GameFolder().c_str());
+void DownloadApk(const std::string& url, const std::string& tag) {
+  Call("h4DownloadApk", "(Ljava/lang/String;Ljava/lang/String;)Z", [&](JNIEnv* env, jclass cls, jmethodID m) {
+    jstring u = JString(env, url), t = JString(env, tag);
+    env->CallStaticBooleanMethod(cls, m, u, t);
+    env->DeleteLocalRef(u);
+    env->DeleteLocalRef(t);
+  });
 }
 
-// key: "enabled" (value 0 or 1), "pointer", "scroll", "preset" (its index), "reset", or "button<i>"
-// (value: the action's index).
-extern "C" JNIEXPORT void JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4PadSet(JNIEnv* env, jclass, jstring key,
-                                                                                    jfloat value) {
-  const char* k = env->GetStringUTFChars(key, nullptr);
-  const std::string name = k ? k : "";
-  if (k) env->ReleaseStringUTFChars(key, k);
-  else if (name == "pointer") h4::SetPadPointerSpeed(value);
-  else if (name == "scroll") h4::SetPadScrollSpeed(value);
-  else if (name == "preset") h4::ApplyPadPreset(int(value));
-  else if (name == "reset") h4::ResetPadConfig();
-  else if (name.rfind("button", 0) == 0) h4::SetPadBinding(std::atoi(name.c_str() + 6), int(value));
+}  // namespace h4::native
+
+// A Java string of UTF-8 `s` (by UTF-16: NewStringUTF takes Java's modified UTF-8, which has no
+// 4-byte sequences).
+static jstring JString(JNIEnv* env, const std::string& s) {
+  std::u16string u;
+  for (size_t i = 0; i < s.size();) {
+    const unsigned char c = static_cast<unsigned char>(s[i]);
+    const int n = c < 0x80 ? 1 : c < 0xE0 ? 2 : c < 0xF0 ? 3 : 4;
+    uint32_t cp = n == 1 ? c : n == 2 ? c & 0x1F : n == 3 ? c & 0x0F : c & 0x07;
+    for (int k = 1; k < n && i + size_t(k) < s.size(); k++) cp = (cp << 6) | (static_cast<unsigned char>(s[i + size_t(k)]) & 0x3F);
+    i += size_t(n);
+    if (cp >= 0x10000) {
+      cp -= 0x10000;
+      u += char16_t(0xD800 + (cp >> 10));
+      u += char16_t(0xDC00 + (cp & 0x3FF));
+    } else {
+      u += char16_t(cp);
+    }
+  }
+  return env->NewString(reinterpret_cast<const jchar*>(u.data()), jsize(u.size()));
+}
+
+static std::string Utf8(JNIEnv* env, jstring s) {
+  if (!s) return "";
+  const char* c = env->GetStringUTFChars(s, nullptr);
+  std::string out = c ? c : "";
+  if (c) env->ReleaseStringUTFChars(s, c);
+  return out;
+}
+
+// HeroesActivity.tr: `english` in `lang` (ui_text.h), {1}, {2}... from `args`.
+extern "C" JNIEXPORT jstring JNICALL Java_games_hazzard_heroes4_HeroesActivity_h4Tr(JNIEnv* env, jclass, jstring lang,
+                                                                                   jstring english, jobjectArray args) {
+  std::vector<std::string> a;
+  for (jsize i = 0, n = args ? env->GetArrayLength(args) : 0; i < n; i++) {
+    jstring s = static_cast<jstring>(env->GetObjectArrayElement(args, i));
+    a.push_back(Utf8(env, s));
+    if (s) env->DeleteLocalRef(s);
+  }
+  const std::string e = Utf8(env, english);
+  return JString(env, h4::TrIn(Utf8(env, lang), e.c_str(), a));
 }

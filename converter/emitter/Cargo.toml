@@ -1,0 +1,22 @@
+[package]
+name = "rehomm4-emit-wasm"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[features]
+discovery = ["dep:rc-convert"]
+browser = ["discovery", "dep:wasm-bindgen"]
+
+[dependencies]
+rc-convert = { path = "../../third_party/game-recomp/recomp/crates/rc-convert", optional = true }
+rc-ir = { path = "../../third_party/game-recomp/recomp/crates/rc-ir" }
+wasm-encoder = { version = "=0.263.0", default-features = false, features = ["std"] }
+wasm-bindgen = { version = "=0.2.130", optional = true }
+
+[[example]]
+name = "check_install"
+required-features = ["discovery"]

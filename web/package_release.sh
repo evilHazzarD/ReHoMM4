@@ -8,6 +8,19 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_ZIP="$1"
 D="$ROOT/.cache/outputs/web/dist"
+case "${2:-}" in
+  --dynamic)
+    D="$ROOT/.cache/outputs/web/dist-dynamic"
+    [[ -s "$D/converter/rehomm4_emit_wasm_bg.wasm" ]] ||
+      { echo "no converter in $D: run web/build.sh --dynamic first" >&2; exit 1; }
+    if [[ -n "$(find "$D" \( -type l -o -iname '*.exe' -o -iname '*.h4r' -o -iname 'code*.wasm' \) -print)" ]]; then
+      echo "unexpected player-owned files or symlinks in $D" >&2
+      exit 1
+    fi
+    ;;
+  "") ;;
+  *) echo "usage: $0 <out.zip> [--dynamic]" >&2; exit 2 ;;
+esac
 [[ -f "$D/index.html" && -f "$D/heroes4.wasm" ]] || { echo "no site in $D: run web/build.sh first" >&2; exit 1; }
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/ReHoMM4"

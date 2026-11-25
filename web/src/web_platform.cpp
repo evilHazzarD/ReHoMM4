@@ -47,20 +47,28 @@ bool Fetch(const std::string& url, const std::string& bearer, int* status, std::
            std::string* error, const std::string& range);
 
 // Release files on GitHub (the translations' list and packs): GitHub's downloads do not allow
-// other sites' pages to read them (no CORS headers), so the site has them itself, in
-// translations/ (web/build.sh puts the release's languages.json and packs there).
-std::string OnThisSite(const std::string& url) {
-  if (url.find("://github.com/") == std::string::npos || url.find("/releases/") == std::string::npos) return "";
-  return "translations/" + url.substr(url.rfind('/') + 1);
+// other sites' pages to read them (no CORS headers). Where the page finds them instead, in order:
+//   translations/<file>   the site's own copy (web/build.sh, unless --no-translations);
+//   /<repository>/<file>  that repository's own GitHub Pages site, which a site on the same
+//                         <owner>.github.io reads as its own (ReHoMM4-translations publishes its
+//                         latest release there: .github/workflows/pages.yml in that repository).
+std::vector<std::string> OnThisSite(const std::string& url) {
+  const size_t gh = url.find("://github.com/");
+  if (gh == std::string::npos || url.find("/releases/") == std::string::npos) return {};
+  const std::string file = url.substr(url.rfind('/') + 1);
+  std::vector<std::string> at{"translations/" + file};
+  const size_t owner = gh + 14, repo = url.find('/', owner) + 1, end = url.find('/', repo);
+  if (repo > owner && end != std::string::npos && end > repo)
+    at.push_back(url.substr(repo - 1, end - repo + 1) + "/" + file);
+  return at;
 }
 
 }  // namespace
 
 bool HttpGet(const std::string& url, const std::string& bearer, int* status, std::string* body,
              std::string* error, const std::string& range) {
-  const std::string here = OnThisSite(url);
-  if (!here.empty() && Fetch(here, "", status, body, error, range) && (*status == 200 || *status == 206))
-    return true;
+  for (const std::string& here : OnThisSite(url))
+    if (Fetch(here, "", status, body, error, range) && (*status == 200 || *status == 206)) return true;
   return Fetch(url, bearer, status, body, error, range);
 }
 

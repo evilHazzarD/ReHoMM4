@@ -1,0 +1,77 @@
+name: ReHoMM4 web
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Deploy the verified web build to GitHub Pages
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rehomm4-web-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca  # stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      - name: Install build tools
+        run: |
+          brew install cmake ninja pkgconf
+          cargo install wasm-bindgen-cli --version 0.2.130 --locked
+      - name: Build the game-code-free player and converter
+        run: |
+          node converter/test/emitter.mjs
+          bash web/build.sh --dynamic --no-translations
+      - name: Stage verified web files
+        run: |
+          site=.cache/outputs/web/dist-dynamic
+          test -f "$site/index.html"
+          test -s "$site/heroes4.wasm"
+          test -s "$site/converter/rehomm4_emit_wasm_bg.wasm"
+          if [[ -n "$(find "$site" \( -type l -o -iname '*.exe' -o -iname '*.h4r' -o -iname '*.h4p' -o -iname 'code*.wasm' \) -print)" ]]; then
+            echo 'The web package contains a symlink, player-owned data or a translation pack.' >&2
+            exit 1
+          fi
+          cp -R "$site" "$RUNNER_TEMP/rehomm4-web"
+          # The same gate as the releases: no game data or anything derived from it (by content,
+          # not only by name); the exceptions are the rehomm4-web/ lines of .publish-allow.
+          python3 -I tools/release/publish_check.py "$RUNNER_TEMP/rehomm4-web"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: rehomm4-web
+          path: ${{ runner.temp }}/rehomm4-web
+          if-no-files-found: error
+      - name: Upload Pages artifact
+        if: inputs.publish
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4.0.0
+        with:
+          path: ${{ runner.temp }}/rehomm4-web
+
+  deploy:
+    if: inputs.publish
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4.0.5

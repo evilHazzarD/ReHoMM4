@@ -13,8 +13,6 @@
 set -euo pipefail
 
 H4PORT="$(cd "$(dirname "$0")/.." && pwd)"
-X86RECOMP=https://github.com/JTM-rootstorm/x86recomp.git
-X86RECOMP_COMMIT=1c90fe3a5dad37d0cca551fc9c8ab66a106ede1e
 # heroes4.exe of GOG's "Complete 3.0" (setup_..._3.0_win11_gog_0.2_(76223)).
 EXE_SHA256=b7c2f6caeeba640b1c5f1d812b172938bb4dd4ec62e34ec93ad827bd1ffaec87
 
@@ -40,14 +38,7 @@ fi
 
 say "x86recomp"
 X="$H4PORT/third_party/x86recomp"
-if [[ ! -d "$X/.git" ]]; then
-  git clone -q "$X86RECOMP" "$X"
-  git -C "$X" checkout -q "$X86RECOMP_COMMIT"
-  git -C "$X" apply "$H4PORT/patches/x86recomp-h4.patch"
-  for p in "$H4PORT"/patches/x86recomp-*.patch; do   # fixes on top, one patch each, in name order
-    [[ "$p" == */x86recomp-h4.patch ]] || git -C "$X" apply "$p"
-  done
-fi
+bash "$H4PORT/tools/prepare-x86recomp.sh"
 (cd "$X" && cmake --preset release >/dev/null && cmake --build --preset release --target recomp_lift)
 
 say "ffmpeg (LGPL)"
