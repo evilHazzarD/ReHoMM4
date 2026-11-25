@@ -56,7 +56,9 @@ bool h4_prepare_dynamic_game(const char* executable) {
     return false;
   }
   const std::string digest = hash.HexDigest();
-  const std::string path = "/persist/ReHoMM4/code-" + digest + ".wasm";
+  // "code-<version>-<digest>": the emitter's output version, as converter/src/emit_worker.mjs
+  // (another version is converted again).
+  const std::string path = "/persist/ReHoMM4/code-3-" + digest + ".wasm";
   struct stat info {};
   // Bound the allocation and require a regular file in the mounted filesystem.
   if (stat(path.c_str(), &info)) {

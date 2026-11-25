@@ -72,7 +72,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
-    let code = rehomm4_emit_wasm::emit_with_resume_sites(&functions, &resume_sites)
+    let hooked = fs::read_to_string(manifest.with_file_name("hooked-sites.txt"))?
+        .lines()
+        .map(|line| u32::from_str_radix(line, 16))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let code = rehomm4_emit_wasm::emit_linked(&functions, &resume_sites, &hooked)
         .map_err(io::Error::other)?;
     println!("Encoded {} bytes of WebAssembly", code.len());
     if let Some(output) = output {

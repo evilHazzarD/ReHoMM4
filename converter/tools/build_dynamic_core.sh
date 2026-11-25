@@ -19,7 +19,7 @@ mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 MANIFESTS="$(mktemp -d)"
 cleanup_manifests() {
-  rm -f "$MANIFESTS/h4/game.toml" "$MANIFESTS/h4/resume-sites.txt"
+  rm -f "$MANIFESTS/h4/game.toml" "$MANIFESTS/h4/resume-sites.txt" "$MANIFESTS/h4/hooked-sites.txt"
   if [[ -d "$MANIFESTS/h4" ]]; then rmdir "$MANIFESTS/h4"; fi
   rmdir "$MANIFESTS"
 }

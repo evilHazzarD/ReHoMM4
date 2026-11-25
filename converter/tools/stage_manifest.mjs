@@ -25,3 +25,6 @@ await writeFile(join(gameDir, 'game.toml'), staged);
 const resumeSites = rules.filter(rule => rule.kind === 'resume')
   .map(rule => rule.address.toString(16));
 await writeFile(join(gameDir, 'resume-sites.txt'), resumeSites.map(site => site + '\n').join(''));
+// The addresses ReHoMM4 replaces: calls to them go through the runtime, the rest are direct.
+const hookedSites = rules.filter(rule => rule.kind === 'replace').map(rule => rule.address.toString(16));
+await writeFile(join(gameDir, 'hooked-sites.txt'), hookedSites.map(site => site + '\n').join(''));

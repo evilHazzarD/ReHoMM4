@@ -37,10 +37,16 @@ const HOST_FUNCTIONS: usize = 17;
 const CONTEXT: u32 = 0;
 const SHIFT_VALUE: u32 = 1;
 const SHIFT_COUNT: u32 = 2;
-const FIRST_TEMP: u32 = 3;
+// The guest memory base, read once per call (the runtime picks it when the game starts).
+const BASE: u32 = 3;
+// EAX..EDI and the seven flags live in locals inside a function (the engine drops the flag
+// values nobody reads) and go back to the Ctx around calls, returns and runtime exits.
+const REG0: u32 = 4;
+const FLAG0: u32 = REG0 + 8;
+const FIRST_TEMP: u32 = FLAG0 + 7;
+const FLAGS: [Flag; 7] = [Flag::Cf, Flag::Pf, Flag::Af, Flag::Zf, Flag::Sf, Flag::Df, Flag::Of];
+const FLAG_MASK: i32 = 0x0CD5;
 const SAVED_EAX_OFFSET: u64 = 0;
-const ESP_OFFSET: u64 = 32;
-const EBP_OFFSET: u64 = 40;
 const EFLAGS_OFFSET: u64 = 128;
 const FS_BASE_OFFSET: u64 = 132;
 
@@ -56,6 +62,56 @@ fn flag_bit(flag: Flag) -> i32 {
     }
 }
 
+fn flag_local(flag: Flag) -> u32 {
+    FLAG0 + FLAGS.iter().position(|f| *f == flag).unwrap() as u32
+}
+
+/// The registers and flags from the locals to the Ctx.
+fn sync_out(code: &mut wasm_encoder::Function) {
+    for n in 0..8u32 {
+        code.instruction(&Instruction::LocalGet(CONTEXT));
+        code.instruction(&Instruction::LocalGet(REG0 + n));
+        code.instruction(&Instruction::I32Store(ctx_slot(SAVED_EAX_OFFSET + 8 * u64::from(n))));
+    }
+    code.instruction(&Instruction::LocalGet(CONTEXT));
+    code.instruction(&Instruction::LocalGet(CONTEXT));
+    code.instruction(&Instruction::I32Load(ctx_slot(EFLAGS_OFFSET)));
+    code.instruction(&Instruction::I32Const(!FLAG_MASK));
+    code.instruction(&Instruction::I32And);
+    for flag in FLAGS {
+        code.instruction(&Instruction::LocalGet(flag_local(flag)));
+        code.instruction(&Instruction::I32Const(flag_bit(flag)));
+        code.instruction(&Instruction::I32Shl);
+        code.instruction(&Instruction::I32Or);
+    }
+    code.instruction(&Instruction::I32Store(ctx_slot(EFLAGS_OFFSET)));
+}
+
+/// The registers and flags from the Ctx to the locals (after the runtime or a callee ran).
+fn sync_in(code: &mut wasm_encoder::Function) {
+    for n in 0..8u32 {
+        code.instruction(&Instruction::LocalGet(CONTEXT));
+        code.instruction(&Instruction::I32Load(ctx_slot(SAVED_EAX_OFFSET + 8 * u64::from(n))));
+        code.instruction(&Instruction::LocalSet(REG0 + n));
+    }
+    for flag in FLAGS {
+        code.instruction(&Instruction::LocalGet(CONTEXT));
+        code.instruction(&Instruction::I32Load(ctx_slot(EFLAGS_OFFSET)));
+        code.instruction(&Instruction::I32Const(flag_bit(flag)));
+        code.instruction(&Instruction::I32ShrU);
+        code.instruction(&Instruction::I32Const(1));
+        code.instruction(&Instruction::I32And);
+        code.instruction(&Instruction::LocalSet(flag_local(flag)));
+    }
+}
+
+fn reg_local(reg: &Reg) -> Result<u32, &'static str> {
+    if reg.n >= 8 {
+        return Err("invalid register");
+    }
+    Ok(REG0 + u32::from(reg.n))
+}
+
 fn ctx_slot(offset: u64) -> MemArg {
     MemArg {
         offset,
@@ -65,12 +121,6 @@ fn ctx_slot(offset: u64) -> MemArg {
     }
 }
 
-fn reg_offset(reg: &Reg) -> Result<u64, &'static str> {
-    if reg.n >= 8 {
-        return Err("invalid register");
-    }
-    Ok(SAVED_EAX_OFFSET + 8 * u64::from(reg.n) + u64::from(reg.part == Part::H))
-}
 
 fn load(width: W, offset: u64) -> Result<Instruction<'static>, &'static str> {
     let slot = ctx_slot(offset);
@@ -108,17 +158,24 @@ fn expression(
                 .ok_or("temporary read before assignment")?,
         ),
         Expr::Reg(reg) => {
-            code.instruction(&Instruction::LocalGet(CONTEXT));
-            load(reg.part.width(), reg_offset(reg)?)?
+            let local = reg_local(reg)?;
+            match reg.part {
+                Part::D => Instruction::LocalGet(local),
+                Part::X | Part::L => {
+                    code.instruction(&Instruction::LocalGet(local));
+                    code.instruction(&Instruction::I32Const(if reg.part == Part::X { 0xFFFF } else { 0xFF }));
+                    Instruction::I32And
+                }
+                Part::H => {
+                    code.instruction(&Instruction::LocalGet(local));
+                    code.instruction(&Instruction::I32Const(8));
+                    code.instruction(&Instruction::I32ShrU);
+                    code.instruction(&Instruction::I32Const(0xFF));
+                    Instruction::I32And
+                }
+            }
         }
-        Expr::Flag(flag) => {
-            code.instruction(&Instruction::LocalGet(CONTEXT));
-            code.instruction(&Instruction::I32Load(ctx_slot(EFLAGS_OFFSET)));
-            code.instruction(&Instruction::I32Const(flag_bit(*flag)));
-            code.instruction(&Instruction::I32ShrU);
-            code.instruction(&Instruction::I32Const(1));
-            Instruction::I32And
-        }
+        Expr::Flag(flag) => Instruction::LocalGet(flag_local(*flag)),
         Expr::Trunc(width @ (W::B8 | W::B16 | W::B32), value) => {
             expression(code, value, temporaries)?;
             if value.width() == W::B64 {
@@ -317,7 +374,7 @@ fn guest_address(
     address: &Expr,
     temporaries: &BTreeMap<Tmp, u32>,
 ) -> Result<(), &'static str> {
-    code.instruction(&Instruction::Call(GUEST_BASE));
+    code.instruction(&Instruction::LocalGet(BASE));
     expression(code, address, temporaries)?;
     code.instruction(&Instruction::I32Add);
     Ok(())
@@ -478,17 +535,17 @@ fn fpu_operand(
     Ok(())
 }
 
+const ESP: u32 = REG0 + 4;
+const EBP: u32 = REG0 + 5;
+
 fn push_return_address(code: &mut wasm_encoder::Function, address: u32) {
-    // Put the guest return address on the guest stack before dispatching.
-    code.instruction(&Instruction::LocalGet(CONTEXT));
-    code.instruction(&Instruction::LocalGet(CONTEXT));
-    code.instruction(&Instruction::I32Load(ctx_slot(ESP_OFFSET)));
+    // Put the guest return address on the guest stack before the call.
+    code.instruction(&Instruction::LocalGet(ESP));
     code.instruction(&Instruction::I32Const(4));
     code.instruction(&Instruction::I32Sub);
-    code.instruction(&Instruction::I32Store(ctx_slot(ESP_OFFSET)));
-    code.instruction(&Instruction::Call(GUEST_BASE));
-    code.instruction(&Instruction::LocalGet(CONTEXT));
-    code.instruction(&Instruction::I32Load(ctx_slot(ESP_OFFSET)));
+    code.instruction(&Instruction::LocalSet(ESP));
+    code.instruction(&Instruction::LocalGet(BASE));
+    code.instruction(&Instruction::LocalGet(ESP));
     code.instruction(&Instruction::I32Add);
     code.instruction(&Instruction::I32Const(address as i32));
     code.instruction(&Instruction::I32Store(ctx_slot(0)));
@@ -525,6 +582,7 @@ fn emit_statements(
         match stmt {
             Stmt::Let(tmp, value) => {
                 if let Expr::Bin(BinOp::SDiv, W::B64, dividend, divisor) = value {
+                    sync_out(code);  // the runtime reports a fault with the guest state
                     code.instruction(&Instruction::LocalGet(CONTEXT));
                     code.instruction(&Instruction::I32Const(address as i32));
                     expression(code, dividend, temporaries)?;
@@ -546,24 +604,35 @@ fn emit_statements(
                 code.instruction(&Instruction::LocalSet(slot));
             }
             Stmt::SetReg(reg, value) => {
-                code.instruction(&Instruction::LocalGet(CONTEXT));
-                expression(code, value, temporaries)?;
-                code.instruction(&store(reg.part.width(), reg_offset(reg)?)?);
+                let local = reg_local(reg)?;
+                let (keep, mask, shift) = match reg.part {
+                    Part::D => (0, -1, 0),
+                    Part::X => (0xFFFF_0000u32 as i32, 0xFFFF, 0),
+                    Part::L => (0xFFFF_FF00u32 as i32, 0xFF, 0),
+                    Part::H => (0xFFFF_00FFu32 as i32, 0xFF, 8),
+                };
+                if reg.part == Part::D {
+                    expression(code, value, temporaries)?;
+                } else {
+                    code.instruction(&Instruction::LocalGet(local));
+                    code.instruction(&Instruction::I32Const(keep));
+                    code.instruction(&Instruction::I32And);
+                    expression(code, value, temporaries)?;
+                    code.instruction(&Instruction::I32Const(mask));
+                    code.instruction(&Instruction::I32And);
+                    if shift != 0 {
+                        code.instruction(&Instruction::I32Const(shift));
+                        code.instruction(&Instruction::I32Shl);
+                    }
+                    code.instruction(&Instruction::I32Or);
+                }
+                code.instruction(&Instruction::LocalSet(local));
             }
             Stmt::SetFlag(flag, value) => {
-                let bit = flag_bit(*flag);
-                code.instruction(&Instruction::LocalGet(CONTEXT));
-                code.instruction(&Instruction::LocalGet(CONTEXT));
-                code.instruction(&Instruction::I32Load(ctx_slot(EFLAGS_OFFSET)));
-                code.instruction(&Instruction::I32Const(!(1 << bit)));
-                code.instruction(&Instruction::I32And);
                 expression(code, value, temporaries)?;
                 code.instruction(&Instruction::I32Const(1));
                 code.instruction(&Instruction::I32And);
-                code.instruction(&Instruction::I32Const(bit));
-                code.instruction(&Instruction::I32Shl);
-                code.instruction(&Instruction::I32Or);
-                code.instruction(&Instruction::I32Store(ctx_slot(EFLAGS_OFFSET)));
+                code.instruction(&Instruction::LocalSet(flag_local(*flag)));
             }
             Stmt::Store(address, value) => {
                 guest_address(code, address, temporaries)?;
@@ -607,12 +676,14 @@ fn emit_statements(
             Stmt::Trap(reason)
                 if matches!(reason.as_str(), "divide by zero" | "divide overflow") =>
             {
+                sync_out(code);
                 code.instruction(&Instruction::LocalGet(CONTEXT));
                 code.instruction(&Instruction::I32Const(address as i32));
                 code.instruction(&Instruction::Call(DIVIDE_ERROR));
                 code.instruction(&Instruction::Unreachable);
             }
             Stmt::Trap(reason) if is_guest_interrupt(reason) => {
+                sync_out(code);
                 code.instruction(&Instruction::LocalGet(CONTEXT));
                 code.instruction(&Instruction::I32Const(address as i32));
                 code.instruction(&Instruction::Call(INTERRUPT));
@@ -638,12 +709,38 @@ fn dispatch(code: &mut wasm_encoder::Function, from: u32, owning_frame: Option<u
     }
 }
 
+/// Direct calls between lifted functions. Calls to `hooked` addresses (the runtime's own
+/// replacements) and calls from frames that own a resume site still go through the runtime.
+pub struct Links {
+    index: BTreeMap<u32, u32>,
+    hooked: BTreeSet<u32>,
+}
+
+impl Links {
+    fn direct(&self, target: u32) -> Option<u32> {
+        if self.hooked.contains(&target) {
+            return None;
+        }
+        self.index.get(&target).copied()
+    }
+}
+
 #[derive(Clone, Copy)]
-struct TransferContext {
+struct TransferContext<'a> {
     pc: u32,
     loop_depth: u32,
     from: u32,
     owning_frame: Option<u32>,
+    links: Option<&'a Links>,
+}
+
+impl TransferContext<'_> {
+    fn direct(&self, target: u32) -> Option<u32> {
+        if self.owning_frame.is_some() {
+            return None;
+        }
+        self.links?.direct(target)
+    }
 }
 
 fn transfer(
@@ -657,9 +754,14 @@ fn transfer(
         code.instruction(&Instruction::LocalSet(context.pc));
         code.instruction(&Instruction::Br(context.loop_depth));
     } else {
+        sync_out(code);
         code.instruction(&Instruction::LocalGet(CONTEXT));
-        code.instruction(&Instruction::I32Const(target as i32));
-        dispatch(code, context.from, context.owning_frame);
+        if let Some(callee) = context.direct(target) {
+            code.instruction(&Instruction::Call(callee));
+        } else {
+            code.instruction(&Instruction::I32Const(target as i32));
+            dispatch(code, context.from, context.owning_frame);
+        }
         code.instruction(&Instruction::Return);
     }
 }
@@ -699,6 +801,7 @@ fn writes_seh_head(statements: &[Stmt]) -> bool {
 fn emit_body(
     function: &Function,
     resume_sites: &BTreeSet<u32>,
+    links: Option<&Links>,
 ) -> Result<wasm_encoder::Function, String> {
     if resume_sites.is_empty() && (function.except_block || !function.continuations.is_empty()) {
         return Err(format!(
@@ -745,7 +848,7 @@ fn emit_body(
         .ok_or("too many temporaries")?;
     let mut code = wasm_encoder::Function::new([
         (2, ValType::I64),
-        (local_count + 1, ValType::I32),
+        (local_count + 1 + (FIRST_TEMP - BASE), ValType::I32),
         (local_count, ValType::I64),
         (1, ValType::I32),
     ]);
@@ -800,6 +903,9 @@ fn emit_body(
     }
     let n = u32::try_from(starts.len()).map_err(|_| "too many blocks")?;
     let cases: BTreeMap<_, _> = starts.into_iter().zip(0..n).collect();
+    code.instruction(&Instruction::Call(GUEST_BASE));
+    code.instruction(&Instruction::LocalSet(BASE));
+    sync_in(&mut code);
     code.instruction(&Instruction::I32Const(cases[&function.addr] as i32));
     code.instruction(&Instruction::LocalSet(pc));
     code.instruction(&Instruction::Block(BlockType::Empty));
@@ -826,6 +932,7 @@ fn emit_body(
             loop_depth: depth,
             from: insn.addr,
             owning_frame,
+            links,
         };
         let nested = TransferContext {
             loop_depth: depth + 1,
@@ -860,8 +967,8 @@ fn emit_body(
             }
             // The guest has already restored the owning frame's EBP.
             // This transfer abandons the current stack without pushing a return address.
-            code.instruction(&Instruction::LocalGet(CONTEXT));
-            code.instruction(&Instruction::I32Load(ctx_slot(EBP_OFFSET)));
+            sync_out(&mut code);
+            code.instruction(&Instruction::LocalGet(EBP));
             code.instruction(&Instruction::I32Const(insn.addr as i32));
             code.instruction(&Instruction::Call(RESUME));
             code.instruction(&Instruction::Unreachable);
@@ -881,8 +988,11 @@ fn emit_body(
                 None
             }
             Term::JumpIndirect(target) => {
-                code.instruction(&Instruction::LocalGet(CONTEXT));
                 expression(&mut code, target, &temporaries).map_err(at)?;
+                code.instruction(&Instruction::LocalSet(call_target));
+                sync_out(&mut code);
+                code.instruction(&Instruction::LocalGet(CONTEXT));
+                code.instruction(&Instruction::LocalGet(call_target));
                 dispatch(&mut code, insn.addr, owning_frame);
                 code.instruction(&Instruction::Return);
                 None
@@ -904,6 +1014,14 @@ fn emit_body(
                 code.instruction(&Instruction::Unreachable);
                 None
             }
+            Term::Call { target, ret, .. } if context.direct(*target).is_some() => {
+                push_return_address(&mut code, *ret);
+                sync_out(&mut code);
+                code.instruction(&Instruction::LocalGet(CONTEXT));
+                code.instruction(&Instruction::Call(context.direct(*target).unwrap()));
+                sync_in(&mut code);
+                Some(*ret)
+            }
             Term::Call { ret, .. } | Term::CallIndirect { ret, .. } => {
                 match &insn.term {
                     Term::Call { target, .. } => {
@@ -917,18 +1035,19 @@ fn emit_body(
                 // An indirect target can use ESP, so read it before the push.
                 code.instruction(&Instruction::LocalSet(call_target));
                 push_return_address(&mut code, *ret);
+                sync_out(&mut code);
                 code.instruction(&Instruction::LocalGet(CONTEXT));
                 code.instruction(&Instruction::LocalGet(call_target));
                 dispatch(&mut code, insn.addr, owning_frame);
+                sync_in(&mut code);
                 Some(*ret)
             }
             Term::Ret(cleanup) => {
-                code.instruction(&Instruction::LocalGet(CONTEXT));
-                code.instruction(&Instruction::LocalGet(CONTEXT));
-                code.instruction(&Instruction::I32Load(ctx_slot(ESP_OFFSET)));
+                code.instruction(&Instruction::LocalGet(ESP));
                 code.instruction(&Instruction::I32Const(4 + i32::from(*cleanup)));
                 code.instruction(&Instruction::I32Add);
-                code.instruction(&Instruction::I32Store(ctx_slot(ESP_OFFSET)));
+                code.instruction(&Instruction::LocalSet(ESP));
+                sync_out(&mut code);
                 code.instruction(&Instruction::Return);
                 None
             }
@@ -963,6 +1082,30 @@ pub fn emit(functions: &[Function]) -> Result<Vec<u8>, String> {
 pub fn emit_with_resume_sites(
     functions: &[Function],
     resume_sites: &BTreeSet<u32>,
+) -> Result<Vec<u8>, String> {
+    emit_module(functions, resume_sites, None)
+}
+
+/// As [`emit_with_resume_sites`], with direct calls between the lifted functions except to
+/// `hooked` (the addresses the runtime replaces), which still go through `h4.dispatch`.
+pub fn emit_linked(
+    functions: &[Function],
+    resume_sites: &BTreeSet<u32>,
+    hooked: &BTreeSet<u32>,
+) -> Result<Vec<u8>, String> {
+    let mut index = BTreeMap::new();
+    for (position, function) in functions.iter().enumerate() {
+        let callee = u32::try_from(position + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
+        index.insert(function.addr, callee);
+    }
+    let links = Links { index, hooked: hooked.clone() };
+    emit_module(functions, resume_sites, Some(&links))
+}
+
+fn emit_module(
+    functions: &[Function],
+    resume_sites: &BTreeSet<u32>,
+    links: Option<&Links>,
 ) -> Result<Vec<u8>, String> {
     let mut module = Module::new();
     let mut types = TypeSection::new();
@@ -1021,7 +1164,7 @@ pub fn emit_with_resume_sites(
         let index = u32::try_from(index + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
         declarations.function(2);
         exports.export(&format!("f_{:08x}", function.addr), ExportKind::Func, index);
-        code.function(&emit_body(function, resume_sites)?);
+        code.function(&emit_body(function, resume_sites, links)?);
     }
     module
         .section(&declarations)
