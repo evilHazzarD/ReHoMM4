@@ -2,6 +2,26 @@
 
 Each release's notes on GitHub are its section here (tools/release/make_release.sh). Newest first.
 
+## 0.5.1
+
+A fix for GOG's German edition.
+
+| Device | File |
+|---|---|
+| Mac, macOS 13+ | `reHoMM4-v0.5.1-macos-arm64.dmg` (Apple Silicon) or `reHoMM4-v0.5.1-macos-x86_64.dmg` (Intel) |
+| iPhone and iPad, iOS / iPadOS 17+ | `reHoMM4-v0.5.1-ios.ipa` |
+| Android 10+, 64-bit | `reHoMM4-v0.5.1-android_arm64.apk` |
+| Windows 10 or 11, 64-bit | `reHoMM4-v0.5.1-windows-x86_64.zip` |
+| Linux and Steam Deck | `reHoMM4-v0.5.1-linux-x86_64.tar.gz` or `reHoMM4-v0.5.1-linux-arm64.tar.gz` |
+| Switch (homebrew) | `reHoMM4-v0.5.1-switch.nro` |
+| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.5.1-switch2.nro` |
+| Web browser | `reHoMM4-v0.5.1-web.zip` |
+
+**Fixed**
+
+- **GOG's German edition installs.** Its installer names the game `Heroes4.exe`, and the app refused it ("is not one the app is made for"). Any capitalisation of the name is accepted now.
+- The installer screen names the editions that install directly: English, German, French, Italian and Spanish.
+
 ## 0.5
 
 Settings drawn in the game's style on every device, "What's new" and update checks, more readable layouts on small screens, and more GOG editions.
