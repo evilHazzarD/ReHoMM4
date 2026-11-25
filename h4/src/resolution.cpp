@@ -1759,9 +1759,36 @@ void f_0058D970(::recomp::Ctx& c) {
   f_0058D970_lifted(c);
 }
 
+// H4_FPS_REPORT=s: every s seconds, the game's frame rate (its presents) and the spread of the
+// intervals between them, in the log ("fps: ..."). The runtime's own report (PresentFrame) is
+// not reached: the game's present is this one.
+static void ReportFrameRate() {
+  static const double every = [] {
+    const char* e = std::getenv("H4_FPS_REPORT");
+    return e ? std::atof(e) : 0.0;
+  }();
+  if (!(every > 0)) return;
+  using Clock = std::chrono::steady_clock;
+  static Clock::time_point first, last;
+  static std::vector<double> gaps;
+  const Clock::time_point now = Clock::now();
+  if (first == Clock::time_point()) first = now;
+  else gaps.push_back(std::chrono::duration<double, std::milli>(now - last).count());
+  last = now;
+  const double span = std::chrono::duration<double>(now - first).count();
+  if (span < every || gaps.empty()) return;
+  std::sort(gaps.begin(), gaps.end());
+  auto at = [&](double q) { return gaps[size_t(q * double(gaps.size() - 1) + 0.5)]; };
+  std::fprintf(stderr, "fps: %.1f (frame ms: median %.1f p90 %.1f p99 %.1f max %.1f)\n",
+               double(gaps.size()) / span, at(0.5), at(0.9), at(0.99), gaps.back());
+  gaps.clear();
+  first = now;
+}
+
 // The game's present (dirty region to the screen).
 void f_008D0C70(::recomp::Ctx& c) {
   g_presents++;
+  ReportFrameRate();
   KeepWide(c);
   KeepScreenKeyboard();
 #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
