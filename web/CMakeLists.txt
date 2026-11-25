@@ -84,7 +84,6 @@ include(${H4_ROOT}/h4/cmake/ui_text.cmake)  # the app's words (h4/src/ui_text.h)
 h4_ui_text(h4)
 include(${H4_ROOT}/h4/cmake/ui_fonts.cmake)  # the settings' own fonts (h4/src/app_ui/text.h)
 h4_ui_fonts(h4)
-target_include_directories(h4 PRIVATE ${H4_ROOT}/h4/third_party/stb)
 target_compile_definitions(h4 PRIVATE H4_DESKTOP_APP=1 H4_LINUX_APP=1 H4_WEB_APP=1
   RECOMP_HLE_PRIORITY=1 H4_VERSION_STRING="${H4_VERSION}")
 if(H4_WEB_DYNAMIC)

@@ -210,7 +210,6 @@ if(TARGET h4_lifted)
     # The settings' own fonts (src/app_ui/text.h): h4/fonts/*.ttf built in, drawn with stb_truetype.
     include(cmake/ui_fonts.cmake)
     h4_ui_fonts(h4)
-    target_include_directories(h4 PRIVATE third_party/stb)
   endif()
   # Our HLE handlers (hle_extra.cpp, ...) override the runtime's in any link order.
   target_compile_definitions(h4 PRIVATE RECOMP_HLE_PRIORITY=1)

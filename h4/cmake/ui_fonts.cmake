@@ -3,6 +3,17 @@
 #
 #   h4_ui_fonts(<target>)   app_ui/text.cpp of <target> includes it (from the build folder)
 function(h4_ui_fonts target)
+  # stb_truetype draws them: h4/third_party/stb (not in the repository), downloaded once, the
+  # pinned upstream file checked by its SHA-256.
+  set(stb "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../third_party/stb")
+  if(NOT EXISTS "${stb}/stb_truetype.h")
+    file(DOWNLOAD
+      "https://raw.githubusercontent.com/nothings/stb/9f755b604db3492df2cbeb39bf84b81e3e3932e3/stb_truetype.h"
+      "${stb}/stb_truetype.h"
+      EXPECTED_HASH SHA256=428cfe93520f2aed5e413a220b0db5bba5b17e2ebe5a64e4a8efa9eeeb67ec5f
+      TLS_VERIFY ON)
+  endif()
+  target_include_directories(${target} PRIVATE "${stb}")
   set(dir "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fonts")
   file(GLOB files CONFIGURE_DEPENDS "${dir}/*.ttf")
   list(SORT files)
