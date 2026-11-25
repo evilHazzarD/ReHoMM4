@@ -563,8 +563,27 @@ class Installer {
   // heroes4.exe in `dir` is the English GOG 3.0 one or one of its aliases (kExeAliases): the app's
   // code is made from it, and the game loads its data sections from the file (the data of another
   // language works with it). `lang`: "" for the English one, else the alias's language.
+  // GOG's German installer (and an installed game folder) can name it "Heroes4.exe": on a file system
+  // that tells case apart (the browser's, Linux, Android) the app then finds no heroes4.exe. That name
+  // in any case becomes "heroes4.exe", the one the app and the game open.
+  static void LowercaseExeName(const std::string& dir) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    if (fs::exists(dir + "/heroes4.exe", ec)) return;
+    for (const auto& e : fs::directory_iterator(dir, ec)) {
+      std::string name = e.path().filename().string();
+      std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
+      if (name != "heroes4.exe") continue;
+      fs::rename(e.path(), dir + "/heroes4.exe", ec);
+      fprintf(stderr, "installer: %s renamed to heroes4.exe%s\n", e.path().filename().string().c_str(),
+              ec ? " (failed)" : "");
+      return;
+    }
+  }
+
   static bool CheckExe(const std::string& dir, Task* t, std::string* error, std::string* lang = nullptr) {
     t->SetPhase("Checking heroes4.exe");
+    LowercaseExeName(dir);
     const ManifestFile* exe = FindInManifest("heroes4.exe");
     Sha256 h;
     std::vector<char> buf(1 << 20);
