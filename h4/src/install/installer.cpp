@@ -745,8 +745,9 @@ class Installer {
       const bool resume = IsDirectory(Download());
       y = ui_.Paragraph(y, "The game files are needed once (" + Megabytes(ManifestBytes()) +
                                "). Use your GOG copy of Heroes of Might and Magic IV: Complete. "
-                               "An installer in another language than English needs the English "
-                               "heroes4.exe beside it.");
+                               "GOG's English, German, French, Italian and Spanish installers work "
+                               "as they are; another language's needs the English heroes4.exe "
+                               "beside it.");
       y += ch;
       if (CanSignInToGog()) {
         ui_.AddButton(kGog, y, resume ? "Continue the GOG.com download"
