@@ -29,8 +29,8 @@ If you enjoy it, you can support the author (also the ☕ button in the game's m
   - a Windows PC (64-bit, Windows 10 or 11);
   - a Linux PC (x86-64 or 64-bit ARM) or a Steam Deck;
   - a Nintendo Switch that runs homebrew (Atmosphère), or a Switch 2 that runs homebrew (kaiHEN);
-  - or a web browser on a computer, phone or tablet (64-bit Chrome, Edge, Firefox or Safari)
-    ([In a browser](#in-a-browser)).
+  - or a web browser on a computer, phone or tablet (64-bit Chrome, Edge, Firefox or Safari):
+    **<https://evilhazzard.github.io/ReHoMM4/>** ([In a browser](#in-a-browser)).
 - An internet connection and about 3 GB of free space.
 
 ## Install
@@ -225,16 +225,21 @@ Switch. The Switch 2 app has not been tested on a console yet: reports are welco
 
 ### In a browser
 
-The same game, compiled to WebAssembly, runs in a browser, on a computer, phone or tablet. There is
-no public site for it yet: the release has the site as a file, `reHoMM4-v<version>-web.zip`, to
-run on your computer or put on a web server of your own.
+The same game, compiled to WebAssembly, runs in a browser, on a computer, phone or tablet.
+
+**Play it at <https://evilhazzard.github.io/ReHoMM4/>.** The site has no game code: it is about
+10 MB, and the first time it makes the game's code from your own GOG installer, in your browser
+(a minute or two), and keeps it there. Ukrainian is offered as in the apps.
+
+Or run it yourself: the release has a site with the game's code built in,
+`reHoMM4-v<version>-web.zip`, to run on your computer or put on a web server of your own (step 1).
 
 What it needs: a 64-bit Chrome or Edge 112+, Firefox 121+ or Safari 18.2+ (on an iPhone or iPad:
 iOS / iPadOS 18.2+; on Android: Chrome), about 3 GB of free memory, and about 1.5 GB of storage
 for the site. On phones and tablets the screen is touched as in the apps, and the page shows a
 keyboard where the game wants text; with too little memory the browser closes the page.
 
-1. Download `reHoMM4-v<version>-web.zip` and unzip it. On a computer with
+1. Open <https://evilhazzard.github.io/ReHoMM4/>. Or download `reHoMM4-v<version>-web.zip` and unzip it. On a computer with
    [Python 3](https://www.python.org/downloads/), in the `ReHoMM4` folder run
    ```
    python3 serve.py
@@ -252,7 +257,7 @@ The game (about 1 GB), saves and settings stay in this browser's storage, for th
 nothing is uploaded. **Delete the game files kept in this browser** on the page removes them;
 clearing the site's data in the browser removes the saves too. **Start again** restarts the game.
 
-The release's site is in English. For a translation, make a folder `translations` in `ReHoMM4` and
+The release's `web.zip` is in English. For a translation, make a folder `translations` in `ReHoMM4` and
 put in it `languages.json` and the language's `.h4p` from the
 [ReHoMM4-translations releases](https://github.com/evilHazzarD/ReHoMM4-translations/releases).
 
