@@ -37,3 +37,6 @@ reHoMM4-*windows-x86_64.zip:ReHoMM4.exe  # as the ReHoMM4/ReHoMM4.exe line above
 reHoMM4-*windows-x86_64.zip:SDL3.dll  # as the ReHoMM4/SDL3.dll line above, the flat zip from 0.5 on
 reHoMM4-*windows-x86_64.zip:libwinpthread-1.dll  # as the ReHoMM4/libwinpthread-1.dll line above, the flat zip from 0.5 on
 h4/fonts/*.ttf  # Noto Sans fonts for the app's own text (SIL OFL 1.1, h4/fonts/OFL.txt), not game data
+rehomm4-web/wings/*  # the GitHub Pages site (web-pages workflow): the same combat-wing collages
+rehomm4-web/heroes4.wasm  # the GitHub Pages site: the game-code-free runtime, SDL3 and ffmpeg in one module
+rehomm4-web/icon.png  # the GitHub Pages site: the same icon

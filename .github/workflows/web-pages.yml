@@ -35,18 +35,21 @@ jobs:
       - name: Build the game-code-free player and converter
         run: |
           node converter/test/emitter.mjs
-          bash web/build.sh --dynamic
+          bash web/build.sh --dynamic --no-translations
       - name: Stage verified web files
         run: |
           site=.cache/outputs/web/dist-dynamic
           test -f "$site/index.html"
           test -s "$site/heroes4.wasm"
           test -s "$site/converter/rehomm4_emit_wasm_bg.wasm"
-          if [[ -n "$(find "$site" \( -type l -o -iname '*.exe' -o -iname '*.h4r' -o -iname 'code*.wasm' \) -print)" ]]; then
-            echo 'The web package contains a symlink or player-owned data.' >&2
+          if [[ -n "$(find "$site" \( -type l -o -iname '*.exe' -o -iname '*.h4r' -o -iname '*.h4p' -o -iname 'code*.wasm' \) -print)" ]]; then
+            echo 'The web package contains a symlink, player-owned data or a translation pack.' >&2
             exit 1
           fi
           cp -R "$site" "$RUNNER_TEMP/rehomm4-web"
+          # The same gate as the releases: no game data or anything derived from it (by content,
+          # not only by name); the exceptions are the rehomm4-web/ lines of .publish-allow.
+          python3 -I tools/release/publish_check.py "$RUNNER_TEMP/rehomm4-web"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: rehomm4-web

@@ -5,6 +5,9 @@
 #
 #   web/build.sh                 the site
 #   web/build.sh --dynamic       game-code-free shell and browser converter in dist-dynamic/
+#   ... --no-translations        no translations/ in the site: the page then reads the packs from
+#                                   the translations repository's own GitHub Pages site (the
+#                                   web-pages workflow: the site on <owner>.github.io)
 #   web/build.sh --save-patch    keeps the changes made in .cache/outputs/web/x86recomp as
 #                                   web/patches/x86recomp-web.patch (and builds nothing)
 #
@@ -28,6 +31,12 @@ if [[ "${1:-}" == --save-patch ]]; then
   exit 0
 fi
 
+SITE_TRANSLATIONS=1
+args=()
+for a in "$@"; do
+  if [[ "$a" == --no-translations ]]; then SITE_TRANSLATIONS=0; else args+=("$a"); fi
+done
+set -- "${args[@]+"${args[@]}"}"
 MODE_SUFFIX=""
 DYNAMIC=OFF
 if [[ "${1:-}" == --dynamic ]]; then
@@ -115,7 +124,7 @@ cp "$PREFIX/COPYING.ffmpeg.LGPLv2.1" "$D/"
 # The translations on the site (web_platform.cpp's HttpGet takes GitHub release files from here:
 # GitHub's downloads do not allow other sites' pages): the latest release's list and packs,
 # downloaded once into the cache (checked against the list's sha256).
-if [[ -n "$LANG_URL" ]]; then
+if [[ -n "$LANG_URL" && $SITE_TRANSLATIONS == 1 ]]; then
   T="$WEB_CACHE/translations"
   mkdir -p "$T" "$D/translations"
   if curl -fsSL "$LANG_URL" -o "$T/languages.json.part"; then mv "$T/languages.json.part" "$T/languages.json"; fi
