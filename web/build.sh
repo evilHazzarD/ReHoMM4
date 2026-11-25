@@ -117,6 +117,20 @@ if [[ "$DYNAMIC" == ON ]]; then
   cp -R "$B/converter" "$D/converter"
 fi
 sed -i '' "s/@H4_VERSION@/$H4_VERSION/g" "$D/index.html"
+# What the start page says the site is: the game's code in it, or made in the browser.
+python3 -I - "$D/index.html" "$DYNAMIC" <<'PY'
+import sys
+p, dynamic = sys.argv[1], sys.argv[2] == 'ON'
+s = open(p, encoding='utf-8').read()
+if dynamic:
+    what = 'the game recompiled to WebAssembly here, from your own copy.'
+    first = ('The site itself is about 10&nbsp;MB: the game\'s code is made from your copy here, '
+             'once (a minute or two), and kept in this browser.')
+else:
+    what = 'the game itself, recompiled to WebAssembly.'
+    first = 'The first load downloads the game\'s code (about 100&nbsp;MB).'
+open(p, 'w', encoding='utf-8').write(s.replace('@H4_WHAT@', what).replace('@H4_FIRST_LOAD@', first))
+PY
 bash "$ROOT/assets/icon/icon.sh" linux "$D/icon.png" >/dev/null 2>&1 || true
 [[ -d "$WEB_CACHE/wings" ]] && cp -R "$WEB_CACHE/wings" "$D/wings"
 cp "$ROOT/LICENSE" "$D/LICENSE.txt"
