@@ -628,7 +628,10 @@ canvas.addEventListener('pointerdown', () => (kbdWanted ? kbd : canvas).focus({ 
 void check().then(() => {
   if (!$('start').disabled && sessionStorage.getItem('h4-start-after-compile')) {
     sessionStorage.removeItem('h4-start-after-compile');
-    void start();
+    // Not started from here: without the player's click the browser gives the game neither
+    // the focus (it then draws no cursor) nor full screen.
+    toast('The game\'s code is ready: press Start.', 15000);
+    $('start').focus();
   }
 });
 </script>
