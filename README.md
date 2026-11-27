@@ -2,20 +2,51 @@
 
 Native port of Heroes of Might and Magic IV (including both expansions) for macOS, iOS, iPadOS, Android (including Android TV), Windows, Linux, Steam Deck, Nintendo Switch and Switch 2, and in a web browser. Runs directly on hardware—no Wine, emulators, or VMs.
 
-[Українською — нижче](#українською)
+**Try it in your browser: <https://evilhazzard.github.io/ReHoMM4/>** (your own GOG copy of the game
+is needed; nothing is installed, the game files stay in the browser).
+
+## Why ReHoMM4?
+
+- **Wide screen.** Every screen fills a 16:9 (or any) display: the adventure map shows more of the
+  world instead of black bars; towns and combat get side panels in the game's style.
+- **A sharp, smooth picture.** The game is scaled to high-resolution displays with a choice of
+  filters, AMD FSR by default ([Picture scaling](#picture-scaling)); smooth animation on the
+  adventure map and in combat.
+- **Many platforms, natively.** Mac, iPhone and iPad, Android (TV too), Windows, Linux, Steam Deck,
+  Nintendo Switch and Switch 2, and a web browser.
+- **A random map generator.** New maps from 32 templates, with your choice of size, players,
+  factions, teams, starting heroes, water, underground, monsters and treasures
+  ([Random maps](#random-maps)).
+- **More languages.** GOG's English, German, French, Italian and Spanish editions as they are
+  (Polish, Russian and Czech ones too), and translations of the English game: Ukrainian today
+  (interface, campaigns, voice-over), and every language added to
+  [ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations).
+- **And more:** touch controls on phones and tablets, gamepads, saves that follow you between
+  devices, an installer that takes the game from your GOG account, What's new and update checks
+  in the settings.
 
 If you enjoy it, you can support the author (also the ☕ button in the game's main menu):
 
 [![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/hazzard)
 
-- English, the original, or a translation: Ukrainian today (interface, campaigns, campaign
-  voice-over; The Gathering Storm stays in English), and every language added to
-  [ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations).
-- Wide screen and a sharp picture on high-resolution displays.
-- Smooth animation on the adventure map and in combat.
-- Touch controls on phones and tablets; saves can follow you between devices.
-- A random map generator: new maps from 32 templates, with your choice of size, players, factions,
-  teams, starting heroes, water, underground, monsters and treasures ([Random maps](#random-maps)).
+## Random maps
+
+New Game → **Scenario** → **Random map** (the button under the list of scenarios) opens the
+generator. At the top choose the **template**, the map's layout of zones and roads: Classic or one
+of 31 more (rings, spiders, mirrors, team maps, labyrinths…). A template made for other numbers of
+players or map sizes sets them when picked. Then the map size, the players (each human or
+computer, with faction, team and starting hero; the hero's card shows the skills, army and
+biography), water, underground, monsters, obelisks, treasures and the seed. Most can be
+**Random**. **Create map** makes the map; it is at the top of the list of scenarios.
+
+![The random map buttons under the list of scenarios, a random map selected and its settings in the description](docs/random_map_buttons.jpg)
+
+![The random map's settings, and the starting hero's card: skills, statistics, army, biography](docs/random_map_panel.jpg)
+
+With a random map selected in the list, **Edit random map** brings its settings back and
+**Update map** makes it again in its place; **Remove random map** deletes it. Each map keeps its full settings in its description, so the same seed and settings make
+the same map on every device. Templates are text files in `Maps/RandomMaps/Templates` (beside the
+game files): change them or add your own; `example.txt` explains the format.
 
 **What you need:**
 
@@ -132,6 +163,12 @@ drivers have it).
    `ReHoMM4.exe`, its DLLs and support folders; it does not replace the game's files.
 2. Start `ReHoMM4.exe`. The app is not signed, so Windows may say "Windows protected your
    PC": **More info** → **Run anyway**.
+
+**No installed game?** Unpack the archive into any folder and start `ReHoMM4.exe`: its installer
+takes GOG's offline installer (`setup_heroes_of_might_and_magic_4_complete_…exe` and its `-1.bin`,
+picked in it with **Install from GOG installer files**) or downloads the game from your GOG account
+(**Sign in to GOG.com and download**), into
+`%LOCALAPPDATA%\ReHoMM4\game` ([First start: the game files](#first-start-the-game-files)).
 
 **Update:** unpack the new archive over the same game folder. Saves and settings are in
 `%LOCALAPPDATA%\ReHoMM4` (paste it into Explorer's address bar), not in the game folder. The older
@@ -354,25 +391,6 @@ game's player folder:
 `~/Library/Application Support/ReHoMM4`, on Windows `%LOCALAPPDATA%\ReHoMM4`, on Linux
 `~/.local/share/ReHoMM4` (the game files and saves).
 
-## Random maps
-
-New Game → **Scenario** → **Random map** (the button under the list of scenarios) opens the
-generator. At the top choose the **template**, the map's layout of zones and roads: Classic or one
-of 31 more (rings, spiders, mirrors, team maps, labyrinths…). A template made for other numbers of
-players or map sizes sets them when picked. Then the map size, the players (each human or
-computer, with faction, team and starting hero; the hero's card shows the skills, army and
-biography), water, underground, monsters, obelisks, treasures and the seed. Most can be
-**Random**. **Create map** makes the map; it is at the top of the list of scenarios.
-
-![The random map buttons under the list of scenarios, a random map selected and its settings in the description](docs/random_map_buttons.jpg)
-
-![The random map's settings, and the starting hero's card: skills, statistics, army, biography](docs/random_map_panel.jpg)
-
-With a random map selected in the list, **Edit random map** brings its settings back and
-**Update map** makes it again in its place; **Remove random map** deletes it. Each map keeps its full settings in its description, so the same seed and settings make
-the same map on every device. Templates are text files in `Maps/RandomMaps/Templates` (beside the
-game files): change them or add your own; `example.txt` explains the format.
-
 ## Controls
 
 As in the original game; on touch screens a tap is a click and a long press a right-click. In
@@ -568,558 +586,3 @@ stays yours, from GOG.
 Heroes of Might and Magic is a trademark of Ubisoft. This is a fan project, unaffiliated with
 Ubisoft or GOG.
 
----
-
-## Українською
-
-«Герої меча і магії IV» з обома доповненнями як рідна програма для Мака, iPhone та iPad, Android (зокрема Android TV),
-Windows, Linux і Steam Deck, Nintendo Switch і Switch 2, а також у браузері. Без Wine, емуляторів і віртуальних машин: гра працює на
-пристрої напряму.
-
-Якщо вам подобається, можна підтримати автора (також кнопка ☕ у головному меню гри):
-
-[![Підтримати на Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/hazzard)
-
-- Англійська (оригінал) або переклад: зараз українська (інтерфейс, кампанії, озвучка кампаній;
-  доповнення The Gathering Storm лишається англійською) і кожна мова, додана до
-  [ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations).
-- Широкий екран і чітка картинка на дисплеях високої роздільності.
-- Плавна анімація на карті й у бою.
-- Керування дотиком на телефонах і планшетах; збереження можуть переходити між пристроями.
-- Генератор випадкових карт: нові карти за 32 шаблонами, з вибором розміру, гравців, фракцій,
-  команд, стартових героїв, води, підземелля, монстрів і скарбів ([Випадкові карти](#випадкові-карти)).
-
-**Що потрібно:**
-
-- Куплена гра **Heroes of Might and Magic IV: Complete Edition** на
-  [GOG](https://www.gog.com/game/heroes_of_might_and_magic_4_complete). Самої гри тут немає:
-  програма бере її з вашого облікового запису GOG.
-- Один з пристроїв:
-  - Мак з macOS 13 або новішою (процесор Apple або Intel);
-  - iPhone або iPad з iOS / iPadOS 17 або новішою;
-  - телефон, планшет чи телевізор на Android (64-бітний, Android 10 або новіший; на телевізорі — з геймпадом);
-  - ПК з Windows (64-бітна, Windows 10 або 11);
-  - ПК з Linux (x86-64 чи 64-бітний ARM) або Steam Deck;
-  - Nintendo Switch, на якому запускається homebrew (Atmosphère), або Switch 2 з homebrew (kaiHEN);
-  - або браузер на комп'ютері, телефоні чи планшеті (64-бітні Chrome, Edge, Firefox чи Safari)
-    ([У браузері](#у-браузері)).
-- Інтернет і близько 3 ГБ вільного місця.
-
-### Встановлення
-
-Два кроки: встановіть програму для свого пристрою (нижче), потім відкрийте її, і вона встановить
-файли гри з вашої копії GOG ([Перший запуск](#перший-запуск-файли-гри)).
-
-Усі файли — на [сторінці Releases](https://github.com/evilHazzarD/ReHoMM4/releases): відкрийте
-найновіший реліз і в розділі **Assets** завантажте файл для свого пристрою. `<version>` в іменах
-нижче — номер релізу (наприклад, `0.3`; до 0.3 файли звалися `HeroesIV-<version>-…`).
-
-| Пристрій | Файл |
-|---|---|
-| Мак | `reHoMM4-v<version>-macos-arm64.dmg` (процесор Apple, M1 або новіший) або `reHoMM4-v<version>-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad | `reHoMM4-v<version>-ios.ipa` |
-| Android | `reHoMM4-v<version>-android_arm64.apk` |
-| ПК з Windows | `reHoMM4-v<version>-windows-x86_64.zip` (з 0.4.1) |
-| ПК з Linux, Steam Deck | `reHoMM4-v<version>-linux-x86_64.tar.gz` (x86-64), `reHoMM4-v<version>-linux-arm64.tar.gz` (64-бітний ARM) |
-| Nintendo Switch | `reHoMM4-v<version>-switch.nro` |
-| Nintendo Switch 2 | `reHoMM4-v<version>-switch2.nro` (з 0.4; не той, що для Switch) |
-| Браузер (комп'ютер, телефон, планшет) | `reHoMM4-v<version>-web.zip` (з 0.4: сайт, який треба запустити; [У браузері](#у-браузері)) |
-
-Який у вас Мак:  → **Про цей Mac**; «Чип: Apple M…» — процесор Apple, «Процесор: … Intel» — Intel.
-
-#### Мак
-
-1. Відкрийте завантажений `.dmg` (двічі клацніть його в **«Завантаженнях»**).
-2. У вікні, що відкриється, перетягніть **ReHoMM4** на **Applications**. Потім вийміть диск
-   («Heroes IV» на бічній панелі Finder → ⏏).
-3. Відкрийте **«Програми»** й двічі клацніть **ReHoMM4**. Програма не підписана Apple, тому
-   першого разу macOS не дає її відкрити:
-   - **macOS 15 (Sequoia) і новіші:** натисніть **«Готово»** в повідомленні, відкрийте  →
-     **«Системні параметри»** → **«Приватність і безпека»**, прокрутіть до *«ReHoMM4» заблоковано…*,
-     натисніть **«Усе одно відкрити»** й підтвердіть паролем; потім ще раз **«Усе одно відкрити»**.
-   - **macOS 13 і 14:** правою кнопкою (або з Control) клацніть **ReHoMM4** → **«Відкрити»** →
-     **«Відкрити»**.
-
-   Далі вона відкривається як звичайно.
-
-**Оновлення:** завантажте новий `.dmg` (або ⚙ → **«Перевірити оновлення»** у грі) і перетягніть
-нову **ReHoMM4** на **Applications** → **«Замінити»**. Збереження й налаштування лишаються (вони в
-`~/Library/Application Support/ReHoMM4`). Версії до 0.3 звалися в «Програмах» **Heroes IV**:
-перемістіть її в Кошик.
-
-#### iPhone, iPad
-
-Програми не з App Store встановлюються спеціальною програмою, яка підписує їх вашим Apple ID;
-безкоштовного Apple ID досить.
-
-1. На Маці або ПК з Windows встановіть [AltStore](https://altstore.io) (з AltServer) або
-   [Sideloadly](https://sideloadly.io) і виконайте їхню інструкцію з налаштування (на ПК потрібні
-   iTunes та iCloud для Windows; першого разу iPhone/iPad під'єднано кабелем).
-2. Скопіюйте `reHoMM4-v<version>-ios.ipa` на комп'ютер (для AltStore — або у «Файли» на iPhone) і
-   встановіть: AltStore → **My Apps** → **+** → оберіть `.ipa`; Sideloadly → перетягніть `.ipa`,
-   введіть Apple ID → **Start**.
-3. На iOS/iPadOS 16 і новіших увімкніть **режим розробника**: Параметри → **«Приватність і
-   безпека»** → **«Режим розробника»** → увімкнути, перезапуск, підтвердіть **«Увімкнути»**.
-4. Довіртеся своєму Apple ID: Параметри → **«Загальні»** → **«Керування VPN і пристроями»** → ваш
-   Apple ID → **«Довіряти»**.
-5. Відкрийте **Heroes IV**.
-
-З безкоштовним Apple ID підпис діє **7 днів**: оновіть програму до того (AltStore робить це сам,
-поки AltServer працює на комп'ютері в тій самій Wi-Fi; у Sideloadly — встановіть ще раз).
-Прострочена програма не відкривається, але збереження лишаються; після оновлення підпису все працює.
-
-**Оновлення:** встановіть новий `.ipa` так само, поверх старої програми.
-
-#### Android
-
-Android 10 або новіший, 64-бітний (майже всі телефони й планшети з 2019 року).
-
-1. На телефоні завантажте `reHoMM4-v<version>-android_arm64.apk` (відкрийте сторінку Releases у
-   браузері телефона).
-2. Відкрийте його: із завантажень браузера або **«Файли»** → **«Завантаження»**.
-3. Android попросить дозволити встановлення програм із цього джерела (браузера чи «Файлів»):
-   **«Налаштування»** → увімкніть **«Дозволити з цього джерела»** → назад → **«Встановити»**.
-4. Якщо Play Protect попереджає про невідому програму: **«Докладніше»** → **«Усе одно встановити»**.
-5. Відкрийте **Heroes IV**.
-
-**Оновлення:** завантажте новий `.apk` (або ⚙ → **«Перевірити оновлення»** у грі; встановлюється
-зі сповіщення) і встановіть поверх старого; збереження лишаються.
-
-**Android TV:** той самий `.apk`. Гра з'являється в меню телевізора, грати в неї треба геймпадом
-(Xbox, PlayStation, Switch чи будь-яким іншим Bluetooth/USB-геймпадом: лівий стік рухає курсор,
-кнопки налаштовуються в ⚙ → **«Геймпад»**); пультом від телевізора грати не вийде. Встановіть її
-файловим менеджером із флешки або з комп'ютера: `adb connect <IP-адреса телевізора>`, потім
-`adb install` `reHoMM4-v<version>-android_arm64.apk`. Телевізору потрібні 64-бітний Android і
-Vulkan: багато ТВ-приставок і стіків працюють на 32-бітному Android, і на них гра не встановиться.
-
-#### Windows
-
-64-бітний ПК з Windows 10 або 11 і драйверами відеокарти з Vulkan (актуальні драйвери NVIDIA, AMD та
-Intel його мають).
-
-1. Відкрийте теку встановленої копії GOG — ту, де є `heroes4.exe`, `Data` та `maps`
-   (наприклад `C:\GOG Games\Heroes of Might and Magic IV`). Розпакуйте
-   `reHoMM4-v<version>-windows-x86_64.zip` **прямо в неї** і дозвольте об'єднати файли. Архів додає
-   `ReHoMM4.exe`, його DLL і допоміжні теки, але не замінює файли гри.
-2. Запустіть `ReHoMM4.exe`. Програма не підписана, тож Windows може написати «Windows
-   захистила ваш ПК»: **«Докладніше»** → **«Однаково запустити»**.
-
-**Оновлення:** розпакуйте новий архів поверх тієї самої теки гри. Збереження й налаштування — у
-`%LOCALAPPDATA%\ReHoMM4` (вставте в адресний рядок Провідника), не в теці гри. Старе місце
-попередньої версії `%LOCALAPPDATA%\ReHoMM4\game` також продовжує працювати.
-
-#### Linux
-
-ПК x86-64 чи 64-бітний ARM (arm64) з glibc 2.36 або новішою (Debian 12, Ubuntu 22.10, Fedora 37,
-SteamOS 3 і новіші), драйвери з Vulkan, X11 або Wayland (через Xwayland). На ARM беріть
-`…-linux-arm64.tar.gz` замість `…-linux-x86_64.tar.gz` нижче.
-
-1. Розпакуйте архів туди, де житиме гра, наприклад у `~/Games`:
-   ```sh
-   mkdir -p ~/Games
-   tar -xzf ~/Downloads/reHoMM4-v<version>-linux-x86_64.tar.gz -C ~/Games
-   ```
-2. Запустіть:
-   ```sh
-   ~/Games/ReHoMM4/ReHoMM4
-   ```
-3. За бажанням додайте її в меню програм:
-   ```sh
-   ~/Games/ReHoMM4/install-desktop-entry.sh
-   ```
-
-**Оновлення:** розпакуйте новий архів поверх старої теки. Збереження й налаштування — у
-`~/.local/share/ReHoMM4`, не в цій теці.
-
-#### Steam Deck
-
-1. Перейдіть у **режим робочого столу** (кнопка Steam → **Power** → **Switch to Desktop**).
-2. У Firefox (чи іншому браузері) завантажте `reHoMM4-v<version>-linux-x86_64.tar.gz`.
-3. У **Dolphin** (файловий менеджер) відкрийте **Downloads**, правою кнопкою на архіві → **Extract** →
-   **Extract archive to…** → оберіть, наприклад, `/home/deck/Games`.
-4. Додайте в Steam: **Steam** → **Games** → **Add a Non-Steam Game to My Library…** →
-   **Browse…** → `/home/deck/Games/ReHoMM4/ReHoMM4` → **Add Selected Programs**.
-5. Запустіть її раз тут, у режимі робочого столу: перший запуск встановлює гру (вхід у GOG
-   відкривається в браузері), з клавіатурою робочого столу простіше. Потім **Return to Gaming Mode**:
-   гра у вашій бібліотеці в розділі **Non-Steam**.
-
-Керування: трекпади й сенсорний екран рухають курсор, R2 або натискання правого трекпада — ліва
-кнопка (стандартне для ігор не зі Steam). Для розкладки геймпада ([Керування](#керування)): у
-налаштуваннях контролера гри в Steam → **Gamepad with Mouse Trackpad**.
-
-#### Nintendo Switch
-
-Потрібна Switch, що запускає homebrew (кастомна прошивка Atmosphère), і microSD з ~2 ГБ вільного
-місця. Switch не встановлює гру сама (ні входу в GOG, ні файлів інсталятора): скопіюйте гру,
-встановлену на комп'ютері з вашої копії GOG (теку з `heroes4.exe`, як її робить інсталятор GOG
-чи GOG Galaxy, або теку `game` ReHoMM4 на Mac чи ПК).
-
-1. Вставте SD-картку в комп'ютер і створіть на ній теку `switch/ReHoMM4`.
-2. Скопіюйте в неї `reHoMM4-v<version>-switch.nro`, перейменувавши на `ReHoMM4.nro`, і теку
-   встановленої гри, перейменувавши на `game`. На картці:
-   ```
-   switch/ReHoMM4/ReHoMM4.nro
-   switch/ReHoMM4/game/heroes4.exe   (і решта гри)
-   ```
-3. Поверніть картку й запустіть Atmosphère.
-4. Відкрийте homebrew-меню в режимі **title takeover**: тримайте **R**, запускаючи будь-яку гру з
-   головного екрана (не з «Альбому»: там замало пам'яті для гри), і оберіть **Heroes IV**.
-
-Без `switch/ReHoMM4/game` програма покаже, куди її скопіювати. Гра іншою мовою теж підходить, якщо
-замінити в ній `heroes4.exe` на файл з англійської версії GOG («Встановлена гра» нижче).
-Керування: сенсорний екран як на телефонах і Joy-Con як геймпад ([Керування](#керування)). Програму
-для Switch перевірено лише в емуляторі Astris, на справжній консолі — ще ні.
-
-#### Nintendo Switch 2
-
-Потрібна Switch 2, на якій запускається homebrew через [kaiHEN](https://github.com/ouncebrew/kaihen)
-(його homebrew-меню, hbmenu), і microSD з ~2 ГБ вільного місця. Завантажте
-`reHoMM4-v<version>-switch2.nro`: для Switch 2 потрібна окрема збірка (зроблена з
-[ounce-devkit](https://github.com/ouncebrew/ounce-devkit)); `…-switch.nro` — лише для першої
-Switch. Як і на Switch, гру копіюють з комп'ютера (входу в GOG на консолі немає).
-
-1. Вставте SD-картку в комп'ютер і створіть на ній теку `switch/ReHoMM4`.
-2. Скопіюйте в неї `reHoMM4-v<version>-switch2.nro`, перейменувавши на `ReHoMM4.nro`, і теку
-   встановленої гри, перейменувавши на `game`:
-   ```
-   switch/ReHoMM4/ReHoMM4.nro
-   switch/ReHoMM4/game/heroes4.exe   (і решта гри)
-   ```
-3. Поверніть картку й запустіть kaiHEN (тим інструментом, яким ви його запускаєте).
-4. Тримайте **R**, запускаючи гру з головного екрана. Першого разу kaiHEN запускає цю гру як
-   звичайно й готується; з наступного разу відкривається homebrew-меню. Оберіть **Heroes IV**.
-
-Гра йде в роздільності екрана консолі (у доку — телевізора). Керування як на Switch. Програму для
-Switch 2 на консолі ще не перевірено: відгуки — в [issues](https://github.com/evilHazzarD/ReHoMM4/issues).
-
-#### У браузері
-
-Та сама гра, скомпільована у WebAssembly, працює в браузері на комп'ютері, телефоні чи планшеті.
-Публічного сайту з нею поки немає: у релізі є сайт одним файлом, `reHoMM4-v<version>-web.zip`, щоб
-запустити його на своєму комп'ютері або викласти на власний вебсервер.
-
-Що потрібно: 64-бітні Chrome чи Edge 112+, Firefox 121+ або Safari 18.2+ (на iPhone чи iPad —
-iOS / iPadOS 18.2+; на Android — Chrome), ~3 ГБ вільної пам'яті й ~1,5 ГБ місця для сайту. На
-телефонах і планшетах — дотик, як у програмах, а де гра чекає тексту, сторінка показує клавіатуру;
-якщо пам'яті замало, браузер закриває сторінку.
-
-1. Завантажте `reHoMM4-v<version>-web.zip` і розпакуйте. На комп'ютері з
-   [Python 3](https://www.python.org/downloads/) у теці `ReHoMM4` виконайте
-   ```
-   python3 serve.py
-   ```
-   і відкрийте http://localhost:8080. Для телефонів і планшетів викладіть теку `ReHoMM4` на
-   HTTPS-вебсервер (що він має надсилати — у її `README.txt`). Або зберіть сайт з коду:
-   `web/build.sh`, потім `python3 web/serve.py` ([Збирання з коду](#збирання-з-коду)).
-2. Відкрийте сторінку, оберіть мову й натисніть **Start** (гра відкривається на весь екран).
-   Вступні відео й бічні панелі — у налаштуваннях гри (⚙ у її головному меню).
-3. Першого разу відкривається інсталятор, як у програмах. Оберіть обидва файли офлайн-інсталятора
-   GOG (`setup_heroes_of_might_and_magic_4_complete_….exe` і його `-1.bin`, з вашої бібліотеки
-   GOG) або теку гри, встановленої на цьому комп'ютері. Входу в GOG у браузері немає.
-
-Гра (~1 ГБ), збереження й налаштування лишаються в сховищі цього браузера, лише для цього сайту;
-нічого не вивантажується. Кнопка **Delete the game files kept in this browser** на сторінці їх
-видаляє; очищення даних сайту в браузері видаляє й збереження. **Start again** перезапускає гру.
-
-Сайт з релізу — англійською. Для перекладу створіть у `ReHoMM4` теку `translations` і покладіть
-у неї `languages.json` і `.h4p` потрібної мови з
-[релізів ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations/releases).
-
-#### Перший запуск: файли гри
-
-Відкрийте програму. Першого разу вона встановлює файли гри. Оберіть одне:
-
-- **Увійти в GOG** (крім Switch). Відкривається сторінка входу GOG; програма перевіряє, що на
-  вашому обліковому записі є Heroes of Might and Magic IV: Complete, і завантажує гру (1 ГБ). Вхід
-  через Google, Discord, Steam чи Xbox теж працює. Вхід зберігається лише до кінця завантаження.
-  Потім оберіть бажану мову: у GOG є англійська, французька, німецька, іспанська, італійська й
-  польська версії. Програма встановлює дані цієї мови з англійським `heroes4.exe` (під який її
-  зроблено), тож гра йде цією мовою. Переклади з налаштувань ⚙ (українська та інші) працюють лише
-  з англійською версією.
-- **Файли інсталятора GOG.** На [gog.com](https://www.gog.com/game/heroes_of_might_and_magic_4_complete)
-  завантажте **офлайн-інсталятор для Windows** (`setup_heroes_of_might_and_magic_4_complete_….exe`
-  і його файл `.bin`) і оберіть їх у програмі (не на Switch). GOG пропонує його кількома мовами.
-  **Інсталятору іншою мовою** потрібен `heroes4.exe` з англійської версії GOG поруч з його файлами
-  (або обраний разом з ними); тоді гра йде мовою інсталятора. На Маці й Linux файли з теки **«Завантаження»** знаходяться
-  самі.
-  На сторінці гри у вашій бібліотеці GOG: потрібна **Language**, далі в розділі
-  **Download offline backup game installers** обидві частини — **Part 1 of 2** (1 МБ, `.exe`) і
-  **Part 2 of 2** (1,1 ГБ, `.bin`). Патчі під ними не потрібні.
-
-  ![Сторінка бібліотеки GOG: Language English і дві частини інсталятора](docs/gog_files.jpg)
-- **Встановлена гра** (на Switch: копіюється на картку, див. [Nintendo Switch](#nintendo-switch-1)).
-  Оберіть теку вже встановленої Heroes IV: Complete (з GOG, на комп'ютері з Windows або теку
-  `game` з іншого пристрою), її буде скопійовано. Її `heroes4.exe` має бути з англійської версії
-  GOG (3.0). **Гра іншою мовою:** замініть у ній `heroes4.exe` на файл з англійської інсталяції
-  GOG; решта лишається як є, і гра йде своєю мовою.
-
-Кожен файл гри перевіряється, далі гра запускається. Перерване завантаження продовжується з того
-місця, де зупинилося. Що буває з файлами інсталятора потім — див. нижче.
-
-#### Мова й налаштування
-
-Кнопка ⚙ у правому верхньому куті головного меню відкриває налаштування: угорі версію й перевірку
-оновлень, мову гри (випадний список; переклад завантажується, коли його обрано вперше, і гра
-перезапускається з ним на Android, Маку й Linux, деінде — з наступного запуску), мову інтерфейсу
-(типово як у гри), масштабування картинки (iPhone, iPad, Android: див.
-[Масштабування картинки](#масштабування-картинки)), пропуск вступних відео, синхронізацію збережень («?» пояснює, як її налаштувати, на
-Android і Linux), геймпад, теки гри й збережень. На iPhone і iPad ⚙ відкриває меню з тими самими
-пунктами.
-
-#### Файли інсталятора після встановлення
-
-Інсталятор (`setup_….exe` і його `.bin`, приблизно 1 ГБ) потрібен лише раз. Чи видалить його
-програма, залежить від того, де він лежав:
-
-| Де лежав інсталятор | Після встановлення гри |
-|---|---|
-| **У папці самої програми**: iPhone/iPad: «Файли» → «На iPhone» → Heroes IV; Android: `Android/data/games.hazzard.heroes4/files/` (скопійовано через `adb push`); Switch: `sdmc:/switch/ReHoMM4/`; Мак: `~/Library/Application Support/ReHoMM4/`; Linux: `~/.local/share/ReHoMM4/` | **видаляється**: це копія для програми, і вона даремно займає місце |
-| **Обрано в програмі** з будь-якого іншого місця («Файли», «Завантаження», флешка, iCloud Drive…) | **лишається**: це ваші файли, програма їх лише читає |
-| **У «Завантаженнях»** на Маці чи Linux (знайдено самостійно) | **лишається** |
-| Не потрібен: гру встановлено з **облікового запису GOG** | видаляти нічого: програма завантажує самі файли гри, а не інсталятор |
-
-Якщо встановлення зупинилося з помилкою чи його скасовано, нічого не видаляється: спробуйте ще
-раз з тими самими файлами.
-
-Ліцензії сторонніх бібліотек — у `THIRD_PARTY_NOTICES.txt` у кожній програмі.
-
-### Якщо щось пішло не так
-
-**Мак пише «Heroes IV не можна відкрити, бо розробника не перевірено».** Клацніть по програмі
-правою кнопкою → **«Відкрити»** → **«Відкрити»**.
-
-**Інсталятор каже, що файли не ті.** Порт працює тільки з актуальною версією Heroes of Might and
-Magic IV: Complete з GOG (англійський інсталятор для Windows, версія 3.0). Інсталятори іншими
-мовами не підходять: завантажте англійський (переклади обираються в налаштуваннях ⚙).
-
-**Встановлення перервалося.** Відкрийте програму ще раз: вона продовжить з того місця, де
-зупинилася.
-
-**Переклад не завантажується.** Першого разу, коли мову обрано, потрібен інтернет; спробуйте ще
-раз онлайн.
-
-**Гра вилетіла або поводиться дивно.** Створіть [issue](https://github.com/evilHazzarD/ReHoMM4/issues),
-напишіть, на якому пристрої, і додайте журнал `h4.log` та найновіший файл з `crashes/`. Вони в теці
-гравця:
-
-| Пристрій | Тека гравця |
-|---|---|
-| Мак | `~/Library/Application Support/ReHoMM4/player` (у Finder: **Cmd ⌘ + Shift + G**, вставте шлях, **Enter**); журнал у `logs/`, вильоти в `data/h4/crashes/` |
-| Windows | `%LOCALAPPDATA%\ReHoMM4\player` |
-| Linux, Steam Deck | `~/.local/share/ReHoMM4/player` |
-| Android | `Android/data/games.hazzard.heroes4/files/player` у пам'яті телефона |
-| iPhone, iPad | тека програми в «Файлах» або у Finder: **Heroes IV** → `player` |
-| Switch | `sdmc:/switch/ReHoMM4/player` |
-
-**Видалити гру:** видаліть програму; на Маці також теку `~/Library/Application Support/ReHoMM4`, на
-Windows — `%LOCALAPPDATA%\ReHoMM4`, на Linux — `~/.local/share/ReHoMM4` (файли гри й збереження).
-
-### Випадкові карти
-
-Нова гра → «Сценарій» → **Випадкова карта** (кнопка під списком сценаріїв) відкриває генератор. Угорі
-оберіть **шаблон** — розташування зон і доріг карти: Classic або один з 31 інших (кільця, павуки,
-дзеркала, командні карти, лабіринти…). Шаблон для іншої кількості гравців чи розміру карти сам їх
-виставляє. Далі — розмір карти, гравці (кожен — людина чи комп'ютер, із фракцією, командою й
-стартовим героєм; картка героя показує навички, армію й біографію), вода, підземелля, монстри,
-оракули, скарби й зерно. Майже все може бути **Випадково**. **Створити** створює карту; вона
-з'являється вгорі списку сценаріїв.
-
-![Кнопки випадкової карти під списком сценаріїв; обрано випадкову карту, її налаштування в описі](docs/random_map_buttons.jpg)
-
-![Налаштування випадкової карти й картка стартового героя: навички, характеристики, армія, біографія](docs/random_map_panel.jpg)
-
-Коли в списку обрано випадкову карту, **Редагувати випадкову карту** повертає її налаштування, а
-**Оновити карту** створює її заново на тому ж місці; **Видалити випадкову карту** її видаляє. Кожна карта зберігає всі свої налаштування в описі, тож те саме зерно й
-налаштування дають ту саму карту на кожному пристрої. Шаблони — текстові файли в
-`Maps/RandomMaps/Templates` (поруч із файлами гри): змінюйте їх чи додавайте свої; формат пояснено
-в `example.txt`.
-
-### Керування
-
-Як в оригінальній грі; на сенсорних екранах дотик — це клік, довге натискання — правий клік.
-Додатково: **F10** перемикає масштабування картинки (нижче). Геймпад працює всюди (Joy-Con, Steam
-Deck, Xbox, PlayStation, MFi): лівий стік — курсор, **A** — клік, **B** — правий клік, правий стік
-прокручує мапу, решта кнопок — гарячі клавіші гри (**X** — магія, **Y** — чекати, **R** —
-захист/копати, **L** — наступний герой, **+** — кінець ходу, **−** — збереження…). Усі жести й
-кнопки: [`platforms/README.md`](platforms/README.md#controls).
-
-### Макет екрана
-
-У гри три макети екранів: **800x600**, **1024x768** і **1280x1024** (у менших більші кнопки й
-літери). Кожен розширено під форму екрана: карта пригод заповнює боки. Вибирається в грі:
-**Параметри** (головного меню чи карти пригод) → кнопки роздільної здатності; змінюється одразу й
-запам'ятовується (на Switch окремо для гри в руках і на телевізорі, і макет змінюється разом із
-доком). Доки нічого не вибрано:
-
-| Пристрій | Макет |
-|---|---|
-| iPhone Plus і Pro Max (від XS Max) | 1024x768 |
-| Інші iPhone, зокрема mini | 800x600 |
-| iPad mini | 1024x768 |
-| Інші iPad | 1280x1024 |
-| Телефони Android | 800x600 |
-| Планшети Android | 1024x768 |
-| Mac, Windows, Linux | 1280x1024; 1024x768, коли екран нижчий за 1024 точки |
-| Браузер: на телефоні / на планшеті / на комп'ютері | 800x600 / 1024x768 / як на комп'ютері |
-| Switch 1 і 2: у руках / на телевізорі | 800x600 / 1024x768 |
-
-### Масштабування картинки
-
-Гра малює картинку у власній роздільності, а на екран її розтягує один із цих фільтрів. **F10**
-вмикає наступний; на iPhone, iPad і Android, де F10 немає, — **⚙ → «Масштабування»** (кожен дотик —
-наступний фільтр). Обраний фільтр дві секунди показано вгорі екрана разом із номером
-(«Масштабування 7/7: FSR»; після 7 знову 1). Вибір запам'ятовується: наступного разу гра стартує з
-ним (він у файлі `filter` у теці гравця, див. [Якщо щось пішло не так](#якщо-щось-пішло-не-так)).
-
-| № | Фільтр | Як виглядає |
-|---|---|---|
-| 1 | Без згладжування | чіткі квадратні пікселі |
-| 2 | Білінійне | м'яко, трохи розмито; найдешевше |
-| 3 | Чітке білінійне | чіткі пікселі, згладжені лише на краях |
-| 4 | Бікубічне | м'якше, ніж без згладжування, чіткіше за білінійне |
-| 5 | Ланцош | дуже чітко; легкі ореоли на контрастних краях |
-| 6 | Чітке бікубічне | бікубічне з додатковою різкістю |
-| 7 | **FSR** (типово) | AMD FidelityFX Super Resolution 1.0: найчіткіше; два проходи, найбільше роботи для відеокарти |
-
-Ноутбуку від батареї найбільше збереже «Білінійне». Switch і версія для браузера малюють картинку без
-відеокарти й мають один фільтр, тож F10 там нічого не робить. Змінна середовища
-`H4_FILTER=<назва>` (`nearest`, `bilinear`, `sharp`, `bicubic`, `lanczos`, `bicubic-sharp`, `fsr`)
-задає фільтр незалежно від обраного.
-
-### Збереження на кількох пристроях
-
-Збереження можна синхронізувати між пристроями (крім Switch) через iCloud Drive, Syncthing, rclone,
-Round Sync, FolderSync чи Nextcloud: гра тримає їх у папці `ReHOMM4`. Як увімкнути для кожної
-програми: [Syncing saves between devices](platforms/README.md#syncing-saves-between-devices).
-
-### Перевірені пристрої
-
-Програми для iPhone/iPad, Android, Мака, Windows (ПК з NVIDIA GeForce RTX 3060 Ti) і Linux перевірено
-на справжніх пристроях; програму для Мака
-з Intel поки що — лише через Rosetta на Маці з процесором Apple. Програма для
-Switch не перевірена: автор не має Switch з кастомною прошивкою, на якій запускається homebrew.
-Відгуки власників Switch — в [issues](https://github.com/evilHazzarD/ReHoMM4/issues).
-Програму для Switch 2 на консолі теж не перевірено. Версію для браузера перевірено в Chrome на Маці.
-
-### Переклади
-
-**Мови зараз:** англійська (оригінальна гра, є в кожній програмі) і **українська** (інтерфейс,
-кампанії, озвучення кампаній; The Gathering Storm лишається англійською). Інших мов поки немає.
-
-Переклади не в цьому репозиторії: вони в окремому,
-[ReHoMM4-translations](https://github.com/evilHazzarD/ReHoMM4-translations), і потрапляють у
-програми тільки через його релізи. Програми перевіряють найновіший реліз при кожному запуску й
-завантажують мову, коли її обрано вперше (⚙ → Мова гри). Нова чи
-виправлена мова не потребує нової програми.
-
-**Як зробити свою мову.** Повна інструкція —
-[TRANSLATING.md](https://github.com/evilHazzarD/ReHoMM4-translations/blob/main/TRANSLATING.md)
-(англійською); коротко:
-
-1. **Перевірте, чи гра може її показати.** Heroes IV пише один байт на літеру в одній кодовій
-   сторінці Windows: підходять мови з cp1250–cp1257 (польська, чеська, німецька, французька,
-   іспанська, італійська, португальська, російська, болгарська, грецька, турецька, балтійські…).
-   Китайська, японська, корейська, арабська, іврит, тайська та інші потребують змін у тому, як гра
-   малює текст.
-2. **Потрібне:** копія гри з GOG (її тека `Data/`; у копії цього репозиторію — `game/`), Python
-   3.9+ і Мак, щоб намалювати літери в шрифтах гри (решта кроків працює будь-де).
-3. **Створіть мову** у своєму форку ReHoMM4-translations, наприклад чеську:
-   `python3 tools/new_language.py cs cp1250 "Čeština" "Czech"`, далі перенесіть англійський текст
-   і зберіть шрифти (крок 3 інструкції).
-4. **Перекладіть** файли в `languages/cs/text/` (з `GLOSSARY.md` для власних назв і термінів).
-5. **Спробуйте в грі:** `python3 tools/pack.py cs /path/to/game` або зберіть програму з вашою мовою:
-   `H4_TRANSLATIONS_DIR=<ваша копія перекладів> platforms/build.sh <платформа>`.
-6. **Поділіться:** `python3 tools/export.py cs`, `python3 tools/check.py cs`, коміт і pull request у
-   ReHoMM4-translations. Щойно мова потрапить у реліз, її запропонує кожна програма.
-
-Озвучити кампанії своєю мовою — за бажанням (крок 7 інструкції).
-
-**Мова, якою GOG продає гру** (офіційний переклад), перекладу не потребує: її пакет
-робиться з локалізованого інсталятора GOG як є (текст, шрифти, картинки з написами, озвучення), а
-програма й далі запускає англійську гру. У репозиторій іде лише `language.json`:
-[Official translations](https://github.com/evilHazzarD/ReHoMM4-translations/blob/main/TRANSLATING.md#official-translations).
-
-**Власні слова програми** (налаштування на всіх платформах, сповіщення, панель геймпада, панель
-випадкових карт) — у цьому репозиторії, по файлу на мову: `h4/ui_text/<код>.json` (зараз
-українська, німецька, французька, італійська, іспанська, польська й російська; англійська — у коді). Програма
-показує їх мовою гри (перекладом, обраним у ⚙, або мовою гри, встановленої з GOG), якщо в ⚙ →
-«Мова інтерфейсу» не вибрано іншу; панель випадкових карт і сповіщення в грі лишаються мовою гри. Щоб додати мову:
-`python3 tools/ui_text.py new cs` створить `h4/ui_text/cs.json` з усіма словами англійською;
-перекладіть значення (зберігаючи `{1}`, `{2}`… і переноси рядків) і зберіть: кожна програма сама
-візьме новий файл. `python3 tools/ui_text.py` показує, яких слів бракує кожній мові. Слова панелі
-випадкових карт малюються шрифтом гри, тож мають уміщатися в кодову сторінку мови.
-
-### Як це зроблено
-
-Порт зроблено статичною рекомпіляцією за допомогою [x86recomp](https://github.com/JTM-rootstorm/x86recomp):
-код `heroes4.exe` заздалегідь перекладається в нативний код, а графіка, звук і вікно працюють через
-SDL3 (Metal на пристроях Apple, Vulkan на Android і Linux). У репозиторії немає ні коду, ні файлів
-гри.
-
-| Шлях | Що |
-|---|---|
-| `h4/` | порт: `lifter.manifest`, замінені функції гри (`src/`) |
-| `patches/` | зміни до x86recomp, що накладаються на зафіксований коміт |
-| `symbols/` | адреси функцій і таблиць переходів `heroes4.exe` (з Ghidra) |
-| `platforms/` | збирання програм: iOS, Android, Linux, Мак і Switch (`build.sh`, по теці на платформу); DMG для Мака, який збирає гру на Маці гравця (`macos-dmg/`) |
-| `libs/innoextract/` | розпаковувач інсталятора GOG, яким користуються всі програми |
-| `assets/icon/` | іконки програм (емблема Heroes IV) |
-| `licenses/` | тексти ліцензій сторонніх частин, що входять у програми |
-| `tools/` | підготовка збирання з коду (`build.sh`), перевірки перед публікацією (`release/`), скрипти Ghidra та інструменти для арту (`re/`) |
-
-#### Збирання з коду
-
-На Маці з Homebrew і вашим інсталятором GOG: `tools/build.sh [шлях до setup_….exe]` розпаковує гру
-й готує її код, далі для кожної платформи `platforms/deps.sh <платформа>` і:
-
-| Команда | Результат |
-|---|---|
-| `platforms/build.sh ios [TEAM_ID]` | `HeroesIV-ios.ipa` |
-| `platforms/build.sh android` | `HeroesIV-android_arm64.apk` |
-| `platforms/build.sh linux` | `HeroesIV-linux-x86_64.tar.gz` |
-| `platforms/build.sh linux-arm64` | `HeroesIV-linux-arm64.tar.gz` (64-bit ARM) |
-| `platforms/build.sh windows-x86_64` | `HeroesIV-windows-x86_64.zip` (MinGW-w64) |
-| `platforms/build.sh macos-arm64` | `ReHoMM4.app` і `HeroesIV-macos-arm64.dmg` |
-| `platforms/build.sh macos-x86_64` | `ReHoMM4.app` і `HeroesIV-macos-x86_64.dmg` (Intel) |
-| `platforms/build.sh switch` | `ReHoMM4.nro` |
-| `platforms/build.sh switch2` | `ReHoMM4.nro` (Switch 2, needs ounce-devkit) |
-| `web/build.sh` | the site, `.cache/outputs/web/dist` |
-
-Подробиці: [`platforms/README.md`](platforms/README.md).
-
-Бічних панелей поруч із центрованими екранами в репозиторії немає: перед збиранням збірка сама
-завантажує [`HOMM4-extra-assets.zip`](https://github.com/evilHazzarD/ReHoMM4/releases/download/0.1/HOMM4-extra-assets.zip) (або покладіть його
-у `~/Downloads` заздалегідь; без нього краї чорні).
-
-**Реліз** робиться на Маці автора однією командою (гра перекомпільовується з його власного
-`heroes4.exe`, який на GitHub не потрапляє; CI на GitHub лише перевіряє репозиторій). Версія — у
-`VERSION`, текст релізу — її розділ у [`CHANGELOG.md`](CHANGELOG.md):
-
-```
-tools/release/make_release.sh 0.3           # збирає всі програми й перевіряє їх: .cache/release-0.3/
-tools/release/make_release.sh 0.3 --draft   # далі пушить тег v0.4 і створює чернетку релізу на GitHub
-```
-
-### Подяки
-
-ReHoMM4 почався з [HoMM4Deadware](https://github.com/LeoDeadware/HoMM4Deadware) від LeoDeadware
-(ліцензія MIT): звідти перша версія порту й український переклад. Файли, узяті звідти, кажуть про
-це на початку.
-Спосіб синхронізації збережень на iPhone, iPad і Маці (`h4/src/save_sync_apple.mm`) узято з
-`cloud_saves` проєкту [HommaRe](https://github.com/livmaster-dev/HommaRe-public) від Ilia (ліцензія MIT).
-Генератор випадкових карт (Нова гра > Сценарій > Випадкова карта, `h4/src/random_map/`) — порт
-[homm4-random-map-generator](https://github.com/tishonator/homm4-random-map-generator) Тихомира
-Іванова, адаптований і поширюваний з його дозволу. Усе потрібне він бере з ваших файлів гри; нічого
-з гри в ньому немає.
-
-### Ліцензія
-
-Власний код порту, інструменти та іконка — MIT (див. `LICENSE`), частини з HoMM4Deadware — під
-авторським правом LeoDeadware. x86recomp — MIT від його авторів; ffmpeg — LGPL 2.1+. Кожна
-програма містить `THIRD_PARTY_NOTICES.txt` з ліцензіями всього, що в ній (SDL3, ffmpeg,
-innoextract, Boost, XZ, glslang, SPIRV-Cross, а на Switch — libnx, curl, zlib, Mesa тощо); його
-складає `platforms/notices.py` з рядка лінкування збірки. На саму гру ліцензія не поширюється: вона
-ваша, з GOG.
-
-Heroes of Might and Magic — торгова марка Ubisoft. Це фанатський проєкт, не пов'язаний з Ubisoft
-чи GOG.
