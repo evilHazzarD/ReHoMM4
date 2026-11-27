@@ -13,6 +13,7 @@
 // Without one, the in-app installer (install/installer.h) puts it there.
 
 #include <dirent.h>
+#include <cerrno>
 #include <sys/stat.h>
 
 #include <cstdio>
@@ -58,6 +59,7 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 #include "renderer.h"
 #include "ui_text.h"
 #include "install/installer.h"
+#include "install/platform.h"
 #include "intro.h"
 #include "window_mode.h"
 #include "pad_config.h"
@@ -102,6 +104,15 @@ bool IsDir(const std::string& p) {
 bool IsFile(const std::string& p) {
   struct stat st;
   return stat(p.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+}
+
+// For the log: what is at `p` ("folder", "file, N bytes", or why there is nothing).
+[[maybe_unused]] std::string WhatIs(const std::string& p) {
+  struct stat st;
+  if (stat(p.c_str(), &st) != 0) return std::string("nothing (") + std::strerror(errno) + ")";
+  if (S_ISDIR(st.st_mode)) return "folder";
+  if (S_ISREG(st.st_mode)) return "file, " + std::to_string((long long)st.st_size) + " bytes";
+  return "something else (mode " + std::to_string(unsigned(st.st_mode)) + ")";
 }
 
 #if defined(H4_WINDOWS_APP)
@@ -262,7 +273,7 @@ void ChooseLanguage(const std::string& game, const std::string& data) {
         patch = downloaded(info);
         all.push_back(patch);
       } else if (why != "cancelled") {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Heroes IV",
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "ReHoMM4",
                                  ("The " + info.english + " translation could not be downloaded (" + why +
                                   "). The game starts in English; choose " + info.name +
                                   " in the main menu to try again.").c_str(),
@@ -293,7 +304,7 @@ void ChooseLanguage(const std::string& game, const std::string& data) {
   } else {
     std::printf("h4: language %s not set: %s\n", lang.c_str(), err.c_str());
     if (lang != "en")
-      SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Heroes IV",
+      SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "ReHoMM4",
                                ("The " + info.english + " translation cannot be applied: " + err +
                                 ". The game starts in English.").c_str(), nullptr);
     lang = "en";
@@ -386,10 +397,23 @@ std::string MobileSetup() {
     dup2(fd, 2);
     close(fd);
   }
+#if defined(__EMSCRIPTEN__)
+  // Every line at once (a file is otherwise written in blocks): a game that hangs in the browser
+  // leaves its last lines in the log.
+  setvbuf(stdout, nullptr, _IOLBF, 0);
+  setvbuf(stderr, nullptr, _IOLBF, 0);
+#endif
 #if defined(H4_SWITCH_APP)
   // Every line on the card at once: a crash there leaves no other trace.
   setvbuf(stdout, nullptr, _IOLBF, 0);
   setvbuf(stderr, nullptr, _IOLBF, 0);
+  // Where it starts (the first lines of a report): the console's mode and what the card has.
+  std::printf("h4: ReHoMM4 %s, applet type %d, %s\n", H4_VERSION_STRING, int(appletGetAppletType()),
+              appletGetOperationMode() == AppletOperationMode_Handheld ? "handheld" : "docked");
+  std::printf("h4: log %s (%s)\n", log.c_str(), fd >= 0 ? "written" : std::strerror(errno));
+  for (const std::string& p : {std::string("sdmc:/switch"), files, files + "/game", files + "/game/heroes4.exe",
+                               files + "/game/Data", files + "/game/Data/heroes4.h4r", data})
+    std::printf("h4: %s: %s\n", p.c_str(), WhatIs(p).c_str());
 #endif
   // Testing on a device whose environment cannot be set (a phone): <player>/env, one KEY=VALUE a
   // line (H4_GFX=soft, H4_FPS_REPORT=5...), read before anything looks at them.
@@ -501,6 +525,9 @@ std::string MobileSetup() {
     if (!d.empty() && IsDir(files + "/" + d)) {
       return use_game(files + "/" + d);
     }
+#if defined(H4_SWITCH_APP)
+    if (!d.empty()) std::printf("h4: looked for the game in %s/%s: %s\n", files.c_str(), d.c_str(), WhatIs(files + "/" + d).c_str());
+#endif
   }
   std::string install_files = files;
 #if defined(H4_WINDOWS_APP)
@@ -512,7 +539,17 @@ std::string MobileSetup() {
       if (!d.empty() && IsDir(install_files + "/" + d)) return use_game(install_files + "/" + d);
   }
 #endif
-  // No game yet: the in-app installer (GOG.com download or GOG's offline installer).
+  // No game yet: the in-app installer (GOG.com download or GOG's offline installer). Where it
+  // was looked for, and what is there, in the log (a device's card: the folder named otherwise).
+  std::printf("h4: no game in %s/game; %s holds:", files.c_str(), files.c_str());
+  if (DIR* d = opendir(files.c_str())) {
+    while (const dirent* e = readdir(d))
+      if (std::strcmp(e->d_name, ".") && std::strcmp(e->d_name, "..")) std::printf(" %s", e->d_name);
+    closedir(d);
+  } else {
+    std::printf(" (cannot be read: %s)", std::strerror(errno));
+  }
+  std::printf("\n");
   std::fflush(stdout);
   const std::string installed = h4::install::RunInstaller(install_files, g_install_auto);
   if (!installed.empty()) {
@@ -540,6 +577,12 @@ int main(int argc, char** argv) {
 #endif
   std::string game_dir, game_args;
   if (const char* e = std::getenv("H4_GAME_DIR")) game_dir = e;
+#if defined(__ANDROID__)
+  // The Java side (HttpGet, the file picker, ...): looked up here, on SDL's main thread, which
+  // can see the app's classes; the installer did it only when it ran, so with the game already
+  // installed the settings' network calls (What's new, the update check) had none.
+  h4::install::PlatformInit();
+#endif
 #if defined(H4_MOBILE)
   // Testing the installer on a device: --install-auto=files|gog presses that button (folder:<path>:
   // that folder as the installed game picked; files-fd:

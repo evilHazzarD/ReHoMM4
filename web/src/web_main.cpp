@@ -250,7 +250,8 @@ namespace h4 {
 void RestartApp() {
   std::printf("h4: restarting\n");
   std::fflush(nullptr);
-  MAIN_THREAD_ASYNC_EM_ASM({ location.reload(); });
+  // (index.html: the page again, at Play, saying why)
+  MAIN_THREAD_ASYNC_EM_ASM({ sessionStorage.setItem('h4-restart', '1'); location.reload(); });
   // The page goes; this thread waits for it instead of drawing on.
   for (;;) sleep(1);  // a worker may block
 }
