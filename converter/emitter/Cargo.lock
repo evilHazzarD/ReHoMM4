@@ -610,6 +610,7 @@ dependencies = [
  "rc-discover",
  "rc-ir",
  "rc-pe",
+ "rc-x86",
  "wasm-bindgen",
  "wasm-encoder",
 ]

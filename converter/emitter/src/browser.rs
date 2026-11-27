@@ -19,13 +19,25 @@ pub fn emit_web(
 ) -> Result<Vec<u8>, JsValue> {
     let error = |message: String| JsValue::from_str(&message);
     // The seed (h4/discover-<sha256>.txt, "" if there is none) saves nine tenths of the time.
-    // (Lifting about 85% of the time, the module the rest.)
-    let (functions, _) = crate::discovery::lift_main_progress(manifest, exe, discovery_seed, &mut |p| {
-        emit_progress(0.85 * p)
-    })
+    // Discovery about half the time; then each function lifted and lowered in turn (the
+    // whole game's IR at once took most of a gigabyte: a phone's browser stopped the worker).
+    emit_progress(0.02);
+    let prepared = crate::discovery::prepare_main(
+        manifest,
+        exe,
+        discovery_seed,
+        Box::new(|p| emit_progress(0.02 + 0.48 * p)),
+    )
     .map_err(error)?;
+    emit_progress(0.5);
     let sites: BTreeSet<_> = resume_sites.iter().copied().collect();
     let hooked: BTreeSet<_> = hooked_sites.iter().copied().collect();
-    crate::emit_linked_progress(&functions, &sites, &hooked, &mut |p| emit_progress(0.85 + 0.12 * p))
-        .map_err(error)
+    crate::emit_linked_each(
+        &prepared.addrs(),
+        &mut |i| Ok(std::borrow::Cow::Owned(prepared.lift(i))),
+        &sites,
+        &hooked,
+        &mut |p| emit_progress(0.5 + 0.47 * p),
+    )
+    .map_err(error)
 }
