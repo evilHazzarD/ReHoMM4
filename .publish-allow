@@ -40,3 +40,7 @@ h4/fonts/*.ttf  # Noto Sans fonts for the app's own text (SIL OFL 1.1, h4/fonts/
 rehomm4-web/wings/*  # the GitHub Pages site (web-pages workflow): the same combat-wing collages
 rehomm4-web/heroes4.wasm  # the GitHub Pages site: the game-code-free runtime, SDL3 and ffmpeg in one module
 rehomm4-web/icon.png  # the GitHub Pages site: the same icon
+rehomm4-web/icon-*.png  # the GitHub Pages site: the same icon at the web app's sizes (manifest.webmanifest)
+rehomm4-web/apple-touch-icon.png  # the GitHub Pages site: the same icon, opaque (iOS's home screen)
+reHoMM4-*web.zip:ReHoMM4/icon-*.png  # as the rehomm4-web/icon-*.png line above, in the release's web zip
+reHoMM4-*web.zip:ReHoMM4/apple-touch-icon.png  # as the rehomm4-web/apple-touch-icon.png line above
