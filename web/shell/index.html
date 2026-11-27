@@ -21,7 +21,10 @@
   /* Touch screens: every gesture on the game is the game's (the runtime makes them its mouse,
      right click, scrolling and zoom), none the browser's (scrolling, zooming the page, the
      long-press menu, text selection). */
-  #canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; outline: none;
+  /* (the visible part of the page: 100vh on iOS is as high as the page with Safari's bars hidden,
+     and the bottom of the game was under them) */
+  #canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; width: 100dvw; height: 100dvh;
+            display: block; outline: none;
             background: #000; image-rendering: auto; touch-action: none; user-select: none;
             -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
   html, body { overscroll-behavior: none; }
@@ -69,6 +72,7 @@
            background: rgba(20,13,5,.94); border: 1px solid #8a6a32; border-radius: 8px;
            padding: .6rem 1rem; display: none; max-width: 90vw; }
   .fs { font-size: .9rem; color: #cbb98f; white-space: nowrap; }
+  #logcopy { padding: .1rem .6rem; margin-left: .5rem; font-size: .8rem; min-width: 0; }
   #log { max-height: 40vh; overflow: auto; font-size: .75rem; white-space: pre-wrap; color: #cbb98f; }
   progress { width: 100%; height: .6rem; accent-color: #d6ab57; }
   #rotate { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center;
@@ -94,13 +98,14 @@
       (<code>setup_heroes_of_might_and_magic_4_complete_…exe</code> and its <code>-1.bin</code>,
       from your GOG library) or the folder of an installed copy, and keeps the game files in this
       browser's own storage (about 1&nbsp;GB). Nothing is uploaded anywhere.</p>
-    <p class="small">A desktop browser with 4&nbsp;GB of memory per tab: current Chrome, Edge,
-      Firefox or Safari. @H4_FIRST_LOAD@</p>
+    <p class="small">Current Chrome, Edge, Firefox or Safari (an iPad's too), with about
+      1.7&nbsp;GB of memory for this tab. @H4_FIRST_LOAD@</p>
   </div>
   <p id="state" hidden></p>
   <p id="problem" class="bad" hidden></p>
   <div id="loading" hidden><p id="loadtext">Loading…</p><progress id="loadbar"></progress></div>
-  <details id="logbox" hidden><summary class="small">The game's log</summary><pre id="log"></pre></details>
+  <details id="logbox" hidden><summary class="small"><span id="logtitle">The game's log</span>
+    <button id="logcopy" type="button" class="small">Copy the log</button></summary><pre id="log"></pre></details>
   <div class="row start-row">
     <button id="start">Start</button>
   </div>
@@ -159,6 +164,21 @@ new MutationObserver(() => {
     setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
 }).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
 
+// The page's size changes without a resize event SDL sees in time: iOS Safari animates going in
+// and out of full screen, and its bars coming and going, and says the new size late (the game
+// kept the old one: a part of it off the screen). Resize events then, and again once it settled.
+function resizeSoon() {
+  for (const ms of [0, 150, 400, 900]) setTimeout(() => window.dispatchEvent(new Event('resize')), ms);
+}
+for (const type of ['fullscreenchange', 'webkitfullscreenchange', 'orientationchange'])
+  document.addEventListener(type, resizeSoon);
+window.addEventListener('orientationchange', resizeSoon);
+window.visualViewport?.addEventListener('resize', () => {
+  if (Math.abs(canvas.clientHeight - window.visualViewport.height) > 1 ||
+      Math.abs(canvas.width - Math.round(canvas.clientWidth * devicePixelRatio)) > 1)
+    resizeSoon();
+});
+
 // Shared memory (threads) needs cross-origin isolation. A server that does not send the headers
 // gets them from the service worker (coi-sw.js), which needs one reload to take over.
 async function isolate() {
@@ -177,6 +197,15 @@ function problem(text) {
   const p = $('problem');
   p.textContent = text;
   p.hidden = false;
+  logLine(true, 'page: ' + text);
+  showLog(true);
+}
+// The log under the page's box: its lines so far (the game's, the converter's, the page's errors).
+function showLog(open, title) {
+  $('log').textContent = logLines.join('\n');
+  if (title) $('logtitle').textContent = title;
+  $('logbox').hidden = false;
+  if (open) $('logbox').open = true;
 }
 
 let toastTimer = 0;
@@ -216,8 +245,39 @@ function logLine(err, t) {
   (err ? console.warn : console.log)(t);
   logLines.push(t);
   if (logLines.length > 400) logLines.shift();
-  if (!logTimer) logTimer = setTimeout(() => { logTimer = 0; $('log').textContent = logLines.join('\n'); }, 500);
+  if (!logTimer) logTimer = setTimeout(() => {
+    logTimer = 0;
+    $('log').textContent = logLines.join('\n');
+    // Kept for the next visit: a tab the browser closes (iOS, out of memory) says nothing more.
+    try { localStorage.setItem('h4-last-log', logLines.slice(-200).join('\n')); } catch {}
+  }, 500);
 }
+window.addEventListener('error', (e) => logLine(true, 'page error: ' + (e.message || e) +
+  (e.filename ? ` (${e.filename.split('/').pop()}:${e.lineno})` : '')));
+window.addEventListener('unhandledrejection', (e) => logLine(true, 'page error: ' + (e.reason?.message || e.reason)));
+$('logcopy').addEventListener('click', (e) => {
+  e.preventDefault();
+  const text = `ReHoMM4 @H4_VERSION@, ${navigator.userAgent}\n` + logLines.join('\n');
+  navigator.clipboard?.writeText(text).then(() => toast('The log is copied.', 3000),
+                                             () => toast('The log could not be copied.', 5000));
+});
+// The log of before this page's own reload (the game's code prepared after installing): on.
+{
+  const carried = sessionStorage.getItem('h4-log-carry');
+  sessionStorage.removeItem('h4-log-carry');
+  if (carried) logLines.push(...carried.split('\n'), '— the page reloaded (the game\'s code is ready) —');
+}
+// A game that was running when this page was last left without the page knowing (the browser
+// closed or reloaded the tab: iOS does when memory runs short): its log, under the box.
+if (localStorage.getItem('h4-running') === '1') {
+  const last = localStorage.getItem('h4-last-log');
+  if (last) {
+    logLines.push('— the last run, which ended unexpectedly —', ...last.split('\n'));
+    showLog(false, 'The last run\'s log (it ended unexpectedly)');
+  }
+}
+localStorage.removeItem('h4-running');
+window.addEventListener('pagehide', () => localStorage.removeItem('h4-running'));
 if (typeof BroadcastChannel === 'function')
   new BroadcastChannel('h4-log').onmessage = (e) => logLine(e.data.err, e.data.t);
 
@@ -277,13 +337,19 @@ async function compileLiftedCode(digest) {
     const app = await root.getDirectoryHandle('ReHoMM4');
     const game = await app.getDirectoryHandle('game');
     const exe = await (await game.getFileHandle('heroes4.exe')).getFile();
+    const began = performance.now();
+    logLine(false, 'converter: preparing the game code');
     worker = new Worker('./converter/emit_worker.mjs', {type: 'module'});
     await new Promise((resolve, reject) => {
       worker.onmessage = ({data}) => {
         if (data.type === 'progress') {
           $('loadbar').value = data.fraction;
           $('loadtext').textContent = `Preparing the game’s code from your copy… ${Math.round(data.fraction * 100)}%`;
-        } else if (data.type === 'done') resolve();
+        } else if (data.type === 'done') {
+          logLine(false, `converter: ${(data.size / 1048576).toFixed(0)} MB of code in ` +
+                         `${((performance.now() - began) / 1000).toFixed(1)} s`);
+          resolve();
+        }
         else if (data.type === 'error') reject(new Error(data.message));
       };
       worker.onerror = () => reject(new Error('The browser converter failed to load.'));
@@ -292,6 +358,7 @@ async function compileLiftedCode(digest) {
     if (window.h4Module || gameStarted) {
       // The game asked for it (just installed): it has stopped; the page again, at Play.
       sessionStorage.setItem('h4-start-after-compile', '1');
+      try { sessionStorage.setItem('h4-log-carry', logLines.slice(-200).join('\n')); } catch {}
       location.reload();
       return;
     }
@@ -336,9 +403,8 @@ function status(kind, a, b) {
     $('intro').hidden = true;
     $('loading').hidden = true;
     problem(a ? `The game stopped (code ${a}): its log is below.` : 'The game has ended.');
-    $('log').textContent = logLines.join('\n');
-    $('logbox').hidden = false;
-    $('logbox').open = !!a;
+    localStorage.removeItem('h4-running');
+    showLog(!!a);
     $('start').textContent = 'Back';
     $('start').disabled = false;
     $('start').onclick = () => location.reload();
@@ -471,6 +537,12 @@ async function copyServedGame(served) {
 // not take for a full screen one (the game makes its windows hidden first), which took the page
 // out of full screen right after Start. Only the page's own leaving (Alt+Enter, the game's end)
 // and the browser's (Escape, its menu) do.
+// Never the canvas itself: SDL asks for it when the game makes a full-screen window (at the
+// start, while the tap on Start still counts as the player's), and a full-screen canvas covers
+// everything else on the page (the installer's file picker button, the toasts, the keyboard's
+// field). Only the page goes full screen, when asked for (below).
+for (const k of ['requestFullscreen', 'webkitRequestFullscreen', 'webkitRequestFullScreen'])
+  if (canvas[k]) canvas[k] = () => Promise.resolve();
 const realExit = { std: document.exitFullscreen && document.exitFullscreen.bind(document),
                    webkit: document.webkitExitFullscreen && document.webkitExitFullscreen.bind(document) };
 let leaving = false;
@@ -486,9 +558,9 @@ function leaveFullscreen() {
   }
 }
 
-// Full screen. The game picks its screen size once, from the page's size when it starts
-// (wide screens fill the page), so the page goes full screen before the game starts; later
-// changes keep that size and add bars. In full screen, Escape stays the game's (Chrome's keyboard
+// Full screen, when asked for (Alt+Enter, the game's Options). The game picks its screen size
+// once, from the page's size when it starts (wide screens fill the page); later changes keep that
+// size and add bars. In full screen, Escape stays the game's (Chrome's keyboard
 // lock: holding Escape leaves full screen); Alt+Enter switches, as in Windows games.
 async function enterFullscreen() {
   const el = document.documentElement;
@@ -557,11 +629,12 @@ async function start() {
   if (portraitBlocked()) return;
   if (pageState.kind === 'prepare') return compileLiftedCode(pageState.digest);
   gameStarted = true;
+  try { localStorage.setItem('h4-running', '1'); } catch {}
   $('start').disabled = true;
   $('intro').hidden = true;
   $('state').hidden = true;
-  // In the click itself: browsers allow full screen only in answer to the user.
-  const fs = enterFullscreen();
+  // Not full screen at the start: the page as it is (Alt+Enter, the browser's own, or the game's
+  // Options box switch it).
   $('loading').hidden = false;
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   const served = new URLSearchParams(location.search).get('game');
@@ -575,7 +648,6 @@ async function start() {
       return;
     }
   }
-  await fs;
   await settingsLoaded;
   while (portraitBlocked()) {
     await new Promise(resolve => portrait.addEventListener('change', resolve, { once: true }));
@@ -586,6 +658,9 @@ async function start() {
   script.src = 'heroes4.js';
   script.onerror = () => problem('heroes4.js could not be loaded.');
   script.onload = async () => {
+    // Its memory refused (a RangeError "Out of memory"): on a reload iOS still holds the last
+    // game's for a while; tried again after a few seconds, a few times.
+    for (let attempt = 0; ; attempt++) {
     try {
       // The module, for the browser's console (debugging): h4Module.FS, ...
       window.h4Module = await createHeroes4({
@@ -613,11 +688,21 @@ async function start() {
         onExit: (code) => status('exit', code),
         recompScreenKeyboard: (on) => Module_screenKeyboard(on),
       });
+      return;
     } catch (e) {
       console.error(e);
+      const memory = /memory/i.test(String(e));
+      if (memory && attempt < 5) {
+        $('loadtext').textContent = 'Waiting for the browser to free the memory of the last game…';
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+        continue;
+      }
       $('panel').classList.remove('hidden');
       problem('The game could not start: ' + (e && e.message ? e.message : e) +
-              (String(e).includes('memory') ? ' (the browser has not got the 4 GB of memory it needs)' : ''));
+              (memory ? ' (the browser did not give the game the 1.7 GB of memory it needs: close ' +
+                        'other tabs, or close this one and open the page again)' : ''));
+      return;
+    }
     }
   };
   document.body.appendChild(script);

@@ -265,7 +265,9 @@ class Installer {
   void OnPress(int id) {
     if (!id) return;
     if (id == kQuit) {  // an unfinished job stops (Run: cancelled, joined); a download continues next time
-      fprintf(stderr, "installer: closed\n");
+      fprintf(stderr, "installer: closed (%s)\n",
+              screen_ == Screen::Menu ? "at the menu" : screen_ == Screen::Picking ? "waiting for picked files"
+              : screen_ == Screen::Busy ? "while busy" : screen_ == Screen::Error ? "at an error" : "elsewhere");
       quit_ = true;
       return;
     }
