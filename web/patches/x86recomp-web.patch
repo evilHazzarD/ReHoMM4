@@ -668,7 +668,7 @@
  #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
      if (mw < mh) std::swap(mw, mh);
  #endif
-@@ -1472,6 +1497,12 @@
+@@ -1478,6 +1503,12 @@
    if (!w) return;
    if (SDL_TextInputActive(w)) SDL_StopTextInput(w);
    else SDL_StartTextInput(w);

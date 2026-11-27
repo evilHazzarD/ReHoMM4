@@ -1,0 +1,161 @@
+--- a/src/runtime/guest_alloc.cpp
++++ b/src/runtime/guest_alloc.cpp
+@@ -1,5 +1,6 @@
+ #include "runtime/guest_alloc.h"
+ 
++#include <cstdio>
+ #include <cstring>
+ 
+ namespace recomp {
+@@ -20,8 +21,18 @@
+ void GuestAllocator::MarkReserved(uint64_t va, uint64_t size) {
+   std::lock_guard<std::recursive_mutex> l(mu_);
+   regions_[va] = size;
++  Count(int64_t(size));
+ }
+ 
++void GuestAllocator::Count(int64_t delta) {
++  reserved_ += uint64_t(delta);
++  if (reserved_ >= reserved_peak_ + (64u << 20) || (delta > 0 && reserved_peak_ == 0)) {
++    reserved_peak_ = reserved_;
++    std::fprintf(stderr, "guest memory: %llu MiB reserved (of %llu)\n",
++                 (unsigned long long)(reserved_ >> 20), (unsigned long long)((hi_ - lo_) >> 20));
++  }
++}
++
+ bool GuestAllocator::FindLocked(uint64_t va, Region* out) const {
+   auto it = regions_.upper_bound(va);
+   if (it == regions_.begin()) return false;
+@@ -64,6 +75,7 @@
+     va &= ~(kGranularity - 1);
+     if (!fits(va)) return 0;
+     regions_[va] = size;
++    Count(int64_t(size));
+     return va;
+   }
+   // Walk the gaps between reservations.
+@@ -76,6 +88,7 @@
+     }
+     if (!fits(cand)) return 0;
+     regions_[cand] = size;
++    Count(int64_t(size));
+     return cand;
+   }
+   // Each gap [end, top) is tried with the base aligned down to 64 KiB: a gap
+@@ -90,6 +103,7 @@
+       const uint64_t cand = (top - size) & ~(kGranularity - 1);
+       if (cand >= end && fits(cand)) {
+         regions_[cand] = size;
++        Count(int64_t(size));
+         return cand;
+       }
+     }
+@@ -135,6 +149,7 @@
+   auto it = regions_.find(base);
+   if (it == regions_.end()) return false;
+   mem_->Decommit(base, it->second, zero);
++  Count(-int64_t(it->second));
+   regions_.erase(it);
+   return true;
+ }
+--- a/src/runtime/guest_alloc.h
++++ b/src/runtime/guest_alloc.h
+@@ -53,6 +53,9 @@
+   GuestMemory* mem_ = nullptr;
+   uint64_t lo_ = 0, hi_ = 0;
+   std::map<uint64_t, uint64_t> regions_;  // base -> size
++  // Bytes reserved, and the most so far (logged at each new 64 MiB).
++  uint64_t reserved_ = 0, reserved_peak_ = 0;
++  void Count(int64_t delta);
+   mutable std::recursive_mutex mu_;
+ };
+ 
+--- a/src/runtime/guest_memory.cpp
++++ b/src/runtime/guest_memory.cpp
+@@ -27,7 +27,7 @@
+     std::fprintf(stderr, "GuestMemory: no 64-bit guests on this host\n");
+     return false;
+   }
+-  const uint64_t size = 1ull << 31;
++  const uint64_t size = kGuestTop32;
+   // Straight from the heap's break: newlib's malloc cannot take 2 GiB in one request (its
+   // heap growth is a 32-bit signed size), so two 1 GiB steps, which are contiguous; malloc
+   // goes on above them.
+--- a/src/runtime/guest_memory.h
++++ b/src/runtime/guest_memory.h
+@@ -18,6 +18,18 @@
+ 
+ using gaddr = uint64_t;
+ 
++// The top of a 32-bit guest's address space (not large-address-aware: 2 GiB). A host with
++// little memory (a browser that will not reserve 4 GiB) builds with a lower one: the runtime's
++// own regions (thunks, module handles, PEB and TEBs) sit just below it, and the allocator hands
++// out what lies under them, so the arena is this size.
++#ifndef RECOMP_GUEST_TOP32
++#define RECOMP_GUEST_TOP32 0x80000000u
++#endif
++inline constexpr uint32_t kGuestTop32 = RECOMP_GUEST_TOP32;
++static_assert(kGuestTop32 % 0x10000000 == 0 && kGuestTop32 >= 0x20000000 &&
++                  kGuestTop32 <= 0x80000000u,
++              "RECOMP_GUEST_TOP32: a multiple of 256 MiB, from 512 MiB to 2 GiB");
++
+ enum class Prot : uint8_t { None = 0, R = 1, W = 2, X = 4, RW = 3, RX = 5, RWX = 7 };
+ 
+ class GuestMemory {
+--- a/src/runtime/hle/hle.h
++++ b/src/runtime/hle/hle.h
+@@ -33,7 +33,7 @@
+ extern thread_local int t_hle_depth;
+ 
+ // Guest range used for pseudo HMODULE values of the DLLs we provide.
+-inline constexpr uint32_t kModuleRegion = 0x70000000;
++inline constexpr uint32_t kModuleRegion = kGuestTop32 - 0x10000000;  // 0x70000000
+ inline constexpr uint32_t kModuleRegionSize = 0x00200000;
+ inline constexpr gaddr kModuleRegion64 = 0xFFE000000;  // x64 (runtime.h)
+ 
+--- a/src/runtime/hle/kernel32.cpp
++++ b/src/runtime/hle/kernel32.cpp
+@@ -465,7 +465,7 @@
+   Wr16(si + 0, 0);            // PROCESSOR_ARCHITECTURE_INTEL
+   Wr32(si + 4, 0x1000);       // page size
+   Wr32(si + 8, 0x00010000);   // lowest application address
+-  Wr32(si + 12, 0x7FFEFFFF);  // highest
++  Wr32(si + 12, kGuestTop32 - 0x10001);  // highest (0x7FFEFFFF)
+   Wr32(si + 16, (1u << ncpu) - 1);  // active processor mask
+   Wr32(si + 20, ncpu);              // number of processors
+   Wr32(si + 24, 586);         // PROCESSOR_INTEL_PENTIUM
+@@ -486,8 +486,8 @@
+   Wr32(ms + 12, 0x30000000);  // avail phys
+   Wr32(ms + 16, 0x60000000);  // total page file
+   Wr32(ms + 20, 0x50000000);  // avail page file
+-  Wr32(ms + 24, 0x7FFE0000);  // total virtual
+-  Wr32(ms + 28, 0x70000000);  // avail virtual
++  Wr32(ms + 24, kGuestTop32 - 0x20000);       // total virtual (0x7FFE0000)
++  Wr32(ms + 28, kGuestTop32 / 8 * 7);         // avail virtual (0x70000000)
+   return 0;
+ }
+ 
+--- a/src/runtime/pe_image.h
++++ b/src/runtime/pe_image.h
+@@ -18,7 +18,7 @@
+ 
+ // Guest layout constants. Everything stays below 0x80000000 because the
+ // game is not large-address-aware and may treat pointers as signed.
+-inline constexpr gaddr kThunkBase = 0x7F000000;
++inline constexpr gaddr kThunkBase = kGuestTop32 - 0x01000000;  // 0x7F000000
+ inline constexpr uint32_t kThunkStride = 0x10;
+ inline constexpr uint32_t kThunkRegionSize = 0x00100000;
+ // x64 guests get nothing below 4 GiB (ARCHITECTURE.md, "64-bit guests"):
+--- a/src/runtime/runtime.h
++++ b/src/runtime/runtime.h
+@@ -98,8 +98,8 @@
+ uint32_t GuestProcessorCount();
+ 
+ // Fixed guest layout (see ARCHITECTURE.md). TEBs grow down from kTebTop.
+-inline constexpr uint32_t kPebVa = 0x7FFDF000;
+-inline constexpr uint32_t kTebTop = 0x7FFDE000;
++inline constexpr uint32_t kPebVa = kGuestTop32 - 0x21000;   // 0x7FFDF000
++inline constexpr uint32_t kTebTop = kGuestTop32 - 0x22000;  // 0x7FFDE000
+ inline constexpr uint32_t kTebStride = 0x1000;
+ // Return address pushed when the host calls into guest code; reaching it
+ // means the guest function returned to us.

@@ -96,6 +96,36 @@ onmessage = async (e) => {
   }
 };
 `;
+// The module's shared memory (web/build.sh puts this in place of Emscripten's own
+// new WebAssembly.Memory): the largest maximum the browser will reserve, from Emscripten's 4 GiB
+// down to what the game needs (its 1.25 GiB arena, and about 400 MiB more). iPad Safari would
+// not reserve 4 GiB of shared memory ("Out of memory" before the game started).
+// How much memory the module has (it grows as the game asks): in the console at each change.
+if (typeof ENVIRONMENT_IS_PTHREAD === 'undefined' || !ENVIRONMENT_IS_PTHREAD) {
+  let last = 0;
+  setInterval(() => {
+    const n = typeof wasmMemory === 'object' && wasmMemory ? wasmMemory.buffer.byteLength >> 20 : 0;
+    if (n && n !== last) console.log('h4-web: memory ' + (last = n) + ' MiB');
+  }, 5000);
+}
+
+Module["h4NewMemory"] = function (initial, maximum) {
+  let last;
+  // (Testing: ?h4maxmem=<pages> starts from a smaller maximum, as a browser that refuses more.)
+  const cap = +(new URLSearchParams(globalThis.location?.search || '').get('h4maxmem') || 0);
+  for (const max of [maximum, 36864, 32768, 28672]) {
+    if (max > maximum || (cap && max > cap)) continue;
+    try {
+      const m = new WebAssembly.Memory({ initial, maximum: max, shared: true });
+      if (max < maximum) console.warn('h4-web: shared memory of ' + (max / 16) + ' MiB at most');
+      return m;
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last;
+};
+
 function h4RunWorker(source, data, onMessage) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));

@@ -191,7 +191,8 @@ plus `H4_INSTALL_AUTO` / `--install-auto=files|gog` to press a button at start;
 |---|---|
 | Tap | left click |
 | Double tap (within ½ s, the second tap near the first) | double click, on the first tap's spot |
-| Touch and hold (½ s) | right button, held until you lift the finger (the game's info pop-ups) |
+| Touch and hold (0.3 s) | right button, held until you lift the finger (the game's info pop-ups) |
+| Two-finger tap | right click on the first finger's spot; the info pop-up stays until the next touch, which only closes it |
 | Touch, then drag | left-button drag |
 | Pinch | zooms the picture (up to 3x) around your fingers; pinch out to see everything again |
 | Two-finger drag | zoomed: moves the zoomed view, and scrolls the adventure map past its edge; not zoomed: arrow keys, scrolls the adventure map |

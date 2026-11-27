@@ -25,6 +25,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(X86RECOMP_DIR "" CACHE PATH "the patched x86recomp copy (web/build.sh)")
 set(RECOMP_STATIC_APP ON CACHE BOOL "" FORCE)
 set(RECOMP_GPU OFF CACHE BOOL "" FORCE)
+# The guest's address space: 1.25 GiB, not Windows' 2 GiB (the game reserves far less; iPad
+# Safari would not give the 2 GiB arena and the rest, "out of memory" before the game started).
+# The runtime's regions sit below this top (guest_memory.h); "guest memory: N MiB reserved" in
+# the log says how much of it the game takes.
+add_compile_definitions(RECOMP_GUEST_TOP32=0x50000000u)
 add_subdirectory("${X86RECOMP_DIR}" x86recomp)
 
 option(H4_WEB_DYNAMIC "Build the experimental worker-loaded web shell" OFF)
@@ -108,14 +113,14 @@ target_link_libraries(h4 PRIVATE ${H4_INNOEXTRACT} ${H4_LZMA})
 # What the module is (web/README.md, "How it works"):
 # - pthreads, with main() on a worker (PROXY_TO_PTHREAD): the game's message loop blocks like
 #   on Windows; the page's own thread only runs SDL's event and drawing calls proxied to it.
-# - 4 GiB of memory at most, grown as used: the guest arena takes 2 GiB of it at start.
+# - 2.5 GiB of memory at most, grown as used: the guest arena takes 1.25 GiB of it at start.
 # - WasmFS with the origin private file system (OPFS) at /persist: the game files, saves and
 #   settings stay in the browser (web_main.cpp).
 # - native wasm exceptions: the runtime resumes SEH frames by throwing.
 set(H4_RES_DIR "" CACHE PATH "files put in the module's file system at / (ui/, wings/)")
 set(_h4_link
   -pthread -fwasm-exceptions -sPROXY_TO_PTHREAD=1 -sWASMFS=1 -sFETCH=1
-  -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=256MB -sMAXIMUM_MEMORY=4GB
+  -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=256MB -sMAXIMUM_MEMORY=2560MB
   -sSTACK_SIZE=16MB -sDEFAULT_PTHREAD_STACK_SIZE=4MB -sPTHREAD_POOL_SIZE=8
   -sUSE_ZLIB=1 -sEXIT_RUNTIME=1 -sENVIRONMENT=web,worker
   -sEXPORTED_RUNTIME_METHODS=callMain,FS -sEXPORT_NAME=createHeroes4 -sMODULARIZE=1

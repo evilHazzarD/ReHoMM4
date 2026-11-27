@@ -80,24 +80,6 @@ void CallVoid(const char* name) {
 
 namespace h4 {
 
-// A phone's screen: Android's smallest width under 600 dp (tablets have 600 and more).
-bool AndroidSmallScreen() {
-  auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
-  jclass cls = env ? Activity(env) : nullptr;
-  jmethodID m = cls ? env->GetStaticMethodID(cls, "h4SmallestWidthDp", "()I") : nullptr;
-  if (!m) {
-    if (env) env->ExceptionClear();
-    return true;
-  }
-  const int dp = env->CallStaticIntMethod(cls, m);
-  if (env->ExceptionCheck()) {
-    env->ExceptionClear();
-    return true;
-  }
-  std::printf("h4: the screen's smallest width %d dp\n", dp);
-  return dp <= 0 || dp < 600;
-}
-
 // HeroesActivity.h4CutoutMargin: the camera notch's side, a fraction of the screen's width.
 bool AndroidSafeAreaMargin(float* fraction) {
   auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
