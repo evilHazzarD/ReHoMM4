@@ -28,60 +28,149 @@ Module.preRun.push(() => {
 // input. What is picked is copied into the origin private file system, ReHoMM4/picked/ (the
 // module's /persist/ReHoMM4/picked), then the list of it into picked/.done, which the installer
 // waits for; an empty list means the picker was cancelled.
+//
+// The picker is opened by a button on the page: browsers open one only for the player's own tap or
+// click (Safari ignores input.click() from here, and the installer then waited for ever). The
+// files are written by a worker through sync access handles (Safari has no createWritable).
+const PICK_WORKER = `
+onmessage = async (e) => {
+  const { files } = e.data;  // [{ file, path: [...] }]
+  let h = null;
+  try {
+    const root = await navigator.storage.getDirectory();
+    const app = await root.getDirectoryHandle('ReHoMM4', { create: true });
+    const dir = await app.getDirectoryHandle('picked', { create: true });
+    const names = [];
+    const write = async (d, name, chunks) => {
+      h = await (await d.getFileHandle(name, { create: true })).createSyncAccessHandle();
+      h.truncate(0);
+      let at = 0;
+      for await (const value of chunks) {
+        for (let off = 0; off < value.length;) off += h.write(value.subarray(off), { at: at + off });
+        at += value.length;
+        if (value.length) postMessage({ bytes: value.length });
+      }
+      h.flush();
+      h.close();
+      h = null;
+    };
+    const stream = async function* (f) {
+      const reader = f.stream().getReader();
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) return;
+        yield value;
+      }
+    };
+    for (const { file, path } of files) {
+      let d = dir;
+      for (const p of path.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
+      postMessage({ name: file.name });
+      await write(d, path[path.length - 1], stream(file));
+      names.push(path.join('/'));
+    }
+    postMessage({ names });
+  } catch (err) {
+    try { if (h) h.close(); } catch (e2) { /* closed */ }
+    postMessage({ error: String((err && err.message) || err) });
+  }
+};
+`;
+const PICK_DONE_WORKER = `
+onmessage = async (e) => {
+  let h = null;
+  try {
+    const root = await navigator.storage.getDirectory();
+    const app = await root.getDirectoryHandle('ReHoMM4', { create: true });
+    const dir = await app.getDirectoryHandle('picked', { create: true });
+    h = await (await dir.getFileHandle('.done', { create: true })).createSyncAccessHandle();
+    const bytes = new TextEncoder().encode(e.data);
+    h.truncate(0);
+    h.write(bytes, { at: 0 });
+    h.flush();
+    h.close();
+    postMessage({ ok: true });
+  } catch (err) {
+    try { if (h) h.close(); } catch (e2) { /* closed */ }
+    postMessage({ error: String((err && err.message) || err) });
+  }
+};
+`;
+function h4RunWorker(source, data, onMessage) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+    const w = new Worker(url);
+    w.onmessage = (e) => {
+      if (onMessage) onMessage(e.data);
+      if (e.data.names || e.data.error || e.data.ok) { w.terminate(); URL.revokeObjectURL(url); resolve(e.data); }
+    };
+    w.onerror = (e) => { w.terminate(); URL.revokeObjectURL(url); resolve({ error: e.message || 'worker failed' }); };
+    w.postMessage(data);
+  });
+}
 Module.h4PickFiles = function (folder) {
   const status = (kind, ...a) => { if (Module.h4Status) Module.h4Status(kind, ...a); };
+  const apple = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const input = document.createElement('input');
   input.type = 'file';
   input.multiple = true;
   if (folder) input.webkitdirectory = true;
-  else input.accept = '.exe,.bin';
+  else if (!apple) input.accept = '.exe,.bin';  // (iOS greys out files of types it does not know)
   input.style.display = 'none';
   document.body.appendChild(input);
+  // The button the picker is opened from, over the game.
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:rgba(0,0,0,.6);' +
+    'font:16px/1.5 system-ui,-apple-system,sans-serif;color:#f3e6c4';
+  const card = document.createElement('div');
+  card.style.cssText = 'max-width:30rem;margin:1rem;padding:1.5rem;border:1px solid #8a6a32;border-radius:10px;' +
+    'background:rgba(20,13,5,.96);text-align:center';
+  const text = document.createElement('p');
+  text.style.margin = '0 0 1rem';
+  text.textContent = folder ? 'Pick the folder of the installed game (the one with heroes4.exe).'
+    : 'Pick both of GOG\'s installer files: setup_heroes_of_might_and_magic_4_complete_…exe and its -1.bin.';
+  const button = (label, primary) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = 'font:inherit;font-weight:600;border:0;border-radius:6px;padding:.65rem 1.4rem;margin:.3rem;cursor:pointer;' +
+      (primary ? 'background:#d6ab57;color:#1b1205' : 'background:none;color:#b89c64;text-decoration:underline');
+    return b;
+  };
+  const choose = button(folder ? 'Choose the folder' : 'Choose the files', true);
+  const cancel = button('Cancel', false);
+  card.append(text, choose, document.createElement('br'), cancel);
+  box.appendChild(card);
+  document.body.appendChild(box);
+  choose.onclick = () => input.click();  // (the player's tap: the browser opens the picker)
   let finished = false;
   const finish = async (files) => {
     if (finished) return;
     finished = true;
     input.remove();
-    const root = await navigator.storage.getDirectory();
-    const app = await root.getDirectoryHandle('ReHoMM4', { create: true });
-    const dir = await app.getDirectoryHandle('picked', { create: true });
-    const names = [];
-    try {
-      const total = files.reduce((n, f) => n + f.size, 0);
-      let done = 0;
-      for (const f of files) {
-        // A folder's files by their path inside it (without the folder's own name).
-        const rel = folder ? f.webkitRelativePath.split('/').slice(1).join('/') : f.name;
-        if (!rel) continue;
-        const parts = rel.split('/');
-        let d = dir;
-        for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
-        const handle = await d.getFileHandle(parts[parts.length - 1], { create: true });
-        const w = await handle.createWritable();
-        const reader = f.stream().getReader();
-        for (;;) {
-          const { value, done: end } = await reader.read();
-          if (end) break;
-          await w.write(value);
-          done += value.length;
-          status('copy', total ? done / total : 1, f.name);
-        }
-        await w.close();
-        names.push(rel);
-      }
-    } catch (e) {
-      console.error('h4-web: copying the picked files failed', e);
-      status('error', 'The files could not be copied into the browser\'s storage: ' + e.message +
+    box.remove();
+    const list = [];
+    for (const f of files) {
+      // A folder's files by their path inside it (without the folder's own name).
+      const rel = folder ? f.webkitRelativePath.split('/').slice(1).join('/') : f.name;
+      if (rel) list.push({ file: f, path: rel.split('/') });
+    }
+    const total = list.reduce((n, x) => n + x.file.size, 0);
+    let done = 0, name = '';
+    const r = list.length ? await h4RunWorker(PICK_WORKER, { files: list }, (m) => {
+      if (m.name) name = m.name;
+      if (m.bytes) { done += m.bytes; status('copy', total ? done / total : 1, name); }
+    }) : { names: [] };
+    if (r.error) {
+      console.error('h4-web: copying the picked files failed', r.error);
+      status('error', 'The files could not be copied into the browser\'s storage: ' + r.error +
              ' (is the disk full?)');
-      names.length = 0;
     }
     status('copy-done');
-    const list = await dir.getFileHandle('.done', { create: true });
-    const w = await list.createWritable();
-    await w.write(names.length ? names.join('\n') + '\n' : '');
-    await w.close();
+    const names = r.names || [];
+    await h4RunWorker(PICK_DONE_WORKER, names.length ? names.join('\n') + '\n' : '');
   };
-  input.addEventListener('change', () => finish(Array.from(input.files || [])));
-  input.addEventListener('cancel', () => finish([]));
-  input.click();
+  input.addEventListener('change', () => { if (input.files && input.files.length) finish(Array.from(input.files)); });
+  input.addEventListener('cancel', () => { /* the button stays: picked again, or Cancel */ });
+  cancel.onclick = () => finish([]);
 };
