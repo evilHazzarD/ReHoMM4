@@ -1,0 +1,34 @@
+--- a/src/runtime/guest_memory.cpp
++++ b/src/runtime/guest_memory.cpp
+@@ -32,6 +32,11 @@
+   // heap growth is a 32-bit signed size), so two 1 GiB steps, which are contiguous; malloc
+   // goes on above them.
+   void* p = nullptr;
++#if defined(__SWITCH2__)
++  // Switch 2 (libounce): malloc is mimalloc over the whole heap the process is given, and
++  // newlib's break (sbrk) has none of it: the arena is one block of malloc's.
++  p = aligned_alloc(0x10000, size_t(size));
++#else
+   {
+     const uintptr_t brk = reinterpret_cast<uintptr_t>(sbrk(0));
+     const intptr_t pad = intptr_t((0x10000 - (brk & 0xFFFF)) & 0xFFFF);
+@@ -44,6 +49,7 @@
+         (reinterpret_cast<uintptr_t>(lo) & 0xFFFF) == 0)
+       p = lo;
+   }
++#endif
+   if (!p) {
+     // What the system gave the process, and the C heap (libnx: all of it, at start).
+     u64 total = 0, used = 0;
+@@ -54,7 +60,11 @@
+                  "used; the heap is %llu MiB (start the game through title takeover: hold R "
+                  "while launching a game)\n",
+                  (unsigned long long)(total >> 20), (unsigned long long)(used >> 20),
++#if defined(__SWITCH2__)
++                 (unsigned long long)(heapGetTotalSize() >> 20));
++#else
+                  (unsigned long long)((fake_heap_end - fake_heap_start) >> 20));
++#endif
+     return false;
+   }
+   std::memset(p, 0, size_t(size));
