@@ -27,6 +27,7 @@
 // those run with the top window back at the layout rectangle.
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -625,17 +626,27 @@ void Mirror(Image* im) {
                   im->rgb[(size_t(y) * im->w + (im->w - 1 - x)) * 3 + k]);
 }
 
+// Black side panels or the pictures: read at the first use, changed in the settings at once
+// (h4::ApplySidePanels: the sides are painted again at the next pass, SideWings).
+std::atomic<int> g_black_sides{-1};  // -1: not read yet
+std::atomic<bool> g_sides_changed{false};
 bool BlackSidePanels() {
-  static const bool enabled = [] {
-    const char* mode = Env("SIDE_PANELS");
-    if (mode && *mode) return std::strcmp(mode, "black") == 0;
-    const char* legacy = Env("BLACK_SIDE_PANELS");
-    if (legacy && std::strcmp(legacy, "1") == 0) return true;
-    const char* config = Env("SIDE_PANELS_FILE");
-    const std::string path = config ? config : ::recomp::DataDir() + "/side-panels.txt";
-    return h4::ReadBlackSidePanels(path.c_str());
-  }();
-  return enabled;
+  int v = g_black_sides.load();
+  if (v < 0) {
+    const bool black = [] {
+      const char* mode = Env("SIDE_PANELS");
+      if (mode && *mode) return std::strcmp(mode, "black") == 0;
+      const char* legacy = Env("BLACK_SIDE_PANELS");
+      if (legacy && std::strcmp(legacy, "1") == 0) return true;
+      const char* config = Env("SIDE_PANELS_FILE");
+      const std::string path = config ? config : ::recomp::DataDir() + "/side-panels.txt";
+      return h4::ReadBlackSidePanels(path.c_str());
+    }();
+    int unread = -1;
+    g_black_sides.compare_exchange_strong(unread, black ? 1 : 0);
+    v = g_black_sides.load();
+  }
+  return v == 1;
 }
 
 const Wings& TheWings(int w, int h) {
@@ -991,6 +1002,12 @@ void ChooseWings(::recomp::Ctx& c) {
 // when they appear or the screen was redone: painting them there over and
 // over made the cursor over them blink.
 void SideWings(::recomp::Ctx& c) {
+  if (g_sides_changed.exchange(false)) {  // (the settings: chosen again, painted again)
+    g_wings_for = 0;
+    g_wing_left.clear();
+    g_wing_right.clear();
+    g_wings_primary = true;
+  }
   if (!BlackSidePanels()) ChooseWings(c);
   static uint32_t last_primary = 0;
   const uint32_t top = Rd32(kTopWindow);
@@ -2100,3 +2117,11 @@ void f_008D22D0(::recomp::Ctx& c) {
 }
 
 }  // namespace recomp::gen
+
+// side_panels.h: the settings' choice, at once.
+namespace h4 {
+void ApplySidePanels(bool black) {
+  recomp::gen::g_black_sides.store(black ? 1 : 0);
+  recomp::gen::g_sides_changed.store(true);
+}
+}  // namespace h4
