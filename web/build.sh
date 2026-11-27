@@ -114,6 +114,17 @@ fi
 D="$WEB_CACHE/dist$MODE_SUFFIX"
 rm -rf "$D"; mkdir -p "$D"
 cp "$B"/heroes4.js "$B"/heroes4.wasm "$D/"
+# The shared memory from Module.h4NewMemory (web_pre.js; on Module: the minifier drops what
+# nothing calls yet): the largest the browser will reserve.
+python3 -I - "$D/heroes4.js" <<'PY'
+import re, sys
+p = sys.argv[1]; s = open(p, encoding='utf-8').read()
+s, n = re.subn(r'new WebAssembly\.Memory\(\{initial:(\d+),maximum:(\d+),shared:true\}\)',
+               r'Module["h4NewMemory"](\1,\2)', s)
+if n != 1:
+    sys.exit("web/build.sh: Emscripten's memory creation not found once in heroes4.js")
+open(p, 'w', encoding='utf-8').write(s)
+PY
 [[ -f "$B/heroes4.data" ]] && cp "$B/heroes4.data" "$D/"
 cp "$WEB"/shell/index.html "$WEB"/shell/coi-sw.js "$WEB"/shell/manifest.webmanifest "$D/"
 if [[ "$DYNAMIC" == ON ]]; then
