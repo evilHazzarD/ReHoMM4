@@ -56,6 +56,6 @@ Heroes of Might and Magic IV для Mac (неофіційний порт, без
    і готова Heroes IV.app з'являється на робочому столі.
 TXT
 rm -f "$DMG"
-hdiutil create -quiet -fs HFS+ -volname "Heroes IV" -srcfolder "$STAGE" -format UDZO "$DMG"
+hdiutil create -quiet -fs HFS+ -volname "ReHoMM4" -srcfolder "$STAGE" -format UDZO "$DMG"
 ALLOW_HD_PACKS=1 bash "$ROOT/tools/release/release_check.sh" "$DMG"
 echo "dmg: $DMG ($(du -h "$DMG" | cut -f1))"

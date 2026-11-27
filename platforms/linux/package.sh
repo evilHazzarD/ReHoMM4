@@ -33,7 +33,8 @@ mkdir -p "$dir"
 cat > "$dir/heroes4-rehomm4.desktop" <<EOF2
 [Desktop Entry]
 Type=Application
-Name=Heroes of Might and Magic IV
+Name=ReHoMM4
+Comment=Heroes of Might and Magic IV
 Exec="$here/ReHoMM4"
 Path=$here
 Icon=$here/ReHoMM4.png

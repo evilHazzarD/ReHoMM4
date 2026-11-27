@@ -27,8 +27,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>CFBundleName</key><string>Heroes IV</string>
-  <key>CFBundleDisplayName</key><string>Heroes IV</string>
+  <key>CFBundleName</key><string>ReHoMM4</string>
+  <key>CFBundleDisplayName</key><string>ReHoMM4</string>
   <key>CFBundleIdentifier</key><string>games.hazzard.heroes4</string>
   <key>CFBundleExecutable</key><string>ReHoMM4</string>
   <key>CFBundlePackageType</key><string>APPL</string>
@@ -47,7 +47,7 @@ STAGE="$MOBILE_CACHE/dmg-stage"; rm -rf "$STAGE"; mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/ReHoMM4.app"
 ln -s /Applications "$STAGE/Applications"
 cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$STAGE/Third-party notices.txt"
-hdiutil create -quiet -fs HFS+ -volname "Heroes IV" -srcfolder "$STAGE" -ov -format UDZO "$OUT/HeroesIV-macos-$MAC_ARCH.dmg"
+hdiutil create -quiet -fs HFS+ -volname "ReHoMM4" -srcfolder "$STAGE" -ov -format UDZO "$OUT/HeroesIV-macos-$MAC_ARCH.dmg"
 rm -rf "$STAGE"
 echo "macos: $APP"
 echo "macos: $OUT/HeroesIV-macos-$MAC_ARCH.dmg ($(du -sh "$OUT/HeroesIV-macos-$MAC_ARCH.dmg" | cut -f1))"
