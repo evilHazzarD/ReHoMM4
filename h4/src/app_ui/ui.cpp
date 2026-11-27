@@ -169,8 +169,8 @@ void Ui::Value(const std::string& label, const std::string& value) {
   bottom_ = std::max(bottom_, y);
 }
 
-void Ui::Check(const std::string& label, bool on, std::function<void()> toggle) {
-  const int lh = LineHeight(), lines_w = right() - left() - 26;
+void Ui::Check(const std::string& label, bool on, std::function<void()> toggle, std::function<void()> help) {
+  const int lh = LineHeight(), qs = lh + 6, lines_w = right() - left() - 26 - (help ? qs + 8 : 0);
   const std::vector<std::string> lines = W(16).Wrap(label, lines_w);
   const int rh = std::max(lh + 6, int(lines.size()) * (lh + 2) + 4);
   const int bs = 15, bx = left(), by = y + (lh + 6 - bs) / 2;
@@ -188,6 +188,15 @@ void Ui::Check(const std::string& label, bool on, std::function<void()> toggle) 
   hits_.push_back({left(), y, right(), y + rh, [toggle](int, bool right) {
                      if (!right) toggle();
                    }});
+  if (help) {  // after the last line's text (taken before the row: the later hit wins)
+    const int qx = bx + bs + 10 + (lines.empty() ? 0 : TextWidth(lines.back())) + 8;
+    const int qy = ly - (lh + 2) - 3;
+    Plate(qx, qy, qx + qs, qy + qs, false);
+    Text(qx + (qs - TextWidth("?")) / 2, qy + (qs - lh) / 2, "?", art::kInk);
+    hits_.push_back({qx, qy, qx + qs, qy + qs, [help](int, bool right) {
+                       if (!right) help();
+                     }});
+  }
   y += rh + 4;
   bottom_ = std::max(bottom_, y);
 }

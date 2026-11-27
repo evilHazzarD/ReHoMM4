@@ -25,7 +25,7 @@ cp "$MOBILE_CACHE/res/THIRD_PARTY_NOTICES.txt" "$OUT/THIRD_PARTY_NOTICES.txt"
 # The icon: 256x256 JPEG.
 ICON="$MOBILE_CACHE/icon.jpg"
 bash "$ROOT/assets/icon/icon.sh" switch "$ICON" >/dev/null
-"$T/nacptool" --create "Heroes IV" "ReHoMM4" "$H4_VERSION" "$MOBILE_CACHE/heroes4.nacp" >/dev/null
+"$T/nacptool" --create "ReHoMM4" "ReHoMM4" "$H4_VERSION" "$MOBILE_CACHE/heroes4.nacp" >/dev/null
 "$T/elf2nro" "$MOBILE_CACHE/heroes4.stripped.elf" "$OUT/ReHoMM4.nro" --icon="$ICON" \
   --nacp="$MOBILE_CACHE/heroes4.nacp" --romfsdir="$RF" >/dev/null
 if [[ $TARGET == switch2 ]]; then

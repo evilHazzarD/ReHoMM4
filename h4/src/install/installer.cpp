@@ -1,6 +1,9 @@
 #include "install/installer.h"
 
 #include <SDL3/SDL.h>
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,7 +176,7 @@ SDL_Window* CreateUiWindow() {
   w = 1280, h = 720;
   if (const SDL_DisplayMode* m = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay())) w = m->w, h = m->h;
 #endif
-  return SDL_CreateWindow("Heroes IV", w, h,
+  return SDL_CreateWindow("ReHoMM4", w, h,
                           SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE | kGlWindow);
 }
 
@@ -197,8 +200,15 @@ class Installer {
     // This screen turns with the device (the game's window is landscape only: main.cpp).
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight Portrait PortraitUpsideDown");
     ui_.win = CreateUiWindow();
+    if (!ui_.win) fprintf(stderr, "installer: SDL_CreateWindow: %s\n", SDL_GetError());
     ui_.ren = ui_.win ? SDL_CreateRenderer(ui_.win, nullptr) : nullptr;
     if (!ui_.ren) {
+      // What SDL had to draw with (a report from a device: the video driver, its renderers).
+      std::string drivers;
+      for (int i = 0; i < SDL_GetNumRenderDrivers(); i++) drivers += std::string(" ") + SDL_GetRenderDriver(i);
+      const char* video = SDL_GetCurrentVideoDriver();
+      fprintf(stderr, "installer: video driver %s, render drivers:%s\n", video ? video : "(none)",
+              drivers.empty() ? " (none)" : drivers.c_str());
       fprintf(stderr, "installer: no window: %s\n", SDL_GetError());
       if (ui_.win) SDL_DestroyWindow(ui_.win);
       SDL_QuitSubSystem(SDL_INIT_VIDEO);
@@ -709,6 +719,11 @@ class Installer {
       }
       own_installer_.clear();
       screen_ = Screen::Done;
+#if defined(__EMSCRIPTEN__)
+      // The browser: the page takes over from here (index.html: it loads again, at the next
+      // step), rather than this process going on from its installer into the game.
+      MAIN_THREAD_ASYNC_EM_ASM({ if (Module.h4Status) Module.h4Status('installed'); });
+#endif
       return;
     }
     if (task_->cancel) {

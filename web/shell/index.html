@@ -41,6 +41,13 @@
   /* The settings' two rows; Start at the card's bottom */
   .setup { margin-top: 1.2rem; }
   .start-row { justify-content: center; }
+  .foot { justify-content: center; font-size: .85rem; }
+  [hidden] { display: none !important; }  /* (over .row's flex) */
+  #state { color: #e5c16f; }
+  #support { margin-top: 1.2rem; }
+  #support summary { cursor: pointer; }
+  #support p { margin: .45rem 0; }
+  a { color: #e5c16f; }
   .start-row button { min-width: 12rem; }
   .settings { display: grid; gap: .65rem; flex: 1 1 auto; min-width: 0; }
   /* Two rows, always: the check boxes in one, the lists in the other (their words wrap instead) */
@@ -58,6 +65,10 @@
   #rotate { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center;
             background: #000; padding: 1.5rem; text-align: center; }
   #rotate[hidden] { display: none; }
+  /* The game started again (a new language): one click anywhere, for full screen again */
+  #resume { position: fixed; inset: 0; z-index: 3; width: 100%; border-radius: 0; background: #000;
+            color: #e5c16f; font-weight: 400; font-size: 1.3rem; line-height: 2; }
+  #resume:hover { background: #0a0703; }
 </style>
 </head>
 <body>
@@ -77,26 +88,33 @@
     <p class="small">A desktop browser with 4&nbsp;GB of memory per tab: current Chrome, Edge,
       Firefox or Safari. @H4_FIRST_LOAD@</p>
   </div>
+  <p id="state" hidden></p>
   <p id="problem" class="bad" hidden></p>
   <div id="loading" hidden><p id="loadtext">Loading…</p><progress id="loadbar"></progress></div>
   <details id="logbox" hidden><summary class="small">The game's log</summary><pre id="log"></pre></details>
-  <div class="setup">
-  <div class="settings">
-    <div class="settings-row">
-      <label class="fs">Language
-        <select id="language"><option value="en">English</option></select>
-      </label>
-    </div>
-  </div>
-  </div>
-  <div class="row">
-    <button id="reset" class="link">Delete the game files kept in this browser</button>
-  </div>
   <div class="row start-row">
     <button id="start">Start</button>
   </div>
+  <details id="support" class="small">
+    <summary>Languages and other builds</summary>
+    <p><b>Game languages.</b> GOG's English, German, French, Italian and Spanish installers work as
+      they are; Polish, Russian and Czech ones need GOG's English <code>heroes4.exe</code> picked with
+      them. A game installed in another language than English is played in it.</p>
+    <p><b>Translations</b> (of the English game, chosen in the game's settings, ⚙): <span id="translations">none
+      available here now</span>, from
+      <a href="https://github.com/evilHazzarD/ReHoMM4-translations" target="_blank" rel="noopener">ReHoMM4-translations</a>.</p>
+    <p><b>This page</b> plays in a desktop browser: current Chrome, Edge, Firefox or Safari.</p>
+    <p><b>Apps</b> (on the <a href="https://github.com/evilHazzarD/ReHoMM4/releases/latest" target="_blank"
+      rel="noopener">releases page</a>): Mac (macOS 13+, Apple chip or Intel), iPhone and iPad (iOS 17+),
+      Android phones, tablets and TVs (64-bit, Android 10+), Windows PC (64-bit, 10 or 11), Linux
+      PC (x86-64, 64-bit ARM) and Steam Deck, Nintendo Switch and Switch 2 (homebrew).</p>
+  </details>
+  <div class="row foot" id="resetrow" hidden>
+    <button id="reset" class="link">Delete the game files kept in this browser</button>
+  </div>
 </div></div>
 <div id="toast"></div>
+<button id="resume" hidden>The game's language is changed.<br><b>Click to go on</b></button>
 <div id="rotate" role="status" hidden>Rotate your phone sideways to play.</div>
 
 <script>
@@ -187,16 +205,54 @@ function logLine(err, t) {
 if (typeof BroadcastChannel === 'function')
   new BroadcastChannel('h4-log').onmessage = (e) => logLine(e.data.err, e.data.t);
 
+// Where the player is, from what this browser keeps (the origin private file system):
+//   none     no game yet: the game's own installer comes first (GOG's offline installer, or the
+//            folder of an installed copy);
+//   prepare  the game is here, its code not yet (the converter's site: made here, once);
+//   ready    the game and its code are here: Play.
+// The page shows only that step: its text, and one button for it.
+const CONVERTER = '@H4_DYNAMIC@' === 'ON';
+let pageState = { kind: 'none' };
+async function gameState() {
+  let exe;
+  try {
+    exe = await (await (await opfsDir(['ReHoMM4', 'game'], false)).getFileHandle('heroes4.exe')).getFile();
+  } catch (e) { return { kind: 'none' }; }
+  if (!CONVERTER) return { kind: 'ready' };
+  const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await exe.arrayBuffer()))]
+    .map((b) => b.toString(16).padStart(2, '0')).join('');
+  try {
+    await (await opfsDir(['ReHoMM4'], false)).getFileHandle(`code-3-${digest}.wasm`);
+    return { kind: 'ready' };
+  } catch (e) { return { kind: 'prepare', digest }; }
+}
+function showState(s, note) {
+  pageState = s;
+  const served = new URLSearchParams(location.search).get('game');
+  $('intro').hidden = s.kind !== 'none' || !!served;
+  $('resetrow').hidden = s.kind === 'none';
+  $('state').hidden = s.kind === 'none' && !note;
+  $('state').textContent = note || (s.kind === 'prepare'
+    ? 'The game is installed in this browser. Before the first game its code is made from your copy, ' +
+      'here (a minute or two).'
+    : 'The game is installed in this browser.');
+  $('start').textContent = s.kind === 'none' ? (served ? 'Copy the game and start' : 'Install the game')
+                         : s.kind === 'prepare' ? 'Prepare the game' : 'Play';
+}
+
 // What the game's threads tell the page (web_main.cpp, web_pre.js).
 let exited = false;
 let compilingLiftedCode = false;
 async function compileLiftedCode(digest) {
   if (compilingLiftedCode) return;
   compilingLiftedCode = true;
+  if (document.fullscreenElement) leaveFullscreen();
   $('panel').classList.remove('hidden');
   $('loading').hidden = false;
   $('intro').hidden = true;
-  $('loadtext').textContent = 'Preparing the game’s code locally…';
+  $('state').hidden = true;
+  $('problem').hidden = true;
+  $('loadtext').textContent = 'Preparing the game’s code from your copy… (a minute or two)';
   $('loadbar').removeAttribute('value');
   $('start').disabled = true;
   let worker;
@@ -214,8 +270,17 @@ async function compileLiftedCode(digest) {
       worker.onerror = () => reject(new Error('The browser converter failed to load.'));
       worker.postMessage({type: 'emit', exe, expectedDigest: digest});
     });
-    sessionStorage.setItem('h4-start-after-compile', '1');
-    location.reload();
+    if (window.h4Module || gameStarted) {
+      // The game asked for it (just installed): it has stopped; the page again, at Play.
+      sessionStorage.setItem('h4-start-after-compile', '1');
+      location.reload();
+      return;
+    }
+    compilingLiftedCode = false;
+    $('loading').hidden = true;
+    $('start').disabled = false;
+    showState({ kind: 'ready' }, 'The game\'s code is ready.');
+    $('start').focus();
   } catch (error) {
     $('loading').hidden = true;
     problem(error.message);
@@ -232,6 +297,12 @@ function status(kind, a, b) {
   else if (kind === 'copy-done') toast('');
   else if (kind === 'error') toast(a, 15000);
   else if (kind === 'compile') void compileLiftedCode(a);
+  // The game is installed (installer.cpp): the converter's site prepares its code at once, here
+  // (the game asks for that too, once its installer has closed: whichever comes first).
+  else if (kind === 'installed' && CONVERTER) {
+    void gameState().then((s) => { if (s.kind === 'prepare') return compileLiftedCode(s.digest); })
+      .catch((e) => console.error(e));
+  }
   // The game's Options dialog: its "full screen" box (resolution.cpp).
   else if (kind === 'fullscreen') { if (a) enterFullscreen(); else leaveFullscreen(); }
   else if (kind === 'storage' && !a)
@@ -249,7 +320,7 @@ function status(kind, a, b) {
     $('log').textContent = logLines.join('\n');
     $('logbox').hidden = false;
     $('logbox').open = !!a;
-    $('start').textContent = 'Start again';
+    $('start').textContent = 'Back';
     $('start').disabled = false;
     $('start').onclick = () => location.reload();
   }
@@ -422,13 +493,10 @@ document.addEventListener('keydown', (e) => {
   if (document.fullscreenElement) leaveFullscreen();
   else enterFullscreen();
 }, true);
-// The game's language: chosen here, before the game starts (given to it as H4_LANG). The intro
-// movies and the side panels are in the game's settings (⚙); this page's earlier choices of them
-// (older versions) are given to it once, while it has none of its own (H4_SKIP_INTRO,
-// H4_SIDE_PANELS: main.cpp keeps them as its settings).
+// The game's language, the intro movies and the side panels are in the game's settings (⚙), as in
+// the apps. This page's earlier choices of them (older versions chose them here) are given to it
+// while it has none of its own (H4_LANG, H4_SKIP_INTRO, H4_SIDE_PANELS).
 const earlier = {};
-const language = $('language');
-language.onchange = () => localStorage.setItem('h4-language', language.value);
 async function readOpfs(path) {  // a small text file in the origin private file system, or null
   try {
     const parts = path.split('/');
@@ -438,26 +506,23 @@ async function readOpfs(path) {  // a small text file in the origin private file
   } catch (e) { return null; }
 }
 async function loadLanguages() {
-  // The translations the site has (web/build.sh: the release's list, translations/languages.json).
-  try {
-    const res = await fetch('translations/languages.json');
-    if (res.ok)
-      for (const l of (await res.json()).languages || [])
-        if (l.code && l.code !== 'en') language.add(new Option(l.name || l.english || l.code, l.code));
-  } catch (e) { /* English only */ }
-  // A game installed from GOG in another language is played in it (main.cpp's ChooseLanguage).
-  const own = ((await readOpfs('ReHoMM4/game/rehomm4-language')) || '').trim();
-  if (own) {
-    let name = own;
-    try { name = new Intl.DisplayNames(['en'], { type: 'language' }).of(own) || own; } catch (e) { /* the code */ }
-    language.replaceChildren(new Option(name + ' (the installed game\'s)', own));
-    language.disabled = true;
-    return;
+  // The translations: the site's own list (web/build.sh: translations/languages.json), else the
+  // translations repository's GitHub Pages site on this origin (web_platform.cpp reads the packs
+  // there too; build.sh fills its address in from the release list's).
+  for (const url of ['translations/languages.json', '@H4_TRANSLATIONS_SITE_LIST@']) {
+    if (url.startsWith('@')) continue;  // (no translations release)
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const names = ((await res.json()).languages || []).filter((l) => l.code && l.code !== 'en')
+        .map((l) => l.name || l.english || l.code);
+      if (names.length) $('translations').textContent = names.join(', ');
+      break;
+    } catch (e) { /* the next, else none */ }
   }
-  // Else the one chosen here before, or in the game's settings in earlier versions.
-  const saved = localStorage.getItem('h4-language') ??
-    ((await readOpfs('ReHoMM4/player/language')) || '').trim();
-  if ([...language.options].some((o) => o.value === saved)) language.value = saved;
+  // One chosen on this page by an older version, while the game has no choice of its own.
+  const chosen = localStorage.getItem('h4-language');
+  if (chosen && (await readOpfs('ReHoMM4/player/language')) === null) earlier.H4_LANG = chosen;
 }
 async function loadSettings() {
   if ((await readOpfs('ReHoMM4/player/skip_intro')) === null && localStorage.getItem('h4-skip-intro') !== null)
@@ -468,9 +533,14 @@ async function loadSettings() {
 }
 const settingsLoaded = loadSettings();
 
+let gameStarted = false;
 async function start() {
   if (portraitBlocked()) return;
+  if (pageState.kind === 'prepare') return compileLiftedCode(pageState.digest);
+  gameStarted = true;
   $('start').disabled = true;
+  $('intro').hidden = true;
+  $('state').hidden = true;
   // In the click itself: browsers allow full screen only in answer to the user.
   const fs = enterFullscreen();
   $('loading').hidden = false;
@@ -504,7 +574,6 @@ async function start() {
         h4Status: status,
         h4Env: {
           ...earlier,
-          ...(language.disabled ? {} : { H4_LANG: language.value }),
           ...Object.fromEntries((new URLSearchParams(location.search).get('env') || '').split(',')
             .filter((kv) => kv.includes('=')).map((kv) => [kv.slice(0, kv.indexOf('=')), kv.slice(kv.indexOf('=') + 1)])),
         },
@@ -564,6 +633,7 @@ async function reset() {
     throw new Error(`${kept.length} file(s) in use (${kept.slice(0, 2).join(', ')}${kept.length > 2 ? ', …' : ''}): ` +
                     'close the game\'s other tabs and windows, reload this page and try again.');
   toast('Deleted.', 4000);
+  showState({ kind: 'none' });
 }
 
 // Touch screens. Safari zooms the page on a pinch even with touch-action: none on the canvas.
@@ -625,14 +695,24 @@ $('reset').onclick = () => reset().catch((e) => toast('Not deleted: ' + e.messag
 // A tap on the game keeps the on-screen keyboard's field focused while it is wanted (the canvas
 // taking the focus would close the keyboard at every tap).
 canvas.addEventListener('pointerdown', () => (kbdWanted ? kbd : canvas).focus({ preventScroll: true }));
-void check().then(() => {
-  if (!$('start').disabled && sessionStorage.getItem('h4-start-after-compile')) {
-    sessionStorage.removeItem('h4-start-after-compile');
-    // Not started from here: without the player's click the browser gives the game neither
-    // the focus (it then draws no cursor) nor full screen.
-    toast('The game\'s code is ready: press Start.', 15000);
-    $('start').focus();
+void check().then(async () => {
+  const s = await gameState().catch(() => ({ kind: 'none' }));
+  const compiled = sessionStorage.getItem('h4-start-after-compile');
+  const restarted = sessionStorage.getItem('h4-restart');
+  sessionStorage.removeItem('h4-start-after-compile');
+  sessionStorage.removeItem('h4-restart');
+  // (Not started by itself: without the player's click the browser gives the game neither the
+  // focus, so no cursor, nor full screen.)
+  showState(s, compiled && s.kind === 'ready' ? 'The game is installed and its code is ready.' : '');
+  // Started again from its settings (RestartApp, web_main.cpp): the browser left full screen with
+  // the page, and gives it back only for a click; any click on the black screen starts it again.
+  if (restarted && s.kind === 'ready' && !$('start').disabled) {
+    $('resume').hidden = false;
+    $('resume').focus();
+    $('resume').onclick = () => { $('resume').hidden = true; void start(); };
+    return;
   }
+  if (!$('start').disabled) $('start').focus();
 });
 </script>
 </body>

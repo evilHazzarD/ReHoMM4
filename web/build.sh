@@ -118,10 +118,15 @@ if [[ "$DYNAMIC" == ON ]]; then
 fi
 sed -i '' "s/@H4_VERSION@/$H4_VERSION/g" "$D/index.html"
 # What the start page says the site is: the game's code in it, or made in the browser.
-python3 -I - "$D/index.html" "$DYNAMIC" <<'PY'
-import sys
-p, dynamic = sys.argv[1], sys.argv[2] == 'ON'
+python3 -I - "$D/index.html" "$DYNAMIC" "$LANG_URL" <<'PY'
+import re, sys
+p, dynamic, lang_url = sys.argv[1], sys.argv[2] == 'ON', sys.argv[3]
 s = open(p, encoding='utf-8').read()
+# The translations repository's own Pages site on this origin: github.com/<owner>/<repo>/releases/...
+# -> /<repo>/languages.json (as web_platform.cpp's OnThisSite maps the release's files).
+m = re.match(r'https://github\.com/[^/]+/([^/]+)/releases/', lang_url)
+if m:
+    s = s.replace('@H4_TRANSLATIONS_SITE_LIST@', '/' + m.group(1) + '/languages.json')
 if dynamic:
     what = 'the game recompiled to WebAssembly here, from your own copy.'
     first = ('The site itself is about 10&nbsp;MB: the game\'s code is made from your copy here, '
@@ -129,6 +134,7 @@ if dynamic:
 else:
     what = 'the game itself, recompiled to WebAssembly.'
     first = 'The first load downloads the game\'s code (about 100&nbsp;MB).'
+s = s.replace('@H4_DYNAMIC@', 'ON' if dynamic else 'OFF')
 open(p, 'w', encoding='utf-8').write(s.replace('@H4_WHAT@', what).replace('@H4_FIRST_LOAD@', first))
 PY
 bash "$ROOT/assets/icon/icon.sh" linux "$D/icon.png" >/dev/null 2>&1 || true

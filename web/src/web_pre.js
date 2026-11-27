@@ -17,6 +17,13 @@ Module.preRun = [].concat(Module.preRun || [], () => {
   for (const [k, v] of Object.entries(Module.h4Env || {})) ENV[k] = v;
 });
 
+// SDL closing its window (the installer's, before the game opens its own) removes the folder of
+// dropped files with FS.rmdir, which WasmFS's FS has not got: the error stopped it there, and the
+// page stayed black after an install. That empty folder (in memory, /tmp) is simply kept.
+Module.preRun.push(() => {
+  if (typeof FS === 'object' && typeof FS.rmdir !== 'function') FS.rmdir = () => {};
+});
+
 // The installer's "Install from GOG installer files" / "Use an installed game": the page's file
 // input. What is picked is copied into the origin private file system, ReHoMM4/picked/ (the
 // module's /persist/ReHoMM4/picked), then the list of it into picked/.done, which the installer

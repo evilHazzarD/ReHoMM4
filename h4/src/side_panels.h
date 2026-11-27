@@ -6,6 +6,9 @@
 
 namespace h4 {
 
+// The side panels shown now (resolution.cpp): black or the pictures, painted again at once.
+void ApplySidePanels(bool black);
+
 inline const char* SidePanelsPath() {
   const char* path = std::getenv("H4_SIDE_PANELS_FILE");
   return path ? path : "";

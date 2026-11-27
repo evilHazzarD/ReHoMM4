@@ -70,8 +70,8 @@ extern char** environ;
 #if (defined(H4_LINUX_APP) && !defined(H4_WEB_APP)) || defined(H4_NATIVE_SYNC) || defined(H4_WINDOWS_APP)
 #define H4_UPDATES 1  // the update check
 #endif
-#if (defined(H4_LINUX_APP) && !defined(H4_WEB_APP)) || defined(H4_DRAWN_MAC) || defined(__ANDROID__)
-#define H4_RESTART 1  // a new game language: the app starts again (RestartApp)
+#if defined(H4_LINUX_APP) || defined(H4_DRAWN_MAC) || defined(__ANDROID__)
+#define H4_RESTART 1  // a new game language: the app starts again (RestartApp; the browser: the page)
 #endif
 #if (defined(H4_LINUX_APP) || defined(H4_WINDOWS_APP)) && !defined(H4_WEB_APP)
 #define H4_SYNC_HELP 1  // the save sync is sync.conf's: its help
@@ -216,7 +216,13 @@ bool OnWindowEvent(void*, SDL_Event* e) {
   m.type = SDL_EVENT_MOUSE_MOTION;
   m.motion.windowID = e->window.windowID;
   float x = 0, y = 0;
-  SDL_GetMouseState(&x, &y);
+  {
+    // Where the game's pointer last moved (touches move it with no move of SDL's own mouse,
+    // whose state stays at 0, 0), else SDL's.
+    std::lock_guard<std::mutex> l(g_mu);
+    x = g_point_x, y = g_point_y;
+  }
+  if (x < 0 || y < 0) SDL_GetMouseState(&x, &y);
   m.motion.x = x;
   m.motion.y = y;
   SDL_PushEvent(&m);
@@ -429,16 +435,16 @@ void DownloadUpdate() {
 }
 #endif
 
-// ---- What's new: the releases on GitHub newer than this version, newest first (their notes as
+// ---- What's new: the last releases on GitHub, newest first, with their dates (their notes as
 // plain text); fetched on a thread when the settings first open, which also tells the update
 // button that there is one.
 enum Wn { kWnNone, kWnLoading, kWnReady, kWnFailed };
 Wn g_wn = kWnNone, g_wn_shown = kWnNone;
 struct Release {
-  std::string tag, text;
+  std::string tag, text, date;  // date: "2026-11-27" (when it was published)
 };
-std::vector<Release> g_newer;  // newer than this version, newest first
-Release g_current;              // this version's
+std::vector<Release> g_newer;   // newer than this version, newest first (the update button)
+std::vector<Release> g_recent;  // the last 5, newest first (What's new?)
 int g_wn_page = 0;
 const char* const kReleasesPage = "https://github.com/evilHazzarD/ReHoMM4/releases";
 
@@ -481,21 +487,24 @@ void FetchReleases() {
     const bool ok = h4::install::HttpGet("https://api.github.com/repos/evilHazzarD/ReHoMM4/releases?per_page=30", "",
                                          &status, &body, &error) &&
                     status == 200 && h4::install::Json::Parse(body, &list) && list.type == h4::install::Json::Array;
-    std::vector<Release> newer;
-    Release current;  // this version's (shown when nothing is newer)
+    std::vector<Release> newer, recent;
     const char* test = std::getenv("H4_TEST_VERSION");  // (testing: as if this were that version)
     const std::string have = test && *test ? test : H4_VERSION_STRING;
     for (size_t i = 0; ok && i < list.size(); i++) {
       const h4::install::Json& r = list[i];
       if (r["draft"].b || r["prerelease"].b) continue;
-      if (Newer(r["tag_name"].text(), have)) newer.push_back({r["tag_name"].text(), PlainNotes(r["body"].text())});
-      else if (!Newer(have, r["tag_name"].text())) current = {r["tag_name"].text(), PlainNotes(r["body"].text())};
+      const Release one{r["tag_name"].text(), PlainNotes(r["body"].text()), r["published_at"].text().substr(0, 10)};
+      if (Newer(one.tag, have)) newer.push_back(one);
+      recent.push_back(one);
     }
-    std::sort(newer.begin(), newer.end(), [](const Release& a, const Release& b) { return Newer(a.tag, b.tag); });
+    const auto newest = [](const Release& a, const Release& b) { return Newer(a.tag, b.tag); };
+    std::sort(newer.begin(), newer.end(), newest);
+    std::sort(recent.begin(), recent.end(), newest);
+    if (recent.size() > 5) recent.resize(5);
     if (!ok) std::fprintf(stderr, "h4: releases: %s (HTTP %d)\n", error.c_str(), status);
     std::lock_guard<std::mutex> l(g_mu);
     g_newer = newer;
-    g_current = current;
+    g_recent = recent;
     g_wn = ok ? kWnReady : kWnFailed;
   }).detach();
 }
@@ -717,7 +726,7 @@ void ShowFolders() {
 }
 #endif
 
-// What's new: the newer releases' notes, newest first (none: this version's), in pages as tall as the frame lets them
+// What's new: the last 5 releases' notes with their dates, newest first (this version's marked), in pages as tall as the frame lets them
 // be (← →); Go to releases (the browser), Close.
 void ShowWhatsNew() {
   FetchReleases();
@@ -733,9 +742,8 @@ void ShowWhatsNew() {
     bottom.push_back({ui.T("Go to releases"), [] { h4::native::OpenUrl(kReleasesPage); }});
 #endif
     bottom.push_back({ui.T("Close"), [] { ShowSettings(); }});
-    // The newer releases', or (the latest here) this one's.
-    const std::vector<Release> shown = !g_newer.empty() ? g_newer
-                                       : g_current.tag.empty() ? std::vector<Release>{} : std::vector<Release>{g_current};
+    // The last 5 releases, newest first.
+    const std::vector<Release>& shown = g_recent;
     if (g_wn != kWnReady || shown.empty()) {
       ui.Paragraph(g_wn == kWnFailed   ? ui.T("Could not reach GitHub. Try again later.")
                    : g_wn == kWnReady  ? h4::TrIn(ui.lang(), "You have the latest version: {1}.", {H4_VERSION_STRING})
@@ -750,7 +758,8 @@ void ShowWhatsNew() {
     const int width = ui.right() - ui.left();
     for (const Release& r : shown) {
       if (!lines.empty()) lines.push_back("");
-      lines.push_back("\x01ReHoMM4 " + r.tag);
+      lines.push_back("\x01ReHoMM4 " + r.tag + (r.date.empty() ? "" : "  (" + r.date + ")") +
+                      (Newer(r.tag, H4_VERSION_STRING) || Newer(H4_VERSION_STRING, r.tag) ? "" : "  " + std::string(ui.T("(your version)"))));
       size_t i = 0;
       while (i <= r.text.size()) {
         size_t j = r.text.find('\n', i);
@@ -873,7 +882,6 @@ void ShowSettings() {
 #endif
       g_wn_shown = g_wn;
     }
-#if !defined(H4_WEB_APP)  // (the browser: the game's language is the page's, index.html)
     if (!g_saved.empty()) {
       const std::vector<h4::LanguageInfo> all = h4::Languages();
       std::vector<std::string> names;
@@ -888,7 +896,6 @@ void ShowSettings() {
     } else if (const std::string gog = h4::GogLanguage(); !gog.empty()) {
       ui.Value(ui.T("Game language"), h4::GogLanguageName(gog) + " (GOG)");  // nothing to choose
     }
-#endif
     {  // the interface's language: as the game's (the default) or another (ui_text.h); at once
       const std::vector<std::string> choices = h4::UiLanguageChoices();
       std::vector<std::string> names;
@@ -897,7 +904,7 @@ void ShowSettings() {
         names.push_back(h4::UiLanguageChoiceName(choices[i], g_game_lang));
         if (choices[i] == h4::UiLanguageChoice()) selected = int(i);
       }
-      ui.Dropdown("ui", ui.T("Interface language"), names, selected, [choices](int i) {
+      ui.Dropdown("ui", ui.T("ReHoMM4 interface language"), names, selected, [choices](int i) {
         h4::SetUiLanguageChoice(choices[size_t(i)]);
         ShowSettings();  // again, in it
       });
@@ -911,6 +918,13 @@ void ShowSettings() {
         if (ids[i] == h4::CurrentFilter()) selected = int(i);
       }
       ui.Dropdown("filter", ui.T("Scaling"), names, selected, [ids](int i) { h4::SetFilter(ids[size_t(i)]); });
+    }
+    {  // the side panels beside a 4:3 frame: the pictures or black (kept, and shown at once)
+      const bool black = h4::ReadBlackSidePanels(h4::SidePanelsPath());
+      ui.Dropdown("sides", ui.T("Side panels"), {ui.T("Pictures"), ui.T("Black")}, black ? 1 : 0, [](int i) {
+        h4::SaveBlackSidePanels(i == 1);
+        h4::ApplySidePanels(i == 1);
+      });
     }
 #if defined(H4_NATIVE_SYNC)
     {  // who draws the frame (Auto, the GPU, the CPU): from the next start
@@ -929,8 +943,6 @@ void ShowSettings() {
 #endif
     ui.Check(ui.T("Skip the intro movies (from the next start)"), h4::SkipIntro(),
              [] { h4::SetSkipIntro(!h4::SkipIntro()); });
-    ui.Check(ui.T("Black side panels (from the next start)"), h4::ReadBlackSidePanels(h4::SidePanelsPath()),
-             [] { h4::SaveBlackSidePanels(!h4::ReadBlackSidePanels(h4::SidePanelsPath())); });
 #if defined(H4_SYNC_HELP)
     ui.LabelButton(ui.T("Saved games sync"), "?", ShowSyncHelp);
 #endif
@@ -941,10 +953,11 @@ void ShowSettings() {
 #if defined(H4_DRAWN_MAC)
       if (on && !h4::native::SyncOn()) ShowSyncPanel(true);  // (no iCloud Drive: said, another folder offered)
 #endif
-    });
+    }
 #if defined(__ANDROID__)
-    ui.LabelButton(ui.T("Setting the sync up"), "?", ShowAndroidSyncHelp);
+    , ShowAndroidSyncHelp  // "?": setting the sync up
 #endif
+    );
 #endif
     ui.LabelButton(ui.T("Gamepad"), ui.T("Set up"), ShowGamepad);
 #if defined(H4_NATIVE_SYNC)
