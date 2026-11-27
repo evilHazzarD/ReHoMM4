@@ -6,17 +6,6 @@ Each release's notes on GitHub are its section here (tools/release/make_release.
 
 Fixes for the browser, phones and settings; the apps are called ReHoMM4 everywhere.
 
-| Device | File |
-|---|---|
-| Mac, macOS 13+ | `reHoMM4-v0.5.2-macos-arm64.dmg` (Apple Silicon) or `reHoMM4-v0.5.2-macos-x86_64.dmg` (Intel) |
-| iPhone and iPad, iOS / iPadOS 17+ | `reHoMM4-v0.5.2-ios.ipa` |
-| Android 10+, 64-bit | `reHoMM4-v0.5.2-android_arm64.apk` |
-| Windows 10 or 11, 64-bit | `reHoMM4-v0.5.2-windows-x86_64.zip` |
-| Linux and Steam Deck | `reHoMM4-v0.5.2-linux-x86_64.tar.gz` or `reHoMM4-v0.5.2-linux-arm64.tar.gz` |
-| Switch (homebrew) | `reHoMM4-v0.5.2-switch.nro` |
-| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.5.2-switch2.nro` |
-| Web browser | `reHoMM4-v0.5.2-web.zip` |
-
 **New**
 
 - **Side panels** are a list in the settings (Pictures or Black), right after Scaling, and change at once, without a restart.
@@ -38,17 +27,6 @@ Fixes for the browser, phones and settings; the apps are called ReHoMM4 everywhe
 
 A fix for GOG's German edition.
 
-| Device | File |
-|---|---|
-| Mac, macOS 13+ | `reHoMM4-v0.5.1-macos-arm64.dmg` (Apple Silicon) or `reHoMM4-v0.5.1-macos-x86_64.dmg` (Intel) |
-| iPhone and iPad, iOS / iPadOS 17+ | `reHoMM4-v0.5.1-ios.ipa` |
-| Android 10+, 64-bit | `reHoMM4-v0.5.1-android_arm64.apk` |
-| Windows 10 or 11, 64-bit | `reHoMM4-v0.5.1-windows-x86_64.zip` |
-| Linux and Steam Deck | `reHoMM4-v0.5.1-linux-x86_64.tar.gz` or `reHoMM4-v0.5.1-linux-arm64.tar.gz` |
-| Switch (homebrew) | `reHoMM4-v0.5.1-switch.nro` |
-| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.5.1-switch2.nro` |
-| Web browser | `reHoMM4-v0.5.1-web.zip` |
-
 **Fixed**
 
 - **GOG's German edition installs.** Its installer names the game `Heroes4.exe`, and the app refused it ("is not one the app is made for"). Any capitalisation of the name is accepted now.
@@ -57,17 +35,6 @@ A fix for GOG's German edition.
 ## 0.5
 
 Settings drawn in the game's style on every device, "What's new" and update checks, more readable layouts on small screens, and more GOG editions.
-
-| Device | File |
-|---|---|
-| Mac, macOS 13+ | `reHoMM4-v0.5-macos-arm64.dmg` (Apple Silicon) or `reHoMM4-v0.5-macos-x86_64.dmg` (Intel) |
-| iPhone and iPad, iOS / iPadOS 17+ | `reHoMM4-v0.5-ios.ipa` |
-| Android 10+, 64-bit | `reHoMM4-v0.5-android_arm64.apk` |
-| Windows 10 or 11, 64-bit | `reHoMM4-v0.5-windows-x86_64.zip` |
-| Linux and Steam Deck | `reHoMM4-v0.5-linux-x86_64.tar.gz` or `reHoMM4-v0.5-linux-arm64.tar.gz` |
-| Switch (homebrew) | `reHoMM4-v0.5-switch.nro` |
-| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.5-switch2.nro` |
-| Web browser | `reHoMM4-v0.5-web.zip` |
 
 **New**
 
@@ -96,17 +63,6 @@ Settings drawn in the game's style on every device, "What's new" and update chec
 ## 0.4.1
 
 Windows, the scaling filter's name on screen, better random maps, and fixes.
-
-| Device | File |
-|---|---|
-| Mac, macOS 13+ | `reHoMM4-v0.4.1-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v0.4.1-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad, iOS / iPadOS 17+ | `reHoMM4-v0.4.1-ios.ipa` (install with AltStore or Sideloadly) |
-| Android 10+, 64-bit | `reHoMM4-v0.4.1-android_arm64.apk` |
-| Windows 10 or 11, 64-bit | `reHoMM4-v0.4.1-windows-x86_64.zip`: unzip, start `ReHoMM4\ReHoMM4.exe` |
-| Linux, Steam Deck | `reHoMM4-v0.4.1-linux-x86_64.tar.gz` (x86-64) or `reHoMM4-v0.4.1-linux-arm64.tar.gz` (64-bit ARM) |
-| Switch (homebrew) | `reHoMM4-v0.4.1-switch.nro` |
-| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.4.1-switch2.nro` |
-| Web browser (computer, phone or tablet; 64-bit Chrome, Edge, Firefox, Safari) | `reHoMM4-v0.4.1-web.zip`: unzip, run `python3 serve.py` in it, open http://localhost:8080 (or put it on an HTTPS server) |
 
 **New**
 - **Windows**: a portable app for 64-bit Windows 10 and 11 (Vulkan drivers), with the side panels, ⚙ settings, save sync and fullscreen. It is not signed: if Windows says "Windows protected your PC", **More info** → **Run anyway** (README: Windows).
@@ -139,16 +95,6 @@ Windows, the scaling filter's name on screen, better random maps, and fixes.
 
 Random maps, Switch 2, the game in a web browser, a new icon, and fixes.
 
-| Device | File |
-|---|---|
-| Mac, macOS 13+ | `reHoMM4-v0.4-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v0.4-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad, iOS / iPadOS 17+ | `reHoMM4-v0.4-ios.ipa` (install with AltStore or Sideloadly) |
-| Android 10+, 64-bit | `reHoMM4-v0.4-android_arm64.apk` |
-| Linux, Steam Deck | `reHoMM4-v0.4-linux-x86_64.tar.gz` (x86-64) or `reHoMM4-v0.4-linux-arm64.tar.gz` (64-bit ARM) |
-| Switch (homebrew) | `reHoMM4-v0.4-switch.nro` |
-| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.4-switch2.nro` |
-| Web browser (computer, phone or tablet; 64-bit Chrome, Edge, Firefox, Safari) | `reHoMM4-v0.4-web.zip`: unzip, run `python3 serve.py` in it, open http://localhost:8080 (or put it on an HTTPS server) |
-
 **New**
 - **Random maps**: New Game → Scenario → **Random map**. Choose the template, the map size, the number of players (each human or computer, with faction, team and starting hero), water, underground, monsters, obelisks, treasures and the seed; most can be **Random**. The hero's card shows the starting hero's skills, statistics, army and biography. A random map in the list can be edited and made again.
 - **32 templates**: Classic and 31 more, our own layouts of the kinds popular in Heroes 3 (Ring, Spider, Mirror, Allies, Three on three, Labyrinth, Checkerboard, …). They are text files in `Maps/RandomMaps/Templates`: change them or add your own (`example.txt` explains the format).
@@ -175,14 +121,6 @@ Random maps, Switch 2, the game in a web browser, a new icon, and fixes.
 ## 0.3
 
 The Switch app runs, other-language GOG installers, smoother play on phones, and fixes.
-
-| Device | File |
-|---|---|
-| Mac, macOS 13+ | `reHoMM4-v0.3-macos-arm64.dmg` (Apple chip, M1 or newer) or `reHoMM4-v0.3-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad, iOS / iPadOS 17+ | `reHoMM4-v0.3-ios.ipa` (install with AltStore or Sideloadly) |
-| Android 10+, 64-bit | `reHoMM4-v0.3-android_arm64.apk` |
-| Linux, Steam Deck | `reHoMM4-v0.3-linux-x86_64.tar.gz` (x86-64) or `reHoMM4-v0.3-linux-arm64.tar.gz` (64-bit ARM) |
-| Switch (homebrew) | `reHoMM4-v0.3-switch.nro` |
 
 **New**
 - **GOG installers in any language**: put `heroes4.exe` from GOG's English version next to the installer files (or pick it with them), and the game plays in the installer's language. An installed game in another language works the same way, with the English `heroes4.exe` in its folder.
@@ -244,14 +182,6 @@ How to install and run: [README](https://github.com/evilHazzarD/ReHoMM4#readme).
 
 Settings on every device, gamepad controls you can change, and the Ukrainian translation's single scenarios.
 
-| Device | File |
-|---|---|
-| Mac, macOS 13+ | `HeroesIV-0.2-macos-arm64.dmg` (Apple chip, M1 or newer) or `HeroesIV-0.2-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad, iOS / iPadOS 17+ | `HeroesIV-0.2-ios.ipa` (install with AltStore or Sideloadly) |
-| Android 10+, 64-bit | `HeroesIV-0.2-android_arm64.apk` |
-| Linux, Steam Deck | `HeroesIV-0.2-linux-x86_64.tar.gz` |
-| Switch (homebrew) | `HeroesIV-0.2-switch.nro` |
-
 **New**
 - **Settings** (⚙ in the main menu): the version and the update check at the top, the game's language as a dropdown, fullscreen (Mac, Linux), skipping the intro movies, save sync, the gamepad.
 - **A new language applies at once**: the game restarts with it (Android, Mac, Linux).
@@ -291,14 +221,6 @@ How to install and run: [README](https://github.com/evilHazzarD/ReHoMM4#readme).
 First release of ReHoMM4: Heroes of Might and Magic IV: Complete as a native app for the Mac, iPhone/iPad, Android, Linux/Steam Deck and the Switch.
 
 The game itself is not included. The app installs it from your GOG account, or from the **English** GOG offline installer for Windows (both parts: the `.exe` and the `.bin`).
-
-| Device | File |
-|---|---|
-| Mac, macOS 13+ | `HeroesIV-macos-arm64.dmg` (Apple chip, M1 or newer) or `HeroesIV-macos-x86_64.dmg` (Intel) |
-| iPhone, iPad, iOS / iPadOS 17+ | `HeroesIV-ios.ipa` (install with AltStore or Sideloadly) |
-| Android 10+, 64-bit | `HeroesIV-android_arm64.apk` |
-| Linux, Steam Deck | `HeroesIV-linux-x86_64.tar.gz` |
-| Switch (homebrew) | `HeroesIV.nro` |
 
 `HOMM4-extra-assets.zip` is only for building from source (the side panels; the apps already have them).
 
