@@ -233,11 +233,6 @@ public class HeroesActivity extends SDLActivity {
     // The display cutout's (camera notch's) or rounded corners' side, a fraction of the screen's long side, for the
     // game to keep clear of it (main.cpp, as iOS's safe area): 0 when there is none, or before
     // Android 9, or while the view's insets are not known yet.
-    public static int h4SmallestWidthDp() {  // a phone under 600 (main.cpp: its default layout)
-        final HeroesActivity a = self();
-        return a == null ? 0 : a.getResources().getConfiguration().smallestScreenWidthDp;
-    }
-
     public static float h4CutoutMargin() {
         final HeroesActivity a = self();
         if (a == null || android.os.Build.VERSION.SDK_INT < 28) return 0;

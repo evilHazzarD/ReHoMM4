@@ -393,7 +393,7 @@ game's player folder:
 
 ## Controls
 
-As in the original game; on touch screens a tap is a click and a long press a right-click. In
+As in the original game; on touch screens a tap is a click; a long press or a two-finger tap a right-click. In
 addition, **F10** switches the picture scaling (below). A gamepad works everywhere (Joy-Cons,
 Steam Deck, Xbox, PlayStation, MFi): left stick the pointer, **A** click, **B** right-click, right
 stick scrolls the map, the other buttons are the game's shortcuts (**X** spell, **Y** wait,
@@ -410,14 +410,9 @@ hands and on the TV, and the layout follows the dock as it changes). Until one i
 
 | Device | Layout |
 |---|---|
-| iPhone Plus and Pro Max (XS Max and later) | 1024x768 |
-| Other iPhones, the mini ones too | 800x600 |
-| iPad mini | 1024x768 |
-| Other iPads | 1280x1024 |
-| Android phones | 800x600 |
-| Android tablets | 1024x768 |
+| iPhone, iPad, Android phones and tablets | 1024x768 |
 | Mac, Windows, Linux | 1280x1024; 1024x768 when the screen is lower than 1024 points |
-| Browser: on a phone / on a tablet / on a computer | 800x600 / 1024x768 / as on a computer |
+| Browser: on a phone or tablet / on a computer | 1024x768 / as on a computer |
 | Switch 1 and 2: in the hands / on the TV | 800x600 / 1024x768 |
 
 ### Picture scaling

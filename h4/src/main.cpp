@@ -75,15 +75,11 @@ static int mkdir(const char* path, int) { return _mkdir(path); }
 #if defined(__APPLE__) && TARGET_OS_IOS
 namespace h4 {
 bool IosSafeAreaMargin(float* fraction);
-bool IosPhone();     // an iPhone (not an iPad)
-bool IosIpadMini();  // an iPad mini
-bool IosBigPhone();  // a Plus or Pro Max iPhone
 }
 #endif
 #if defined(__ANDROID__)
 namespace h4 {
 bool AndroidSafeAreaMargin(float* fraction);  // menu_button_android.cpp: the camera notch's side
-bool AndroidSmallScreen();  // a phone's screen (smallest width under 600 dp)
 }
 #endif
 
@@ -434,13 +430,13 @@ std::string MobileSetup() {
 #if defined(__ANDROID__) || defined(__APPLE__)
   h4::LoadRenderer(data);  // before the graphics device is made
 #endif
-  // The layout when none is chosen: 800x600 on phones (in their browsers too), 1024x768 on
-  // the big iPhones (Plus, Pro Max), Android tablets and the iPad mini, 1280x1024 on the other iPads and on desktops whose screen has the pixels for it (else 1024x768); the Switch 800x600 in the
-  // hands and 1024x768 on the TV, each kept apart.
+  // The layout when none is chosen: 1024x768 on phones and tablets (in their browsers too),
+  // 1280x1024 on desktops whose screen has the pixels for it (else 1024x768); the Switch 800x600
+  // in the hands and 1024x768 on the TV, each kept apart.
 #if defined(__ANDROID__)
-  h4::LoadLayout(data, h4::AndroidSmallScreen() ? "800" : "1024");
+  h4::LoadLayout(data, "1024");
 #elif defined(__APPLE__) && TARGET_OS_IOS
-  h4::LoadLayout(data, h4::IosPhone() ? (h4::IosBigPhone() ? "1024" : "800") : h4::IosIpadMini() ? "1024" : "1280");
+  h4::LoadLayout(data, "1024");
 #elif defined(H4_SWITCH_APP)
   if (h4::SwitchHandheld())
     h4::LoadLayout(data, "800", "layout_handheld");
@@ -449,12 +445,10 @@ std::string MobileSetup() {
 #elif defined(H4_WEB_APP)
   {
     const int kind = MAIN_THREAD_EM_ASM_INT({
-      const touch = matchMedia('(pointer: coarse)').matches;
-      const short_side = Math.min(screen.width, screen.height);
-      return touch && short_side < 600 ? 0 : touch ? 1 : 2;  // a phone, a tablet, a computer
+      return matchMedia('(pointer: coarse)').matches ? 1 : 2;  // a phone or tablet, a computer
     });
     // (a computer: 1280x1024, as it always was; the window is scaled to the page anyway)
-    h4::LoadLayout(data, kind == 0 ? "800" : kind == 1 ? "1024" : "1280");
+    h4::LoadLayout(data, kind == 1 ? "1024" : "1280");
   }
 #else  // the desktop apps
   h4::LoadLayout(data, "desktop");
