@@ -2,6 +2,38 @@
 
 Each release's notes on GitHub are its section here (tools/release/make_release.sh). Newest first.
 
+## 0.5.2
+
+Fixes for the browser, phones and settings; the apps are called ReHoMM4 everywhere.
+
+| Device | File |
+|---|---|
+| Mac, macOS 13+ | `reHoMM4-v0.5.2-macos-arm64.dmg` (Apple Silicon) or `reHoMM4-v0.5.2-macos-x86_64.dmg` (Intel) |
+| iPhone and iPad, iOS / iPadOS 17+ | `reHoMM4-v0.5.2-ios.ipa` |
+| Android 10+, 64-bit | `reHoMM4-v0.5.2-android_arm64.apk` |
+| Windows 10 or 11, 64-bit | `reHoMM4-v0.5.2-windows-x86_64.zip` |
+| Linux and Steam Deck | `reHoMM4-v0.5.2-linux-x86_64.tar.gz` or `reHoMM4-v0.5.2-linux-arm64.tar.gz` |
+| Switch (homebrew) | `reHoMM4-v0.5.2-switch.nro` |
+| Switch 2 (homebrew, kaiHEN) | `reHoMM4-v0.5.2-switch2.nro` |
+| Web browser | `reHoMM4-v0.5.2-web.zip` |
+
+**New**
+
+- **Side panels** are a list in the settings (Pictures or Black), right after Scaling, and change at once, without a restart.
+- **What's new** shows the last 5 releases with their dates; yours is marked.
+- The setting is named **ReHoMM4 interface language** (the game's own language is the other list).
+- The apps are named **ReHoMM4** on every device (home screen, Dock, launcher, Switch menu).
+
+**Fixed**
+
+- **Browser: a black screen after the installer unpacked the game.** The game's code is now prepared right after it, then Play.
+- **Browser:** the start page shows one step at a time (Install the game, Prepare the game, Play), and lists the supported languages and the other builds.
+- **Browser:** the game's language is chosen in the game's settings, as in the apps (the page offered English only); after a change one click goes back to full screen.
+- **Browser:** the random map's buttons were drawn too big on high-resolution screens.
+- **Android:** the ☁ ☕ ⚙ buttons in the main menu did not react to taps; the pointer jumped to the corner while the settings were open; What's new could not reach GitHub.
+- **Android:** the "?" of the saved games sync is after its checkbox.
+- **Switch 2:** more lines in the log, to find why some consoles do not reach the main menu.
+
 ## 0.5.1
 
 A fix for GOG's German edition.
