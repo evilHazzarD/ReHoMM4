@@ -39,6 +39,34 @@ public class HeroesActivity extends SDLActivity {
     protected void onCreate(android.os.Bundle b) {
         super.onCreate(b);
         SaveSync.start(this);  // saves kept in step with a picked (synced) folder
+        // Landscape from the start: SDL asks for it only as the game's window is made, and a phone
+        // held upright then turned while the window was being made, sometimes leaving the game
+        // drawn for the upright screen and stretched into a thin band (issue #10). The installer
+        // allows upright again with its own window (installer.cpp's orientation hint).
+        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        // And should the game still miss a change of the screen's size (turned, a cutout's bar):
+        // the surface's real size sent again shortly after every change of the layout (the same
+        // size again changes nothing).
+        if (mSurface != null)
+            mSurface.addOnLayoutChangeListener((v, l, t, r, bo, ol, ot, or, ob) -> {
+                v.postDelayed(HeroesActivity::resendSurfaceSize, 300);
+                v.postDelayed(HeroesActivity::resendSurfaceSize, 1500);
+            });
+    }
+
+    // What SDLSurface.surfaceChanged tells the game, again, with the surface's size now.
+    static void resendSurfaceSize() {
+        if (mSurface == null || mSingleton == null || mBrokenLibraries) return;
+        android.view.SurfaceHolder holder = mSurface.getHolder();
+        if (holder == null || holder.getSurface() == null || !holder.getSurface().isValid()) return;
+        android.graphics.Rect f = holder.getSurfaceFrame();
+        if (f.width() <= 0 || f.height() <= 0) return;
+        android.view.Display d = mSingleton.getWindowManager().getDefaultDisplay();
+        android.util.DisplayMetrics m = new android.util.DisplayMetrics();
+        d.getRealMetrics(m);
+        nativeSetScreenResolution(f.width(), f.height(), m.widthPixels, m.heightPixels, m.densityDpi / 160.0f,
+                                  d.getRefreshRate());
+        onNativeResize();
     }
 
     @Override
