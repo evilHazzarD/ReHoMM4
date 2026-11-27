@@ -1,0 +1,79 @@
+--- a/src/runtime/hle/user32_window.cpp
++++ b/src/runtime/hle/user32_window.cpp
+@@ -1292,6 +1292,9 @@
+ //   for kHoldNs it is a right button held until the finger lifts (the
+ //   right-click-and-hold help of strategy games); moved past kSlopPt
+ //   first it is a left-button drag.
++// - two fingers tapped (lifted within kTwoTapNs, not moved): a right click
++//   at the first finger's spot, the button held until the next touch (which
++//   only lets it go: the help a game shows while it is held stays up).
+ // - two fingers: pinching zooms the picture (gfx::SetView, up to kMaxZoom;
+ //   back to the whole frame when nearly out) around the fingers, and
+ //   dragging pans it; dragging past its edge, or unzoomed, holds the arrow
+@@ -1299,8 +1302,9 @@
+ // - three fingers, tapped: shows or hides the on-screen keyboard.
+ namespace touch {
+ 
+-constexpr uint64_t kHoldNs = 450000000;
+-constexpr float kSlopPt = 12.0f;      // window points
++constexpr uint64_t kHoldNs = 300000000;
++constexpr float kSlopPt = 16.0f;      // window points
++constexpr uint64_t kTwoTapNs = 400000000;
+ constexpr float kScrollPt = 24.0f;    // two-finger travel before a key goes down
+ constexpr uint64_t kDoubleNs = 500000000;  // a second tap this soon after a tap...
+ constexpr float kDoublePt = 40.0f;         // ...and this near it is a double click
+@@ -1327,6 +1331,8 @@
+ // then, g_ax/g_ay the frame point (fractions) under the fingers then.
+ bool g_viewing = false;
+ float g_d0 = 0, g_ax = 0, g_ay = 0;
++// The two fingers moved (not a tap); the right button held after a two-finger tap.
++bool g_multi_moved = false, g_right_held = false;
+ gfx::View g_view0;
+ uint64_t g_tap_t = 0;          // the last single tap (0: none to pair with)
+ float g_tap_x = 0, g_tap_y = 0;
+@@ -1482,6 +1488,13 @@
+                          [&](const Finger& g) { return g.id == f.fingerID; });
+   if (type == SDL_EVENT_FINGER_DOWN) {
+     if (it == g_fingers.end()) g_fingers.push_back({f.fingerID, x, y});
++    if (g_fingers.size() == 1 && g_right_held) {
++      // The touch after a two-finger tap: the right button let go, nothing else.
++      Button(SDL_BUTTON_RIGHT, false);
++      g_right_held = false;
++      g_mode = Mode::Idle;
++      return;
++    }
+     if (g_fingers.size() == 1) {
+       g_mode = Mode::Pending;
+       g_x0 = x;
+@@ -1497,6 +1510,8 @@
+       g_max_fingers = std::max(g_max_fingers, int(g_fingers.size()));
+       if (g_mode == Mode::Drag) Button(SDL_BUTTON_LEFT, false);
+       if (g_mode == Mode::Right) Button(SDL_BUTTON_RIGHT, false);
++      // (a finger held for the right button, or a drag, first: not a tap)
++      if (g_mode != Mode::Multi) g_multi_moved = g_mode != Mode::Pending;
+       g_mode = Mode::Multi;
+       StartTwoFingers();
+     }
+@@ -1523,6 +1538,9 @@
+         if (g_fingers.size() != 2) break;
+         float cx, cy;
+         Centroid(&cx, &cy);
++        if (std::hypot(cx - g_cx0, cy - g_cy0) > kSlopPt ||
++            (g_d0 > 0 && std::fabs(Distance() / g_d0 - 1.0f) > kPinch))
++          g_multi_moved = true;
+         if (!g_viewing && g_d0 > 0 && std::fabs(Distance() / g_d0 - 1.0f) > kPinch) {
+           // A pinch: the view from here on (the keys a drag held let go).
+           HoldKey(&g_held_h, SDL_SCANCODE_UNKNOWN);
+@@ -1575,6 +1593,12 @@
+       HoldKey(&g_held_h, SDL_SCANCODE_UNKNOWN);
+       HoldKey(&g_held_v, SDL_SCANCODE_UNKNOWN);
+       if (g_max_fingers >= 3 && !canceled) ToggleKeyboard();
++      if (g_max_fingers == 2 && !canceled && !g_multi_moved &&
++          SDL_GetTicksNS() - g_t0 <= kTwoTapNs) {
++        Motion(g_x0, g_y0);
++        Button(SDL_BUTTON_RIGHT, true);
++        g_right_held = true;
++      }
+       break;
+     case Mode::Idle:
+       break;
