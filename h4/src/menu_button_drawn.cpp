@@ -207,10 +207,20 @@ bool PadEvent(const SDL_Event& e) {
 // watch (any thread): a pointer move where it is has the game run its loop, whose pass
 // (ShowLanguageButton) shows the frame again.
 std::atomic<bool> g_resized{false};
+// The window's size in pixels and the screen's, to the log (a picture drawn for another size than
+// the screen's: issue #10's thin band on Android).
+void LogWindowSize(const char* why, SDL_Window* w) {
+  int pw = 0, ph = 0;
+  if (w) SDL_GetWindowSizeInPixels(w, &pw, &ph);
+  const SDL_DisplayMode* m = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+  std::fprintf(stderr, "h4: window %dx%d, screen %dx%d (%s)\n", pw, ph, m ? m->w : 0, m ? m->h : 0, why);
+}
 bool OnWindowEvent(void*, SDL_Event* e) {
   if (e->type != SDL_EVENT_WINDOW_RESIZED && e->type != SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED &&
       e->type != SDL_EVENT_WINDOW_ENTER_FULLSCREEN && e->type != SDL_EVENT_WINDOW_LEAVE_FULLSCREEN)
     return true;
+  if (e->type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED)
+    LogWindowSize("changed", SDL_GetWindowFromID(e->window.windowID));
   if (g_resized.exchange(true)) return true;  // (one wake for a burst of them)
   SDL_Event m{};
   m.type = SDL_EVENT_MOUSE_MOTION;
@@ -994,6 +1004,12 @@ void ShowLanguageButton(bool shown, int x, int y, int /*left: iOS only*/) {
     g_hooked = true;
     h4::SetMenuInputHook(OnInput);  // (before the game: what the settings take, it does not get)
     SDL_AddEventWatch(OnWindowEvent, nullptr);
+    {
+      int n = 0;
+      SDL_Window** ws = SDL_GetWindows(&n);
+      LogWindowSize("at the start", ws && n > 0 ? ws[0] : nullptr);
+      SDL_free(ws);
+    }
     recomp::SetPadEventHook(PadEvent);
   }
   {  // the buttons: ☁️ while the sync is on, ☕, ⚙

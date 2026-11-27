@@ -1,0 +1,102 @@
+diff --git a/recomp/crates/rc-discover/src/lib.rs b/recomp/crates/rc-discover/src/lib.rs
+index 51b5e51..6fcf5e1 100644
+--- a/recomp/crates/rc-discover/src/lib.rs
++++ b/recomp/crates/rc-discover/src/lib.rs
+@@ -45,6 +45,21 @@ use std::collections::{BTreeSet, HashSet};
+ /// pass leaves them out, and so on while a pass reveals more of them; a pass's result is kept only
+ /// if it leaves fewer bytes unsettled (unknown, or pointed to but not code).
+ pub fn discover(img: &Image, opts: &Options, name: &str, sha256: &str) -> CodeMap {
++    discover_seed(img, opts, name, sha256).0
++}
++
++/// Where [`discover`] ended for an image: the pointers its kept pass left out, and the no-return
++/// functions and joins that pass's last round started from. Given back to [`discover_seeded`] for
++/// the same image (and the same discovery code), one round gives the same map.
++#[derive(Clone, Debug, Default, PartialEq, Eq)]
++pub struct Seed {
++    pub deny: BTreeSet<u32>,
++    pub no_return: BTreeSet<u32>,
++    pub joins: BTreeSet<u32>,
++}
++
++/// [`discover`], with the seed of the map it gives.
++pub fn discover_seed(img: &Image, opts: &Options, name: &str, sha256: &str) -> (CodeMap, Seed) {
+     // Unclassified bytes, and bytes a pointer leads to that failed to decode as code (data_ref):
+     // code that a false pointer's bogus function blocked often ends up as the latter.
+     let unsettled = |m: &CodeMap| {
+@@ -58,7 +73,7 @@ pub fn discover(img: &Image, opts: &Options, name: &str, sha256: &str) -> CodeMa
+         unknown + data_ref
+     };
+     let mut deny = HashSet::new();
+-    let (mut best, mut suspects) = discover_with(img, opts, name, sha256, &deny);
++    let (mut best, mut suspects, mut best_seed) = discover_with(img, opts, name, sha256, &deny, None);
+     // Each pass leaves out the pointers the passes before showed to block real code; a pass can
+     // reveal more of them (the code it finds fails against another false pointer's function),
+     // and may look worse until those are gone too. The best pass is kept.
+@@ -67,9 +82,10 @@ pub fn discover(img: &Image, opts: &Options, name: &str, sha256: &str) -> CodeMa
+             break;
+         }
+         deny.extend(suspects);
+-        let (next, more) = discover_with(img, opts, name, sha256, &deny);
++        let (next, more, seed) = discover_with(img, opts, name, sha256, &deny, None);
+         if unsettled(&next) < unsettled(&best) {
+             best = next;
++            best_seed = seed;
+         }
+         suspects = more;
+     }
+@@ -84,12 +100,20 @@ pub fn discover(img: &Image, opts: &Options, name: &str, sha256: &str) -> CodeMa
+         .collect();
+     if !rescue.is_empty() {
+         let allowed: HashSet<u32> = deny.difference(&rescue).copied().collect();
+-        let (next, _) = discover_with(img, opts, name, sha256, &allowed);
++        let (next, _, seed) = discover_with(img, opts, name, sha256, &allowed, None);
+         if unsettled(&next) < unsettled(&best) {
+             best = next;
++            best_seed = seed;
+         }
+     }
+-    best
++    (best, best_seed)
++}
++
++/// [`discover`] from where an earlier one ended ([`discover_seed`]): its kept pass only, from its
++/// last round (more rounds only if the seed is not that of this image and code).
++pub fn discover_seeded(img: &Image, opts: &Options, name: &str, sha256: &str, seed: &Seed) -> CodeMap {
++    let deny: HashSet<u32> = seed.deny.iter().copied().collect();
++    discover_with(img, opts, name, sha256, &deny, Some(seed)).0
+ }
+ 
+ /// Rounds repeat until neither the no-return set nor the cross-jump entries change: a
+@@ -101,9 +125,14 @@ fn discover_with(
+     name: &str,
+     sha256: &str,
+     deny: &HashSet<u32>,
+-) -> (CodeMap, HashSet<u32>) {
++    from: Option<&Seed>,
++) -> (CodeMap, HashSet<u32>, Seed) {
+     let mut no_return: HashSet<u32> = opts.no_return.iter().copied().collect();
+     let mut joins = BTreeSet::new();
++    if let Some(s) = from {
++        no_return.extend(s.no_return.iter().copied());
++        joins.extend(s.joins.iter().copied());
++    }
+     let mut rounds = 0u32;
+     loop {
+         rounds += 1;
+@@ -114,9 +143,15 @@ fn discover_with(
+         let new_joins = !part.joins.is_subset(&joins);
+         if (!grown && !new_joins) || rounds >= 16 {
+             let suspects = e.blocking_pointers();
++            let seed = Seed {
++                deny: deny.iter().copied().collect(),
++                no_return: no_return.iter().copied().collect(),
++                joins: joins.clone(),
++            };
+             return (
+                 codemap::build(&e, &part, name, sha256, rounds, opts.use_relocs),
+                 suspects,
++                seed,
+             );
+         }
+         no_return.extend(part.no_return.iter().copied());

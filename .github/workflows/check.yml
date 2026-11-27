@@ -34,6 +34,8 @@ jobs:
           python3 converter/test/game_manifest.py
       - name: dynamic converter adaptation applies
         run: git -C third_party/game-recomp apply --check "$GITHUB_WORKSPACE/converter/patches/game-recomp-manifest-dir.patch"
+      - name: seeded discovery applies
+        run: git -C third_party/game-recomp apply --check "$GITHUB_WORKSPACE/converter/patches/game-recomp-discovery-seed.patch"
       - name: shell scripts parse
         run: for f in tools/*.sh tools/release/*.sh platforms/*.sh platforms/*/*.sh assets/icon/*.sh tests/scripts/*.sh; do bash -n "$f"; done
       - name: collage tool compiles

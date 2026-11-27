@@ -515,13 +515,13 @@
 +#if defined(__EMSCRIPTEN__)
 +  const uintptr_t heap_end_before = emscripten_get_heap_size();
 +#endif
-   {
-     const uintptr_t brk = reinterpret_cast<uintptr_t>(sbrk(0));
-     const intptr_t pad = intptr_t((0x10000 - (brk & 0xFFFF)) & 0xFFFF);
-@@ -44,6 +54,15 @@
-         (reinterpret_cast<uintptr_t>(lo) & 0xFFFF) == 0)
+ #if defined(__SWITCH2__)
+   // Switch 2 (libounce): malloc is mimalloc over the whole heap the process is given, and
+   // newlib's break (sbrk) has none of it: the arena is one block of malloc's.
+@@ -50,6 +60,15 @@
        p = lo;
    }
+ #endif
 +#if defined(__EMSCRIPTEN__)
 +  if (!p) {
 +    std::fprintf(stderr,
@@ -534,8 +534,8 @@
    if (!p) {
      // What the system gave the process, and the C heap (libnx: all of it, at start).
      u64 total = 0, used = 0;
-@@ -57,14 +76,26 @@
-                  (unsigned long long)((fake_heap_end - fake_heap_start) >> 20));
+@@ -67,14 +86,26 @@
+ #endif
      return false;
    }
 +#endif
@@ -562,7 +562,7 @@
  void GuestMemory::HostRange(gaddr va, uint64_t size, uint64_t* start, uint64_t* end) const {
    *start = uint64_t(va) & ~uint64_t(kPageSize - 1);
    *end = (uint64_t(va) + size + kPageSize - 1) & ~uint64_t(kPageSize - 1);
-@@ -99,7 +130,7 @@
+@@ -109,7 +140,7 @@
  
  namespace recomp {
  
@@ -571,7 +571,7 @@
  namespace {
  
  // Preferred host placement keeps base() stable across runs, which makes
-@@ -115,7 +146,7 @@
+@@ -125,7 +156,7 @@
  }  // namespace
  #endif
  
@@ -580,7 +580,7 @@
  bool GuestMemory::Reserve(unsigned bits) {
  #if defined(_WIN32)
    SYSTEM_INFO si{};
-@@ -170,7 +201,7 @@
+@@ -180,7 +211,7 @@
    *end = (uint64_t(va) + size + mask) & ~mask;
  }
  
@@ -589,7 +589,7 @@
  bool GuestMemory::HostPageInUse(uint64_t host_off) const {
    for (uint64_t g = host_off / kPageSize, n = host_page_ / kPageSize; n--; g++)
      if (pages_[g] & kCommitted) return true;
-@@ -178,7 +209,7 @@
+@@ -188,7 +219,7 @@
  }
  #endif
  
@@ -598,7 +598,7 @@
  bool GuestMemory::Commit(gaddr va, uint64_t size, Prot prot) {
    if (!size) return true;
    if (!InRange(va, size)) return false;
-@@ -208,7 +239,7 @@
+@@ -218,7 +249,7 @@
    return true;
  }
  

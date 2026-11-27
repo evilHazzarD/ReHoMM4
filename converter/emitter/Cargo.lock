@@ -607,7 +607,9 @@ name = "rehomm4-emit-wasm"
 version = "0.1.0"
 dependencies = [
  "rc-convert",
+ "rc-discover",
  "rc-ir",
+ "rc-pe",
  "wasm-bindgen",
  "wasm-encoder",
 ]

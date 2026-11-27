@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <chrono>
 #include <map>
 #include <string>
@@ -506,6 +507,7 @@ void Narrowed(::recomp::Ctx& c, void (*lifted)(::recomp::Ctx&)) {
 constexpr uint32_t kCombatWindowVtable = 0x984388;  // t_combat_window
 constexpr uint32_t kTownWindowVtable = 0x9966E4;    // t_town_window
 constexpr uint32_t kCursorWindowVtable = 0x98D174;  // the game's cursor, a window under the top one
+constexpr uint32_t kDragWindowVtable = 0x9880FC;    // an army being dragged (a town, a trade): in its place
 constexpr uint32_t kPrimarySurface = 0xAD2548;      // IDirectDrawSurface7*
 constexpr uint32_t kBackSurface = 0xAD254C;         // the offscreen the game composes in
 constexpr uint32_t kLockSlot = 0x64, kUnlockSlot = 0x80;  // its vtable
@@ -1438,19 +1440,23 @@ bool GpuCursorOn() {
   return on;
 }
 
-// The cursor window: the newest, should there be several.
-uint32_t CursorWindow(uint32_t top) {
-  uint32_t cw = 0;
+// The cursor window: the newest, should there be several. While there is none, an army being
+// dragged: the game takes the cursor away and moves the army's picture, a window of its own, as
+// slowly as it moved the cursor (40-45 ms a step in a town), so it is the pointer's picture then.
+uint32_t CursorWindow(uint32_t top, bool* drag = nullptr) {
+  uint32_t cw = 0, dw = 0;
   ForChildren(top, [&](uint32_t w) {
     if (Rd32(w) == kCursorWindowVtable) cw = w;
+    if (Rd32(w) == kDragWindowVtable) dw = w;
   });
-  return cw;
+  if (drag) *drag = !cw && dw;
+  return cw ? cw : dw;
 }
 
-// Every cursor window invisible to the game.
+// Every cursor window (and dragged army) invisible to the game.
 void HideCursors(uint32_t top) {
   ForChildren(top, [](uint32_t w) {
-    if (Rd32(w) == kCursorWindowVtable) GPtr(w + kVisible)[0] = 0;
+    if (Rd32(w) == kCursorWindowVtable || Rd32(w) == kDragWindowVtable) GPtr(w + kVisible)[0] = 0;
   });
 }
 
@@ -1510,15 +1516,21 @@ void PaintAgain(::recomp::Ctx& c) {
 // picture of the newest taken again when its sprite or size changed.
 void GpuCursorBeforePaint(::recomp::Ctx& c) {
   const uint32_t top = Rd32(kTopWindow);
-  const uint32_t cw = top ? CursorWindow(top) : 0;
+  bool drag = false;
+  const uint32_t cw = top ? CursorWindow(top, &drag) : 0;
   if (!cw) return;
+  // A drag's picture is taken again at each drag (the same window shows each army dragged).
+  static bool was_drag = false;
+  static uint32_t drags = 0;
+  if (drag && !was_drag) drags++;
+  was_drag = drag;
   uint32_t aw = 0;
   ForChildren(cw, [&](uint32_t w) {
     if (!aw) aw = w;
   });
   const Rect r = RectOf(cw);
   const int w = r.r - r.l, h = r.b - r.t;
-  const uint32_t sprite = aw ? Rd32(aw + 0xD8) : 0;
+  const uint32_t sprite = drag ? 0x80000000u | drags : aw ? Rd32(aw + 0xD8) : 0;
   static uint32_t last_sprite = 0;
   static int last_w = -1, last_h = -1;
   static std::map<uint64_t, std::vector<uint32_t>> taken;  // by sprite and size
@@ -1527,6 +1539,8 @@ void GpuCursorBeforePaint(::recomp::Ctx& c) {
     last_w = w;
     last_h = h;
     const uint64_t key = uint64_t(sprite) << 32 | uint32_t(w) << 16 | uint32_t(h);
+    if (drag)  // (earlier drags' pictures: not shown again)
+      for (auto k = taken.begin(); k != taken.end();) k = k->first != key && k->first >> 63 ? taken.erase(k) : std::next(k);
     auto it = taken.find(key);
     if (it == taken.end()) {
       // Without the cursor, then with it, over its area; then without again.
@@ -1563,6 +1577,57 @@ void GpuCursorPlace() {
   const uint32_t top = Rd32(kTopWindow);
   const uint32_t cw = top ? CursorWindow(top) : 0;
   const Rect r = cw ? RectOf(cw) : Rect{};
+  // H4_DUMP_DRAG=1 (finding the dragged army's window): the windows when the pointer goes, then
+  // each window right under the top one that moves while it is gone, with the time between.
+  if (static const bool dump_drag = Env("DUMP_DRAG") != nullptr; dump_drag && top) {
+    bool drag_now = false;
+    CursorWindow(top, &drag_now);
+    const bool cw = !drag_now;  // (the game's own cursor window there)
+    static bool dragging = false;
+    static std::map<uint32_t, Rect> where;
+    static int moves = 0;
+    static auto last = std::chrono::steady_clock::now();
+    if (!cw && !dragging) {
+      dragging = true;
+      moves = 0;
+      WarnF("h4: drag: the pointer window went; the windows:\n");
+      where.clear();
+      std::function<void(uint32_t, int)> walk = [&](uint32_t w, int depth) {
+        WarnF("h4: drag: %*s%08X vt %08X rect %d,%d-%d,%d vis %u\n", depth * 2, "", w, Rd32(w), RectOf(w).l,
+              RectOf(w).t, RectOf(w).r, RectOf(w).b, GPtr(w + kVisible)[0]);
+        where[w] = RectOf(w);
+        if (depth < 3) ForChildren(w, [&](uint32_t ch) { walk(ch, depth + 1); });
+      };
+      walk(top, 0);
+      last = std::chrono::steady_clock::now();
+    } else if (cw && dragging) {
+      dragging = false;
+      WarnF("h4: drag: the pointer window is back (%d moves)\n", moves);
+    }
+    if (dragging && moves < 40) {
+      auto check = [&](uint32_t w) {
+        const Rect now = RectOf(w);
+        auto it = where.find(w);
+        if (it != where.end() && (it->second.l != now.l || it->second.t != now.t)) {
+          const auto t = std::chrono::steady_clock::now();
+          WarnF("h4: drag: %08X vt %08X moved to %d,%d (%dx%d), %.1f ms since the last\n", w, Rd32(w), now.l,
+                now.t, now.r - now.l, now.b - now.t,
+                std::chrono::duration<double, std::milli>(t - last).count());
+          last = t;
+          moves++;
+        } else if (it == where.end()) {
+          WarnF("h4: drag: new %08X vt %08X at %d,%d (%dx%d)\n", w, Rd32(w), now.l, now.t, now.r - now.l,
+                now.b - now.t);
+        }
+        where[w] = now;
+      };
+      std::function<void(uint32_t, int)> walk = [&](uint32_t w, int depth) {
+        check(w);
+        if (depth < 3) ForChildren(w, [&](uint32_t ch) { walk(ch, depth + 1); });
+      };
+      ForChildren(top, [&](uint32_t ch) { walk(ch, 1); });
+    }
+  }
   static int last_x = -1, last_y = -1;
   static bool last_shown = false;
   if (!!cw == last_shown && (!cw || (r.l == last_x && r.t == last_y))) return;

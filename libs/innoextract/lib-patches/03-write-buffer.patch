@@ -1,0 +1,85 @@
+--- a/src/util/fstream.hpp
++++ b/src/util/fstream.hpp
+@@ -33,6 +33,7 @@
+ 
+ #include <istream>
+ #include <cerrno>
++#include <chrono>
+ #include <streambuf>
+ #include <string>
+ 
+@@ -48,6 +49,15 @@
+  */
+ int mapped_fd(const std::string & path);
+ 
++//! What the readers of handed-over descriptors read (recomp_innoextract logs it).
++struct read_stats {
++	unsigned long long calls, bytes, ns;
++};
++inline read_stats & stats() {
++	static read_stats s = { 0, 0, 0 };
++	return s;
++}
++
+ //! Reads such a descriptor with pread (its own position: the descriptor is shared).
+ class fd_streambuf : public std::streambuf {
+ 	
+@@ -70,9 +80,15 @@
+ 		}
+ 		pos_ += off_t(egptr() - eback());
+ 		ssize_t n;
++		const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+ 		do {
+ 			n = pread(fd_, buf_, sizeof(buf_), pos_);
+ 		} while(n < 0 && errno == EINTR);
++		read_stats & st = stats();
++		st.calls++;
++		st.bytes += n > 0 ? (unsigned long long)n : 0;
++		st.ns += (unsigned long long)std::chrono::duration_cast<std::chrono::nanoseconds>(
++			std::chrono::steady_clock::now() - start).count();
+ 		if(n <= 0) {
+ 			setg(buf_, buf_, buf_);
+ 			return traits_type::eof();
+@@ -163,7 +179,41 @@
+ };
+ 
+ typedef boost::filesystem::ofstream ofstream;
+-typedef boost::filesystem::fstream  fstream;
++
++/*
++ * boost::filesystem::fstream with a 256 KiB buffer (the extracted files are
++ * written through it, in order): the default (a few KiB) makes a write of the
++ * system for every few KiB, each a round trip to another thread where files
++ * are a browser's storage. A base class before the stream's, so that it
++ * outlives the stream's last flush.
++ */
++struct write_buffer {
++	enum { size = 1 << 18 };
++	char * buffer_;
++	write_buffer() : buffer_(new char[size]) { }
++	~write_buffer() { delete[] buffer_; }
++private:
++	write_buffer(const write_buffer &);
++	write_buffer & operator=(const write_buffer &);
++};
++class fstream : private write_buffer, public boost::filesystem::fstream {
++	
++public:
++	
++	fstream() { }
++	
++	explicit fstream(const boost::filesystem::path & p,
++	                 std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out) {
++		open(p, mode);
++	}
++	
++	void open(const boost::filesystem::path & p,
++	          std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out) {
++		rdbuf()->pubsetbuf(buffer_, write_buffer::size);
++		boost::filesystem::fstream::open(p, mode);
++	}
++	
++};
+ 
+ } // namespace util
+ 

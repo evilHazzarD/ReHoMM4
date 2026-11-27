@@ -29,6 +29,7 @@ die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 bash "$ROOT/tools/lift.sh" || die "lifting heroes4.exe failed (tools/lift.sh)"
 [[ -d "$HOST_DEPS/softfloat-src" ]] || die "no host build of x86recomp: run tools/build.sh first"
 if [[ ! -f "$PREFIX/lib/libavcodec.a" || ! -f "$PREFIX/lib/librecomp_innoextract.a" ]] ||
+   [[ "$(cat "$PREFIX/lib/librecomp_innoextract.patches" 2>/dev/null)" != "$(cat "$ROOT"/libs/innoextract/patches/*.patch "$ROOT"/libs/innoextract/lib-patches/*.patch | shasum -a 256 | cut -c1-64)" ]] ||
    { [[ $TARGET == switch2 ]] &&
      ! cmp -s "$ROOT/platforms/switch/sdl-switch2-display.patch" "$PREFIX/share/sdl-switch2-display.patch"; }; then
   bash "$ROOT/platforms/deps.sh" "$TARGET"

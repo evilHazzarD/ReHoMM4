@@ -22,6 +22,7 @@
 #include "cli/extract.hpp"
 #include "setup/version.hpp"
 #include "util/console.hpp"
+#include "util/fstream.hpp"
 #include "util/log.hpp"
 
 namespace {
@@ -263,8 +264,19 @@ extern "C" int recomp_inno_extract(const char *setup, const char *output_dir, co
     for (size_t i = 0; i < count; i++) o.include.push_back(std::string("/") + paths[i]);
     active = &state;
     progress::hook = progress_hook;
+#if !defined(_WIN32)
+    util::stats() = util::read_stats{0, 0, 0};
+#endif
     int status = run(setup, o, cap, error, error_size);
     progress::hook = nullptr;
     active = nullptr;
+#if !defined(_WIN32)
+    // How the installer was read (through handed-over descriptors only): the reads' count and
+    // time, against the whole unpacking's in the installer's log.
+    const util::read_stats &rs = util::stats();
+    if (rs.calls)
+        std::fprintf(stderr, "innoextract: read %llu MB in %llu reads (%.1f s)\n", rs.bytes >> 20, rs.calls,
+                     double(rs.ns) / 1e9);
+#endif
     return status;
 }

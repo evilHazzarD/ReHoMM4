@@ -8,6 +8,8 @@ async function assetText(relativePath) {
 
 self.addEventListener('message', async ({data}) => {
   if (data?.type !== 'emit') return;
+  // The converter's progress (0 to 1; its last 3% saving the code), to the page.
+  globalThis.h4EmitProgress = fraction => self.postMessage({type: 'progress', fraction});
   try {
     if (!(data.exe instanceof File)) throw new Error('Select a local heroes4.exe.');
     const [exe, manifest, sites, hookedSites] = await Promise.all([
@@ -23,12 +25,16 @@ self.addEventListener('message', async ({data}) => {
     if (data.expectedDigest && digest !== data.expectedDigest) {
       throw new Error('The installed executable changed. Restart and try again.');
     }
-    const code = emit_web(new Uint8Array(exe), manifest, resume, hooked);
+    // Where the discovery of this executable ends (converter/tools/discovery_seed.sh): addresses
+    // only. Without it (another executable) the conversion takes ten times as long.
+    const seed = await assetText(`h4/discover-${digest}.txt`).catch(() => '');
+    const code = emit_web(new Uint8Array(exe), manifest, resume, hooked, seed);
     const root = await navigator.storage.getDirectory();
     const app = await root.getDirectoryHandle('ReHoMM4', {create: true});
     // The emitter's output version, as web/src/dynamic_host.cpp: another version is converted again.
     const name = `code-3-${digest}.wasm`;
     const file = await app.getFileHandle(name, {create: true});
+    self.postMessage({type: 'progress', fraction: 0.97});
     const writer = await file.createWritable();
     try {
       await writer.write(code);
