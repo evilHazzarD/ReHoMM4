@@ -57,7 +57,10 @@ elif [[ "$DYNAMIC" == OFF ]]; then
   die "no host build of x86recomp: run tools/build.sh first"
 fi
 web_emsdk
-[[ -f "$PREFIX/lib/librecomp_innoextract.a" ]] || bash "$WEB/deps.sh"
+# (deps.sh again when innoextract's patches changed: their hash is kept beside the library)
+[[ -f "$PREFIX/lib/librecomp_innoextract.a" &&
+   "$(cat "$PREFIX/lib/librecomp_innoextract.patches" 2>/dev/null)" == "$(cat "$ROOT"/libs/innoextract/patches/*.patch "$ROOT"/libs/innoextract/lib-patches/*.patch | shasum -a 256 | cut -c1-64)" ]] ||
+  bash "$WEB/deps.sh"
 
 # The runtime: x86recomp as the apps build it (patches/ applied, by tools/build.sh), in a copy with
 # the browser's changes on top. The copy is made again every time: the patch is what is kept.
@@ -112,7 +115,7 @@ D="$WEB_CACHE/dist$MODE_SUFFIX"
 rm -rf "$D"; mkdir -p "$D"
 cp "$B"/heroes4.js "$B"/heroes4.wasm "$D/"
 [[ -f "$B/heroes4.data" ]] && cp "$B/heroes4.data" "$D/"
-cp "$WEB"/shell/index.html "$WEB"/shell/coi-sw.js "$D/"
+cp "$WEB"/shell/index.html "$WEB"/shell/coi-sw.js "$WEB"/shell/manifest.webmanifest "$D/"
 if [[ "$DYNAMIC" == ON ]]; then
   cp -R "$B/converter" "$D/converter"
 fi
@@ -138,6 +141,7 @@ s = s.replace('@H4_DYNAMIC@', 'ON' if dynamic else 'OFF')
 open(p, 'w', encoding='utf-8').write(s.replace('@H4_WHAT@', what).replace('@H4_FIRST_LOAD@', first))
 PY
 bash "$ROOT/assets/icon/icon.sh" linux "$D/icon.png" >/dev/null 2>&1 || true
+bash "$ROOT/assets/icon/icon.sh" web "$D" >/dev/null 2>&1 || true  # the web app's (manifest.webmanifest)
 [[ -d "$WEB_CACHE/wings" ]] && cp -R "$WEB_CACHE/wings" "$D/wings"
 cp "$ROOT/LICENSE" "$D/LICENSE.txt"
 cp "$PREFIX/COPYING.ffmpeg.LGPLv2.1" "$D/"

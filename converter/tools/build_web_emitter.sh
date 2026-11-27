@@ -11,9 +11,14 @@ if [[ "$(wasm-bindgen --version)" != "wasm-bindgen 0.2.130" ]]; then
   echo "wasm-bindgen-cli 0.2.130 is required" >&2
   exit 1
 fi
+"$ROOT/converter/tools/apply_discovery_patch.sh"
+H4_DISCOVERY_VERSION="$("$ROOT/converter/tools/discovery_version.sh")" \
 CARGO_TARGET_DIR="$TARGET" cargo build --locked --release --target wasm32-unknown-unknown \
   --manifest-path "$ROOT/converter/emitter/Cargo.toml" --features browser
 wasm-bindgen --target web --no-typescript --out-dir "$OUT" \
   "$TARGET/wasm32-unknown-unknown/release/rehomm4_emit_wasm.wasm"
 node "$ROOT/converter/tools/stage_manifest.mjs" "$OUT"
 cp "$ROOT/converter/src/emit_worker.mjs" "$OUT/emit_worker.mjs"
+# The discovery seeds of the supported executables (discovery_seed.sh): addresses only.
+rm -f "$OUT"/h4/discover-*.txt
+cp "$ROOT"/converter/h4/discover-*.txt "$OUT/h4/" 2>/dev/null || true

@@ -157,10 +157,13 @@ Module.h4PickFiles = function (folder) {
     }
     const total = list.reduce((n, x) => n + x.file.size, 0);
     let done = 0, name = '';
+    const copy_start = performance.now();
     const r = list.length ? await h4RunWorker(PICK_WORKER, { files: list }, (m) => {
       if (m.name) name = m.name;
       if (m.bytes) { done += m.bytes; status('copy', total ? done / total : 1, name); }
     }) : { names: [] };
+    console.log('h4-web: copying ' + (total / 1e6).toFixed(0) + ' MB took ' +
+                ((performance.now() - copy_start) / 1000).toFixed(1) + ' s');
     if (r.error) {
       console.error('h4-web: copying the picked files failed', r.error);
       status('error', 'The files could not be copied into the browser\'s storage: ' + r.error +

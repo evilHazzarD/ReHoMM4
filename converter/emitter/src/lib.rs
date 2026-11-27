@@ -1083,7 +1083,7 @@ pub fn emit_with_resume_sites(
     functions: &[Function],
     resume_sites: &BTreeSet<u32>,
 ) -> Result<Vec<u8>, String> {
-    emit_module(functions, resume_sites, None)
+    emit_module(functions, resume_sites, None, &mut |_| {})
 }
 
 /// As [`emit_with_resume_sites`], with direct calls between the lifted functions except to
@@ -1093,19 +1093,30 @@ pub fn emit_linked(
     resume_sites: &BTreeSet<u32>,
     hooked: &BTreeSet<u32>,
 ) -> Result<Vec<u8>, String> {
+    emit_linked_progress(functions, resume_sites, hooked, &mut |_| {})
+}
+
+/// [`emit_linked`], telling `progress` how far it is (0 to 1) every few hundred functions.
+pub fn emit_linked_progress(
+    functions: &[Function],
+    resume_sites: &BTreeSet<u32>,
+    hooked: &BTreeSet<u32>,
+    progress: &mut dyn FnMut(f64),
+) -> Result<Vec<u8>, String> {
     let mut index = BTreeMap::new();
     for (position, function) in functions.iter().enumerate() {
         let callee = u32::try_from(position + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
         index.insert(function.addr, callee);
     }
     let links = Links { index, hooked: hooked.clone() };
-    emit_module(functions, resume_sites, Some(&links))
+    emit_module(functions, resume_sites, Some(&links), progress)
 }
 
 fn emit_module(
     functions: &[Function],
     resume_sites: &BTreeSet<u32>,
     links: Option<&Links>,
+    progress: &mut dyn FnMut(f64),
 ) -> Result<Vec<u8>, String> {
     let mut module = Module::new();
     let mut types = TypeSection::new();
@@ -1165,6 +1176,9 @@ fn emit_module(
         declarations.function(2);
         exports.export(&format!("f_{:08x}", function.addr), ExportKind::Func, index);
         code.function(&emit_body(function, resume_sites, links)?);
+        if index % 512 == 0 {
+            progress(index as f64 / functions.len() as f64);
+        }
     }
     module
         .section(&declarations)

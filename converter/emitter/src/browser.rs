@@ -1,6 +1,13 @@
 use std::collections::BTreeSet;
 use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen]
+extern "C" {
+    /// How far the conversion is, 0 to 1 (the worker shows it: emit_worker.mjs).
+    #[wasm_bindgen(js_namespace = globalThis, js_name = h4EmitProgress)]
+    fn emit_progress(fraction: f64);
+}
+
 /// Convert a previously extracted local, allowlisted executable on a browser worker.
 #[wasm_bindgen]
 pub fn emit_web(
@@ -8,10 +15,17 @@ pub fn emit_web(
     manifest: &str,
     resume_sites: &[u32],
     hooked_sites: &[u32],
+    discovery_seed: &str,
 ) -> Result<Vec<u8>, JsValue> {
     let error = |message: String| JsValue::from_str(&message);
-    let functions = crate::discovery::lift_main(manifest, exe).map_err(error)?;
+    // The seed (h4/discover-<sha256>.txt, "" if there is none) saves nine tenths of the time.
+    // (Lifting about 85% of the time, the module the rest.)
+    let (functions, _) = crate::discovery::lift_main_progress(manifest, exe, discovery_seed, &mut |p| {
+        emit_progress(0.85 * p)
+    })
+    .map_err(error)?;
     let sites: BTreeSet<_> = resume_sites.iter().copied().collect();
     let hooked: BTreeSet<_> = hooked_sites.iter().copied().collect();
-    crate::emit_linked(&functions, &sites, &hooked).map_err(error)
+    crate::emit_linked_progress(&functions, &sites, &hooked, &mut |p| emit_progress(0.85 + 0.12 * p))
+        .map_err(error)
 }

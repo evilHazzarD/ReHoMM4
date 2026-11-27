@@ -2,9 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Heroes IV (ReHoMM4 @H4_VERSION@)</title>
 <link rel="icon" href="icon.png">
+<!-- Installable as an app (Chrome/Edge: Install; Safari: Add to Home Screen / Add to Dock):
+     its own window, full screen, no browser bars. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ReHoMM4">
+<meta name="theme-color" content="#000000">
 <style>
   :root { color-scheme: dark; }
   html, body { margin: 0; height: 100%; background: #000; color: #f3e6c4;
@@ -104,6 +113,9 @@
       available here now</span>, from
       <a href="https://github.com/evilHazzarD/ReHoMM4-translations" target="_blank" rel="noopener">ReHoMM4-translations</a>.</p>
     <p><b>This page</b> plays in a desktop browser: current Chrome, Edge, Firefox or Safari.</p>
+    <p><b>As an app</b>, in its own full-screen window: Chrome or Edge's <i>Install</i> (in the address
+      bar or the menu), Safari's <i>Add to Dock</i>, or on an iPad <i>Share → Add to Home Screen</i>.
+      The app keeps its own game files (on an iPad the installer is picked again in the app).</p>
     <p><b>Apps</b> (on the <a href="https://github.com/evilHazzarD/ReHoMM4/releases/latest" target="_blank"
       rel="noopener">releases page</a>): Mac (macOS 13+, Apple chip or Intel), iPhone and iPad (iOS 17+),
       Android phones, tablets and TVs (64-bit, Android 10+), Windows PC (64-bit, 10 or 11), Linux
@@ -252,8 +264,8 @@ async function compileLiftedCode(digest) {
   $('intro').hidden = true;
   $('state').hidden = true;
   $('problem').hidden = true;
-  $('loadtext').textContent = 'Preparing the game’s code from your copy… (a minute or two)';
-  $('loadbar').removeAttribute('value');
+  $('loadtext').textContent = 'Preparing the game’s code from your copy…';
+  $('loadbar').value = 0;
   $('start').disabled = true;
   let worker;
   try {
@@ -264,7 +276,10 @@ async function compileLiftedCode(digest) {
     worker = new Worker('./converter/emit_worker.mjs', {type: 'module'});
     await new Promise((resolve, reject) => {
       worker.onmessage = ({data}) => {
-        if (data.type === 'done') resolve();
+        if (data.type === 'progress') {
+          $('loadbar').value = data.fraction;
+          $('loadtext').textContent = `Preparing the game’s code from your copy… ${Math.round(data.fraction * 100)}%`;
+        } else if (data.type === 'done') resolve();
         else if (data.type === 'error') reject(new Error(data.message));
       };
       worker.onerror = () => reject(new Error('The browser converter failed to load.'));

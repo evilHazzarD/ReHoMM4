@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 
@@ -119,9 +120,11 @@ bool Extract(const PickedFile& exe, const PickedFile& bin, const std::string& st
     // offline installer; CopyFile is the cross-volume fallback.
     if (CreateHardLinkA(name.c_str(), f.path.c_str(), nullptr) ||
         CopyFileA(f.path.c_str(), name.c_str(), TRUE)) return true;
-#else
+#elif !defined(__EMSCRIPTEN__)
     if (symlink(f.path.c_str(), name.c_str()) == 0) return true;
 #endif
+    // (The browser: through descriptors too, read 64 KiB at a time with pread and counted in the
+    // log, where a link would be read through a stream's few-KiB buffer.)
     const int fd = open(f.path.c_str(), O_RDONLY);
     if (fd < 0) return false;
     opened.push_back(fd);
@@ -157,8 +160,11 @@ bool Extract(const PickedFile& exe, const PickedFile& bin, const std::string& st
   task->done = 0;
   task->SetPhase("Unpacking");
   Progress p{task};
+  const auto unpack_start = std::chrono::steady_clock::now();
   int r = recomp_inno_extract(sexe.c_str(), dir.c_str(), paths.data(), paths.size(), OnProgress, &p,
                               err, sizeof err);
+  std::fprintf(stderr, "installer: unpacking took %.1f s\n",
+               std::chrono::duration<double>(std::chrono::steady_clock::now() - unpack_start).count());
   RemoveTree(stage);
   if (r == RECOMP_INNO_CANCELLED) {
     *error = "cancelled";

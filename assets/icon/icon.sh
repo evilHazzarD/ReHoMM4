@@ -7,6 +7,8 @@
 #   macos <file>     AppIcon .icns (16..1024 px, the macOS grid)
 #   linux <file>     256 px PNG
 #   switch <file>    256 px JPEG (the .nro's icon)
+#   web <dir>        <dir>/icon-192.png, icon-512.png (the web app's, transparent) and
+#                    apple-touch-icon.png (180 px, opaque: iOS's home screen)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 P="$1"; OUT="$2"
@@ -15,6 +17,11 @@ SOURCE="$HERE/rehomm4.png"
 [[ -f "$SOURCE" ]] || { echo "missing project icon: $SOURCE" >&2; exit 1; }
 resize_icon() { sips -z "$2" "$2" "$SOURCE" --out "$1" >/dev/null; }
 case "$P" in
+  web)
+    resize_icon "$OUT/icon-192.png" 192
+    resize_icon "$OUT/icon-512.png" 512
+    sips -z 180 180 "$HERE/ios/rehomm4-ios.png" --out "$OUT/apple-touch-icon.png" >/dev/null
+    echo "$OUT" ;;
   ios)
     A="$OUT/Assets.xcassets"; rm -rf "$A"; mkdir -p "$A/AppIcon.appiconset"
     # A dedicated opaque square keeps the gold rim inside iOS's rounded

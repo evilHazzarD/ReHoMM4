@@ -171,17 +171,21 @@ if [[ $TARGET == windows-* ]] && ! done_or_force "$PREFIX/include/zlib.h"; then
   echo "zlib: ok"
 fi
 say "innoextract $INNO_V (library)"
-if ! done_or_force "$PREFIX/lib/librecomp_innoextract.a"; then
+# (rebuilt when its patches change: the hash beside the library)
+INNO_PATCHES="$(cat "$ROOT"/libs/innoextract/patches/*.patch "$ROOT"/libs/innoextract/lib-patches/*.patch | shasum -a 256 | cut -c1-64)"
+if ! done_or_force "$PREFIX/lib/librecomp_innoextract.a" ||
+   [[ "$(cat "$PREFIX/lib/librecomp_innoextract.patches" 2>/dev/null)" != "$INNO_PATCHES" ]]; then
   fetch_sha "https://constexpr.org/innoextract/files/innoextract-$INNO_V.tar.gz" "$INNO_SHA"
   fetch_sha "https://archives.boost.io/release/1.89.0/source/$BOOST_DIR.tar.bz2" "$BOOST_SHA"
   fetch_sha "https://github.com/tukaani-project/xz/releases/download/v$XZ_V/xz-$XZ_V.tar.gz" "$XZ_SHA"
   INNO="$SRC/innoextract-$INNO_V"
-  if [[ ! -f "$INNO/.patched" ]]; then
+  # (.patched holds the patches' hash: a changed or added patch extracts the source again)
+  if [[ "$(cat "$INNO/.patched" 2>/dev/null)" != "$INNO_PATCHES" ]]; then
     rm -rf "$INNO"; tar -xzf "$SRC/innoextract-$INNO_V.tar.gz" -C "$SRC"
     for p in "$ROOT"/libs/innoextract/patches/*.patch "$ROOT"/libs/innoextract/lib-patches/*.patch; do
       patch -s -p1 -d "$INNO" < "$p"
     done
-    touch "$INNO/.patched"
+    echo "$INNO_PATCHES" > "$INNO/.patched"
   fi
   # Boost: only the headers and the two libraries' sources (the archive is 150 MB).
   [[ -d "$SRC/$BOOST_DIR/libs/iostreams/src" ]] || tar -xjf "$SRC/$BOOST_DIR.tar.bz2" -C "$SRC" \
@@ -203,6 +207,7 @@ if ! done_or_force "$PREFIX/lib/librecomp_innoextract.a"; then
   cmake_dep innoextract "$ROOT/libs/innoextract/lib" -DINNOEXTRACT_SRC="$INNO" \
     -DBOOST_SRC="$SRC/$BOOST_DIR" -DLZMA_INCLUDE="$SRC/xz-$XZ_V/src/liblzma/api" "${bz[@]}" \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+  echo "$INNO_PATCHES" > "$PREFIX/lib/librecomp_innoextract.patches"
 fi
 echo "innoextract: ok"
 echo "deps ($TARGET): $PREFIX"
