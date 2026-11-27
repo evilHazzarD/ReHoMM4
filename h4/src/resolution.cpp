@@ -139,6 +139,9 @@ void WideSize(Screen* r) {
   DesktopSize(&dw, &dh);
   r->h = kLayoutH;
   r->w = dh > 0 ? int(int64_t(dw) * kLayoutH / dh) & ~1 : kLayoutW;
+  // Never narrower than the layout (a page or screen held upright: the game drew nothing in a
+  // 636x768 screen); then the layout's own size, shown with bars.
+  r->w = std::max(r->w, kLayoutW);
 }
 
 Screen& MutableScreen() {

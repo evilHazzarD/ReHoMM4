@@ -105,7 +105,7 @@ if (typeof ENVIRONMENT_IS_PTHREAD === 'undefined' || !ENVIRONMENT_IS_PTHREAD) {
   let last = 0;
   setInterval(() => {
     const n = typeof wasmMemory === 'object' && wasmMemory ? wasmMemory.buffer.byteLength >> 20 : 0;
-    if (n && n !== last) console.log('h4-web: memory ' + (last = n) + ' MiB');
+    if (n && n !== last) h4Log(false, 'h4-web: memory ' + (last = n) + ' MiB');
   }, 5000);
 }
 
@@ -117,7 +117,7 @@ Module["h4NewMemory"] = function (initial, maximum) {
     if (max > maximum || (cap && max > cap)) continue;
     try {
       const m = new WebAssembly.Memory({ initial, maximum: max, shared: true });
-      if (max < maximum) console.warn('h4-web: shared memory of ' + (max / 16) + ' MiB at most');
+      if (max < maximum) h4Log(true, 'h4-web: shared memory of ' + (max / 16) + ' MiB at most');
       return m;
     } catch (e) {
       last = e;
@@ -138,6 +138,12 @@ function h4RunWorker(source, data, onMessage) {
     w.postMessage(data);
   });
 }
+// A line in the game's log (the page's box shows it, and keeps it when the tab is closed).
+function h4Log(err, t) {
+  const f = err ? Module.printErr : Module.print;
+  if (typeof f === 'function') f(t); else (err ? console.error : console.log)(t);
+}
+
 Module.h4PickFiles = function (folder) {
   const status = (kind, ...a) => { if (Module.h4Status) Module.h4Status(kind, ...a); };
   const apple = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -172,7 +178,7 @@ Module.h4PickFiles = function (folder) {
   card.append(text, choose, document.createElement('br'), cancel);
   box.appendChild(card);
   document.body.appendChild(box);
-  choose.onclick = () => input.click();  // (the player's tap: the browser opens the picker)
+  choose.onclick = () => { h4Log(false, 'h4-web: opening the picker'); input.click(); };  // (the player's tap)
   let finished = false;
   const finish = async (files) => {
     if (finished) return;
@@ -186,24 +192,31 @@ Module.h4PickFiles = function (folder) {
       if (rel) list.push({ file: f, path: rel.split('/') });
     }
     const total = list.reduce((n, x) => n + x.file.size, 0);
+    h4Log(false, 'h4-web: picked ' + (list.length ? list.map((x) => x.path.join('/') + ' (' +
+      (x.file.size / 1e6).toFixed(1) + ' MB)').join(', ') : 'nothing'));
     let done = 0, name = '';
     const copy_start = performance.now();
     const r = list.length ? await h4RunWorker(PICK_WORKER, { files: list }, (m) => {
       if (m.name) name = m.name;
       if (m.bytes) { done += m.bytes; status('copy', total ? done / total : 1, name); }
     }) : { names: [] };
-    console.log('h4-web: copying ' + (total / 1e6).toFixed(0) + ' MB took ' +
-                ((performance.now() - copy_start) / 1000).toFixed(1) + ' s');
+    h4Log(false, 'h4-web: copying ' + (total / 1e6).toFixed(0) + ' MB took ' +
+                 ((performance.now() - copy_start) / 1000).toFixed(1) + ' s');
     if (r.error) {
-      console.error('h4-web: copying the picked files failed', r.error);
+      h4Log(true, 'h4-web: copying the picked files failed: ' + r.error);
       status('error', 'The files could not be copied into the browser\'s storage: ' + r.error +
              ' (is the disk full?)');
     }
     status('copy-done');
     const names = r.names || [];
-    await h4RunWorker(PICK_DONE_WORKER, names.length ? names.join('\n') + '\n' : '');
+    const d = await h4RunWorker(PICK_DONE_WORKER, names.length ? names.join('\n') + '\n' : '');
+    if (d.error) h4Log(true, 'h4-web: telling the installer failed: ' + d.error);
+    else h4Log(false, 'h4-web: ' + names.length + ' file(s) handed to the installer');
   };
-  input.addEventListener('change', () => { if (input.files && input.files.length) finish(Array.from(input.files)); });
-  input.addEventListener('cancel', () => { /* the button stays: picked again, or Cancel */ });
-  cancel.onclick = () => finish([]);
+  input.addEventListener('change', () => {
+    h4Log(false, 'h4-web: the picker gave ' + (input.files ? input.files.length : 0) + ' file(s)');
+    if (input.files && input.files.length) finish(Array.from(input.files));
+  });
+  input.addEventListener('cancel', () => h4Log(false, 'h4-web: the picker was closed without files'));
+  cancel.onclick = () => { h4Log(false, 'h4-web: picking cancelled'); finish([]); };
 };
