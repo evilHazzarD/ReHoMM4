@@ -29,6 +29,8 @@ V="${1:-}"; MODE="${2:-}"
 [[ "$(tr -d ' \n' < VERSION)" == "$V" ]] || die "VERSION says $(cat VERSION), not $V: change it, commit, run again"
 NOTES="$(awk -v v="$V" '$0 == "## " v {on=1; next} /^## / && on {exit} on' CHANGELOG.md)"
 [[ -n "${NOTES//[[:space:]]/}" ]] || die "CHANGELOG.md has no section \"## $V\""
+# No tables in the notes (GitHub lists the files itself; the devices are in the README).
+! grep -q '^|' <<<"$NOTES" || die "CHANGELOG.md's section \"## $V\" has a table: release notes have none"
 # H4_RELEASE_DIRTY=1: try it on uncommitted changes (never with --draft).
 if [[ -n "$(git status --porcelain)" ]]; then
   [[ "${H4_RELEASE_DIRTY:-}" == 1 && "$MODE" != --draft ]] ||
