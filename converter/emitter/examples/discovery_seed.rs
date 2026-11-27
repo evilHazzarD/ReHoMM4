@@ -1,6 +1,7 @@
 //! Writes the discovery seed of a supported heroes4.exe (converter/h4/discover-<sha256>.txt):
 //! the browser converter starts its discovery from it (one round instead of about sixteen).
-//! Checks that the seeded discovery gives the same code, and prints the times.
+//! Checks that the seeded discovery gives the same code, and lifting one function at a time (as
+//! the browser does) the same module; prints the times.
 //!   discovery_seed <heroes4.exe> <staged h4 dir (game.toml)> <out dir>
 use std::time::Instant;
 
@@ -31,6 +32,21 @@ fn main() -> Result<(), String> {
     {
         return Err("the seeded discovery gives other code".into());
     }
+    // The browser's way (each function lifted and lowered in turn): the same module.
+    let t = Instant::now();
+    let prepared = rehomm4_emit_wasm::discovery::prepare_main(&manifest, &exe, &seed, Box::new(|_| {}))?;
+    let each = rehomm4_emit_wasm::emit_linked_each(
+        &prepared.addrs(),
+        &mut |i| Ok(std::borrow::Cow::Owned(prepared.lift(i))),
+        &resume,
+        &hooked,
+        &mut |_| {},
+    )?;
+    let each_time = t.elapsed();
+    if prepared.seed != seed || each != rehomm4_emit_wasm::emit_linked(&seeded, &resume, &hooked)? {
+        return Err("lifting one function at a time gives other code".into());
+    }
+    println!("one function at a time: the same module, {:.1} s", each_time.as_secs_f64());
     let sha = seed.lines().find_map(|l| l.strip_prefix("sha256 ")).unwrap_or_default();
     let path = format!("{out}/discover-{sha}.txt");
     std::fs::write(&path, &seed).map_err(|e| e.to_string())?;

@@ -35,13 +35,33 @@ self.addEventListener('message', async ({data}) => {
     const name = `code-3-${digest}.wasm`;
     const file = await app.getFileHandle(name, {create: true});
     self.postMessage({type: 'progress', fraction: 0.97});
-    const writer = await file.createWritable();
-    try {
-      await writer.write(code);
-      await writer.close();
-    } catch (error) {
-      await writer.abort().catch(() => {});
-      throw error;
+    if (typeof file.createSyncAccessHandle === 'function') {
+      // (a worker: the sync access handle every browser with this storage has; Safari before 26
+      // has no createWritable)
+      const h = await file.createSyncAccessHandle();
+      try {
+        h.truncate(0);
+        for (let at = 0; at < code.byteLength;) {
+          const n = h.write(code.subarray(at), {at});
+          if (!(n > 0)) throw new Error('The browser did not write the game code (no space?).');
+          at += n;
+        }
+        h.flush();
+      } catch (error) {
+        h.close();
+        await app.removeEntry(name).catch(() => {});  // (no half-written code left to load)
+        throw error;
+      }
+      h.close();
+    } else {
+      const writer = await file.createWritable();
+      try {
+        await writer.write(code);
+        await writer.close();
+      } catch (error) {
+        await writer.abort().catch(() => {});
+        throw error;
+      }
     }
     // Earlier versions' code (and other executables'): about 140 MB each.
     for await (const [entry] of app.entries()) {

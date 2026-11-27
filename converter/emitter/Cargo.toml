@@ -8,13 +8,14 @@ publish = false
 crate-type = ["rlib", "cdylib"]
 
 [features]
-discovery = ["dep:rc-convert", "dep:rc-pe", "dep:rc-discover"]
+discovery = ["dep:rc-convert", "dep:rc-pe", "dep:rc-discover", "dep:rc-x86"]
 browser = ["discovery", "dep:wasm-bindgen"]
 
 [dependencies]
 rc-convert = { path = "../../third_party/game-recomp/recomp/crates/rc-convert", optional = true }
 rc-pe = { path = "../../third_party/game-recomp/recomp/crates/rc-pe", optional = true }
 rc-discover = { path = "../../third_party/game-recomp/recomp/crates/rc-discover", optional = true }
+rc-x86 = { path = "../../third_party/game-recomp/recomp/crates/rc-x86", optional = true }
 rc-ir = { path = "../../third_party/game-recomp/recomp/crates/rc-ir" }
 wasm-encoder = { version = "=0.263.0", default-features = false, features = ["std"] }
 wasm-bindgen = { version = "=0.2.130", optional = true }

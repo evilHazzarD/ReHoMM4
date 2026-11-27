@@ -195,7 +195,11 @@ async function check() {
     why.push('This server does not allow shared memory (cross-origin isolation): serve the page with ' +
              'web/serve.py, or with the headers Cross-Origin-Opener-Policy: same-origin and ' +
              'Cross-Origin-Embedder-Policy: require-corp.');
-  if (typeof WebAssembly !== 'object' || !WebAssembly.validate(new Uint8Array(
+  // Tail calls: only the game code built in (the converter's code has none; Safari before 18.2,
+  // as on an iPad that stays on iPadOS 17, has none).
+  if (typeof WebAssembly !== 'object')
+    why.push('This browser has no WebAssembly: update it.');
+  else if ('@H4_DYNAMIC@' !== 'ON' && !WebAssembly.validate(new Uint8Array(
       [0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 10, 6, 1, 4, 0, 18, 0, 11])))
     why.push('This browser has no WebAssembly tail calls: update it.');
   if (!navigator.storage || !navigator.storage.getDirectory)

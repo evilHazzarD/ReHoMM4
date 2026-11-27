@@ -5,6 +5,7 @@ mod browser;
 #[cfg(feature = "discovery")]
 pub mod discovery;
 
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 
 use rc_ir::{
@@ -1083,7 +1084,8 @@ pub fn emit_with_resume_sites(
     functions: &[Function],
     resume_sites: &BTreeSet<u32>,
 ) -> Result<Vec<u8>, String> {
-    emit_module(functions, resume_sites, None, &mut |_| {})
+    let addrs: Vec<u32> = functions.iter().map(|f| f.addr).collect();
+    emit_module(&addrs, &mut |i| Ok(Cow::Borrowed(&functions[i])), resume_sites, None, &mut |_| {})
 }
 
 /// As [`emit_with_resume_sites`], with direct calls between the lifted functions except to
@@ -1103,17 +1105,32 @@ pub fn emit_linked_progress(
     hooked: &BTreeSet<u32>,
     progress: &mut dyn FnMut(f64),
 ) -> Result<Vec<u8>, String> {
-    let mut index = BTreeMap::new();
-    for (position, function) in functions.iter().enumerate() {
-        let callee = u32::try_from(position + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
-        index.insert(function.addr, callee);
-    }
-    let links = Links { index, hooked: hooked.clone() };
-    emit_module(functions, resume_sites, Some(&links), progress)
+    let addrs: Vec<u32> = functions.iter().map(|f| f.addr).collect();
+    emit_linked_each(&addrs, &mut |i| Ok(Cow::Borrowed(&functions[i])), resume_sites, hooked, progress)
 }
 
-fn emit_module(
-    functions: &[Function],
+/// [`emit_linked_progress`] for the functions at `addrs` (ascending, as the slice's would be),
+/// each made only when its turn comes (`function(i)`) and dropped after: the lifted IR of a whole
+/// game takes most of a gigabyte, too much for a phone's browser.
+pub fn emit_linked_each<'a>(
+    addrs: &[u32],
+    function: &mut dyn FnMut(usize) -> Result<Cow<'a, Function>, String>,
+    resume_sites: &BTreeSet<u32>,
+    hooked: &BTreeSet<u32>,
+    progress: &mut dyn FnMut(f64),
+) -> Result<Vec<u8>, String> {
+    let mut index = BTreeMap::new();
+    for (position, addr) in addrs.iter().enumerate() {
+        let callee = u32::try_from(position + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
+        index.insert(*addr, callee);
+    }
+    let links = Links { index, hooked: hooked.clone() };
+    emit_module(addrs, function, resume_sites, Some(&links), progress)
+}
+
+fn emit_module<'a>(
+    addrs: &[u32],
+    function: &mut dyn FnMut(usize) -> Result<Cow<'a, Function>, String>,
     resume_sites: &BTreeSet<u32>,
     links: Option<&Links>,
     progress: &mut dyn FnMut(f64),
@@ -1168,16 +1185,18 @@ fn emit_module(
     let mut exports = ExportSection::new();
     let mut code = CodeSection::new();
     let mut entries = BTreeSet::new();
-    for (index, function) in functions.iter().enumerate() {
-        if !entries.insert(function.addr) {
-            return Err(format!("duplicate function at {:#010x}", function.addr));
+    for (position, &addr) in addrs.iter().enumerate() {
+        if !entries.insert(addr) {
+            return Err(format!("duplicate function at {addr:#010x}"));
         }
-        let index = u32::try_from(index + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
+        let index = u32::try_from(position + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
         declarations.function(2);
-        exports.export(&format!("f_{:08x}", function.addr), ExportKind::Func, index);
-        code.function(&emit_body(function, resume_sites, links)?);
-        if index % 512 == 0 {
-            progress(index as f64 / functions.len() as f64);
+        exports.export(&format!("f_{addr:08x}"), ExportKind::Func, index);
+        let function = function(position)?;
+        debug_assert_eq!(function.addr, addr);
+        code.function(&emit_body(&function, resume_sites, links)?);
+        if index % 256 == 0 {
+            progress(position as f64 / addrs.len() as f64);
         }
     }
     module
