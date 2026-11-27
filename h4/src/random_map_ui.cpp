@@ -307,6 +307,15 @@ int g_px = -1, g_py = -1;
 // x86recomp's test input (<ID>_TEST_INPUT "pointer"): places in the frame's pixels already.
 constexpr SDL_MouseID kTestPointer = 0xD51D51;
 
+// Where the pointer is in the window, from the moves the game is given (OnInput): touches and the
+// gamepad's pointer move it with no move of SDL's own mouse, whose SDL_GetMouseState stays at 0, 0
+// (a wake there put the game's pointer in the corner). -1 until a move.
+std::atomic<float> g_win_x{-1}, g_win_y{-1};
+void PointerNow(float* x, float* y) {
+  *x = g_win_x.load(), *y = g_win_y.load();
+  if (*x < 0 || *y < 0) SDL_GetMouseState(x, y);
+}
+
 // The game waits for its input between frames when nothing moves: an event the panel takes (the
 // game never sees it) would show only with the next one. A pointer move where it is, after it, has
 // the game run its loop (and the panel drawn) at once.
@@ -318,7 +327,7 @@ void WakeGame(const SDL_Event& e) {
   m.motion.which = e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP ? e.button.which : 0;
   if (m.motion.which == kTestPointer) return;  // (a test's input: its own pace)
   float x = 0, y = 0;
-  SDL_GetMouseState(&x, &y);
+  PointerNow(&x, &y);
   m.motion.x = x;
   m.motion.y = y;
   SDL_PushEvent(&m);
@@ -335,7 +344,7 @@ void WakeIdleGame() {
   m.type = SDL_EVENT_MOUSE_MOTION;
   m.motion.windowID = SDL_GetWindowID(w);
   float x = 0, y = 0;
-  SDL_GetMouseState(&x, &y);
+  PointerNow(&x, &y);
   m.motion.x = x;
   m.motion.y = y;
   SDL_PushEvent(&m);
@@ -344,6 +353,10 @@ void WakeIdleGame() {
 std::atomic<bool (*)(const SDL_Event&)> g_menu_input{nullptr};  // SetMenuInputHook's
 
 bool OnInput(const SDL_Event& e) {
+  if (e.type == SDL_EVENT_MOUSE_MOTION && e.motion.which != kTestPointer) {
+    g_win_x = e.motion.x;
+    g_win_y = e.motion.y;
+  }
   bool taken = false;
   if (const auto menu = g_menu_input.load()) taken = menu(e);
   if (!taken) taken = OnInputLocked(e);

@@ -1,0 +1,27 @@
+--- a/src/runtime/hle/user32_window.cpp
++++ b/src/runtime/hle/user32_window.cpp
+@@ -1345,9 +1345,14 @@
+   if (g_from_pad && g_pad_hook && g_pad_hook(e)) return;
+   HandleSdlEvent(e);
+ }
++
++// Where the last synthesized motion put the pointer: a button event carries it too, as SDL's own
++// do (an app's control that checks the press's place, not only the game's own pointer state).
++float g_synth_px = 0, g_synth_py = 0;
+ 
+ void Motion(float x, float y) {
+-  static float px = 0, py = 0;
++  float& px = g_synth_px;
++  float& py = g_synth_py;
+   SDL_Event e{};
+   e.type = SDL_EVENT_MOUSE_MOTION;
+   e.motion.windowID = g_window;
+@@ -1367,6 +1372,8 @@
+   e.button.button = button;
+   e.button.down = down;
+   e.button.clicks = clicks;
++  e.button.x = g_synth_px;
++  e.button.y = g_synth_py;
+   Deliver(e);
+ }
+ 

@@ -48,8 +48,8 @@ class Ui {
                 std::function<void(int)> pick);
   // A row: `label` at the left, `value` at the right (nothing to choose).
   void Value(const std::string& label, const std::string& value);
-  // A checkbox row.
-  void Check(const std::string& label, bool on, std::function<void()> toggle);
+  // A checkbox row; `help`: a small square "?" button right after its text.
+  void Check(const std::string& label, bool on, std::function<void()> toggle, std::function<void()> help = {});
   // A row: `label` at the left, a small button at the right.
   void LabelButton(const std::string& label, const std::string& button, std::function<void()> click);
   // A row: `label` (dim) at the left, a small button at the right ("ReHoMM4 v0.4", "Check for updates").

@@ -216,7 +216,13 @@ bool OnWindowEvent(void*, SDL_Event* e) {
   m.type = SDL_EVENT_MOUSE_MOTION;
   m.motion.windowID = e->window.windowID;
   float x = 0, y = 0;
-  SDL_GetMouseState(&x, &y);
+  {
+    // Where the game's pointer last moved (touches move it with no move of SDL's own mouse,
+    // whose state stays at 0, 0), else SDL's.
+    std::lock_guard<std::mutex> l(g_mu);
+    x = g_point_x, y = g_point_y;
+  }
+  if (x < 0 || y < 0) SDL_GetMouseState(&x, &y);
   m.motion.x = x;
   m.motion.y = y;
   SDL_PushEvent(&m);
@@ -941,10 +947,11 @@ void ShowSettings() {
 #if defined(H4_DRAWN_MAC)
       if (on && !h4::native::SyncOn()) ShowSyncPanel(true);  // (no iCloud Drive: said, another folder offered)
 #endif
-    });
+    }
 #if defined(__ANDROID__)
-    ui.LabelButton(ui.T("Setting the sync up"), "?", ShowAndroidSyncHelp);
+    , ShowAndroidSyncHelp  // "?": setting the sync up
 #endif
+    );
 #endif
     ui.LabelButton(ui.T("Gamepad"), ui.T("Set up"), ShowGamepad);
 #if defined(H4_NATIVE_SYNC)
