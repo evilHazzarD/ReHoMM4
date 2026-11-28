@@ -2055,7 +2055,11 @@ void f_0071E6D0(::recomp::Ctx& c) {
 // elsewhere.
 bool AppFullscreen() {
 #if defined(H4_WEB_APP)
-  return MAIN_THREAD_EM_ASM_INT({ return document.fullscreenElement ? 1 : 0; }) != 0;
+  // (Safari before 16.4 says it prefixed; an app from the Home Screen is full screen without it)
+  return MAIN_THREAD_EM_ASM_INT({
+    return document.fullscreenElement || document.webkitFullscreenElement ||
+           (window.matchMedia && matchMedia('(display-mode: fullscreen)').matches) ? 1 : 0;
+  }) != 0;
 #elif defined(H4_DESKTOP_APP)
   return h4::Fullscreen();
 #else
