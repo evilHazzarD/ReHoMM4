@@ -36,6 +36,7 @@ const PICK_WORKER = `
 onmessage = async (e) => {
   const { files } = e.data;  // [{ file, path: [...] }]
   let h = null;
+  let where = '';  // (the piece being read: said with an error)
   try {
     const root = await navigator.storage.getDirectory();
     const app = await root.getDirectoryHandle('ReHoMM4', { create: true });
@@ -54,25 +55,35 @@ onmessage = async (e) => {
       h.close();
       h = null;
     };
-    const stream = async function* (f) {
-      const reader = f.stream().getReader();
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) return;
-        yield value;
+    // Read in pieces, each tried again: Safari on an iPad fails a whole stream of a large picked
+    // file now and then ("The I/O read operation failed"), and a piece read again then succeeds.
+    const PIECE = 8 << 20;
+    const pieces = async function* (f) {
+      for (let at = 0; at < f.size; at += PIECE) {
+        where = f.name + ' at ' + (at / 1e6).toFixed(0) + ' MB of ' + (f.size / 1e6).toFixed(0);
+        for (let tries = 1; ; tries++) {
+          try {
+            yield new Uint8Array(await f.slice(at, Math.min(f.size, at + PIECE)).arrayBuffer());
+            break;
+          } catch (err) {
+            if (tries >= 5) throw err;
+            postMessage({ retry: where + ': ' + String((err && err.message) || err) });
+            await new Promise((r) => setTimeout(r, 300 * tries));
+          }
+        }
       }
     };
     for (const { file, path } of files) {
       let d = dir;
       for (const p of path.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
       postMessage({ name: file.name });
-      await write(d, path[path.length - 1], stream(file));
+      await write(d, path[path.length - 1], pieces(file));
       names.push(path.join('/'));
     }
     postMessage({ names });
   } catch (err) {
     try { if (h) h.close(); } catch (e2) { /* closed */ }
-    postMessage({ error: String((err && err.message) || err) });
+    postMessage({ error: String((err && err.message) || err) + (where ? ' (reading ' + where + ')' : '') });
   }
 };
 `;
@@ -198,14 +209,18 @@ Module.h4PickFiles = function (folder) {
     const copy_start = performance.now();
     const r = list.length ? await h4RunWorker(PICK_WORKER, { files: list }, (m) => {
       if (m.name) name = m.name;
+      if (m.retry) h4Log(true, 'h4-web: reading again ' + m.retry);
       if (m.bytes) { done += m.bytes; status('copy', total ? done / total : 1, name); }
     }) : { names: [] };
     h4Log(false, 'h4-web: copying ' + (total / 1e6).toFixed(0) + ' MB took ' +
                  ((performance.now() - copy_start) / 1000).toFixed(1) + ' s');
     if (r.error) {
       h4Log(true, 'h4-web: copying the picked files failed: ' + r.error);
-      status('error', 'The files could not be copied into the browser\'s storage: ' + r.error +
-             ' (is the disk full?)');
+      status('error', /read operation|NotReadable|could not be read/i.test(r.error)
+        ? 'The picked files could not be read: ' + r.error + '. On an iPad: download them to the ' +
+          'device first (in Files, On My iPad, not an iCloud file still in the cloud), and keep ' +
+          'about 3.5 GB free (Safari copies a picked file before the page reads it).'
+        : 'The files could not be copied into the browser\'s storage: ' + r.error + ' (is the disk full?)');
     }
     status('copy-done');
     const names = r.names || [];

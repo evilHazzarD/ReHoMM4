@@ -650,7 +650,7 @@
  
  namespace recomp {
  
-@@ -988,6 +1002,19 @@
+@@ -988,6 +1002,23 @@
      // A phone or tablet held upright: the games are landscape (their window
      // turns the device), so the desktop is the landscape one.
      float mw = float(m->w), mh = float(m->h);
@@ -660,7 +660,11 @@
 +    // window's size, the installer's or a hidden one's, and a game started after one took that.)
 +    {
 +      const double cw = MAIN_THREAD_EM_ASM_DOUBLE({ return window.innerWidth || 0; });
-+      const double ch = MAIN_THREAD_EM_ASM_DOUBLE({ return window.innerHeight || 0; });
++      // (less the page's own top strip, when it shows one: #h4top, over the status bar)
++      const double ch = MAIN_THREAD_EM_ASM_DOUBLE({
++        const top = document.getElementById('h4top');
++        return (window.innerHeight || 0) - (top && getComputedStyle(top).display !== 'none' ? top.offsetHeight : 0);
++      });
 +      if (cw > 0 && ch > 0) {
 +        mw = float(cw);
 +        mh = float(ch);
@@ -670,7 +674,7 @@
  #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
      if (mw < mh) std::swap(mw, mh);
  #endif
-@@ -1478,6 +1505,12 @@
+@@ -1478,6 +1509,12 @@
    if (!w) return;
    if (SDL_TextInputActive(w)) SDL_StopTextInput(w);
    else SDL_StartTextInput(w);
