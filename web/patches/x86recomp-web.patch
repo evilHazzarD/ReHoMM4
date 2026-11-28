@@ -650,7 +650,19 @@
  
  namespace recomp {
  
-@@ -988,6 +1002,23 @@
+@@ -663,6 +677,11 @@
+         const uint8_t bit = uint8_t(1 << (e.button.button - 1));
+         if (down && g_pointer_out && g_bounds_on) {
+           g_dropped_buttons |= bit;
++          static int said = 0;
++          if (said < 5 && ++said)
++            WarnF("user32: a press outside the game's area dropped (at %d,%d; the area %d,%d-%d,%d)\n",
++                  g_mouse_x - ox, g_mouse_y - oy, int(g_bounds[0]), int(g_bounds[1]), int(g_bounds[2]),
++                  int(g_bounds[3]));
+           break;
+         }
+         if (!down && (g_dropped_buttons & bit)) {
+@@ -988,6 +1007,23 @@
      // A phone or tablet held upright: the games are landscape (their window
      // turns the device), so the desktop is the landscape one.
      float mw = float(m->w), mh = float(m->h);
@@ -674,7 +686,7 @@
  #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IOS)
      if (mw < mh) std::swap(mw, mh);
  #endif
-@@ -1478,6 +1509,12 @@
+@@ -1478,6 +1514,12 @@
    if (!w) return;
    if (SDL_TextInputActive(w)) SDL_StopTextInput(w);
    else SDL_StartTextInput(w);

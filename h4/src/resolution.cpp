@@ -1020,10 +1020,16 @@ void SideWings(::recomp::Ctx& c) {
   const bool was = g_wings;
   g_wings = on;
   if (was != on) WarnF("h4: side wings %s\n", on ? "on" : "off");
-  // Clicks on the wings go nowhere (the pointer moves over them freely).
-  if (was != on) {
+  // Clicks on the wings go nowhere (the pointer moves over them freely). Set again whenever the
+  // layout moves too (the Options dialog's 800 / 1024 / 1280: the old rectangle dropped the
+  // presses on the main menu's buttons, which were lit but could not be pressed).
+  {
+    static Rect bounds{};
     const Rect lay = Layout();
-    SetPointerBounds(on, lay.l, lay.t, lay.r, lay.b);
+    if (was != on || (on && (lay.l != bounds.l || lay.t != bounds.t || lay.r != bounds.r || lay.b != bounds.b))) {
+      bounds = lay;
+      SetPointerBounds(on, lay.l, lay.t, lay.r, lay.b);
+    }
   }
   static const bool dump = Env("DUMP_WINDOWS") != nullptr;
   if (was != on && dump && top) DumpTree(top, 0);
