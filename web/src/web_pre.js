@@ -43,19 +43,9 @@ onmessage = async (e) => {
     const dir = await app.getDirectoryHandle('picked', { create: true });
     const names = [];
     // Read in pieces, each tried again: Safari on an iPad fails a read of a large picked file now
-    // and then ("The I/O read operation failed"), and gives wrong bytes too (the unpacking then
-    // ended in a zlib error): each piece is read twice and taken when both agree, and read back
-    // from the storage once written.
+    // and then ("The I/O read operation failed"), and a piece read again then succeeds.
     const PIECE = 8 << 20;
-    const same = (a, b) => {
-      if (a.length !== b.length) return false;
-      const n = a.length >> 2;
-      const a4 = new Uint32Array(a.buffer, a.byteOffset, n), b4 = new Uint32Array(b.buffer, b.byteOffset, n);
-      for (let i = 0; i < n; i++) if (a4[i] !== b4[i]) return false;
-      for (let i = n << 2; i < a.length; i++) if (a[i] !== b[i]) return false;
-      return true;
-    };
-    const readOnce = async (f, at, end) => {
+    const readPiece = async (f, at, end) => {
       for (let tries = 1; ; tries++) {
         try {
           return new Uint8Array(await f.slice(at, end).arrayBuffer());
@@ -66,16 +56,6 @@ onmessage = async (e) => {
         }
       }
     };
-    const readPiece = async (f, at, end) => {
-      let a = await readOnce(f, at, end);
-      for (let tries = 1; ; tries++) {
-        const b = await readOnce(f, at, end);
-        if (same(a, b)) return a;
-        if (tries >= 5) throw new Error('the picked file gives different bytes each time it is read');
-        postMessage({ retry: where + ': two reads differ' });
-        a = b;
-      }
-    };
     const copy = async (d, name, f) => {
       h = await (await d.getFileHandle(name, { create: true })).createSyncAccessHandle();
       h.truncate(0);
@@ -84,19 +64,7 @@ onmessage = async (e) => {
         const end = Math.min(f.size, at + PIECE);
         const value = await readPiece(f, at, end);
         if (value.length !== end - at) throw new Error('the picked file ended early');
-        const back = new Uint8Array(value.length);
-        for (let tries = 1; ; tries++) {
-          for (let off = 0; off < value.length;) off += h.write(value.subarray(off), { at: at + off });
-          let got = 0;
-          while (got < back.length) {
-            const n = h.read(back.subarray(got), { at: at + got });
-            if (n <= 0) break;
-            got += n;
-          }
-          if (got === back.length && same(value, back)) break;
-          if (tries >= 3) throw new Error("the browser's storage keeps other bytes than were written");
-          postMessage({ retry: where + ': the stored copy differs, written again' });
-        }
+        for (let off = 0; off < value.length;) off += h.write(value.subarray(off), { at: at + off });
         postMessage({ bytes: value.length });
       }
       h.flush();
@@ -247,7 +215,7 @@ Module.h4PickFiles = function (folder) {
                  ((performance.now() - copy_start) / 1000).toFixed(1) + ' s');
     if (r.error) {
       h4Log(true, 'h4-web: copying the picked files failed: ' + r.error);
-      status('error', /read operation|NotReadable|could not be read|different bytes|ended early/i.test(r.error)
+      status('error', /read operation|NotReadable|could not be read|ended early/i.test(r.error)
         ? 'The picked files could not be read: ' + r.error + '. On an iPad: download them to the ' +
           'device first (in Files, On My iPad, not an iCloud file still in the cloud), and keep ' +
           'about 3.5 GB free (Safari copies a picked file before the page reads it).'

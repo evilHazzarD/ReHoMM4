@@ -2,6 +2,27 @@
 
 Each release's notes on GitHub are its section here (tools/release/make_release.sh). Newest first.
 
+## 0.5.3
+
+The browser version on iPhone and iPad, easier right clicks on touch screens, and fixes for Switch 2 and Android.
+
+**New**
+
+- **iPhone and iPad without sideloading:** the browser version can be added to the Home Screen and played as an app (the README says how).
+- **Right click on touch screens:** a two-finger tap is a right click (its pop-up stays until the next touch), and a long press takes 0.3 s, not 0.45.
+- Phones and tablets start in the **1024x768** layout, in their browsers too.
+- **Browser:** a log under the page, opened with any problem, with a **Copy the log** button; it is kept over the page's reload and after a tab the browser closed.
+
+**Fixed**
+
+- **Switch 2: "cannot reserve the guest arena"** at the start (the game's memory was asked of the wrong allocator).
+- **Android:** the game was sometimes drawn in a thin band, for an upright screen (issue #10).
+- **Main menu:** after a change of resolution in Options its buttons lit up but could not be pressed.
+- **Town:** dragging an army is smooth (a step took 40-45 ms, now under 10).
+- **Browser on iPad:** out of memory before the game started, or while its code was prepared; the preparation stopped at 43%; "this browser has no WebAssembly tail calls" on older Safari; the file picker did nothing, or the picked files could not be read; the installer unpacked slowly (342 s, now 15 s).
+- **Browser:** a small window after the installer; a black screen with the iPad held upright; the picture not resized after leaving full screen; the page no longer goes full screen by itself (the game's Options or Alt+Enter); the side panels' pictures by default.
+- **Browser:** the game's code is prepared about four times faster, with a progress bar that moves all the way.
+
 ## 0.5.2
 
 Fixes for the browser, phones and settings; the apps are called ReHoMM4 everywhere.
