@@ -5,6 +5,11 @@ Native port of Heroes of Might and Magic IV (including both expansions) for macO
 **Try it in your browser: <https://evilhazzard.github.io/ReHoMM4/>** (your own GOG copy of the game
 is needed; nothing is installed, the game files stay in the browser).
 
+**Українською.** ReHoMM4 — нативний порт Heroes of Might and Magic IV з обома доповненнями для Mac,
+iPhone, iPad, Android, Windows, Linux, Steam Deck, Switch, Switch 2 і браузера. Потрібна власна
+копія гри з GOG. Гра і налаштування українською: ⚙ у головному меню → Game language. Інструкції
+нижче — англійською.
+
 ## Why ReHoMM4?
 
 - **Wide screen.** Every screen fills a 16:9 (or any) display: the adventure map shows more of the
