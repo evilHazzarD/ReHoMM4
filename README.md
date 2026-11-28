@@ -109,6 +109,10 @@ Applications: move that one to the Bin.
 
 ### iPhone, iPad
 
+Two ways: the app, installed with a sideloading tool, or the
+[browser version](#in-a-browser) added to the Home Screen as a web app, with no sideloading,
+no computer and no 7-day refresh ([below](#iphone-ipad-without-sideloading-the-web-app)).
+
 Apps from outside the App Store are installed with a sideloading tool that signs them with your
 own Apple ID; a free Apple ID is enough.
 
@@ -129,6 +133,33 @@ by itself while AltServer runs on the computer in the same Wi-Fi; Sideloadly: in
 An expired app does not open, but its saves stay; refreshing brings it back.
 
 **Update:** install the new `.ipa` the same way, over the old app.
+
+#### iPhone, iPad without sideloading: the web app
+
+The [browser version](#in-a-browser) added to the Home Screen opens as an app of its own: with its
+own icon, in full screen without Safari's bars, and with no signature to refresh. It needs
+iOS / iPadOS 18.2 or later and an iPhone or iPad with 4 GB of memory or more (the game takes
+about 1.7 GB; on 2–3 GB devices iOS may close it).
+
+1. Put GOG's offline installer on the device: in Safari sign in at
+   [gog.com](https://www.gog.com) → **Games** → Heroes of Might and Magic IV: Complete → the
+   offline backup installers → download `setup_heroes_of_might_and_magic_4_complete_….exe` and its
+   `-1.bin` (1.1 GB); or copy both from a computer (AirDrop, or Finder / iTunes file sharing).
+   Keep them in **Files → On My iPhone/iPad** (an iCloud Drive file not downloaded to the device
+   cannot be read), and keep about 3.5 GB free for the installing.
+2. Open <https://evilhazzard.github.io/ReHoMM4/> in **Safari**.
+3. **Share** (the square with an arrow) → **Add to Home Screen** → with **Open as Web App** on
+   (iOS 26 and later) → **Add**.
+4. Open **Heroes IV** from the Home Screen (not the Safari tab: the web app keeps its own game
+   files, saves and settings, apart from Safari's).
+5. **Install the game** → **Install from GOG installer files** → **Choose the files** →
+   **Choose Files** → **On My iPhone/iPad** → select both files → **Open**. Copying, unpacking
+   and preparing the game's code take a few minutes; keep the app open meanwhile.
+6. **Play**. Hold the device in landscape. A long press or a two-finger tap is a right click.
+
+The site updates itself: the web app picks up a new version when it is opened. Removing the icon
+from the Home Screen deletes the web app's game files and saves. If something fails, the page's
+log (**Copy the log**) says where.
 
 ### Android
 
@@ -284,8 +315,10 @@ keyboard where the game wants text; with too little memory the browser closes th
    and open http://localhost:8080. For phones and tablets put the `ReHoMM4` folder on an HTTPS
    web server (its `README.txt` says what the server must send). Or build the site from source:
    `web/build.sh`, then `python3 web/serve.py` ([Building from source](#building-from-source)).
-2. Open the page, choose the language and press **Start** (the game opens in full screen). The
-   intro movies and the side panels are in the game's settings (⚙ in its main menu).
+2. Open the page and press **Play** (the game opens in the page; full screen: the **Full screen**
+   box in the game's Options, or Alt+Enter). The language, the intro movies and the side panels
+   are in the game's settings (⚙ in its main menu). On an iPhone or iPad it can also be added to
+   the Home Screen as an app ([the web app](#iphone-ipad-without-sideloading-the-web-app)).
 3. The first time the installer opens, as in the apps. Pick both files of GOG's offline installer
    (`setup_heroes_of_might_and_magic_4_complete_….exe` and its `-1.bin`, from your GOG library), or
    the folder of a game installed on this computer. "Sign in to GOG" is not offered in a browser.

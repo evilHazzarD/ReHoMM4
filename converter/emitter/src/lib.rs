@@ -13,9 +13,10 @@ use rc_ir::{
     Tmp, UnOp, W,
 };
 use wasm_encoder::{
-    BlockType, CodeSection, EntityType, ExportKind, ExportSection, FunctionSection, ImportSection,
+    BlockType, EntityType, ExportKind, ExportSection, FunctionSection, ImportSection,
     Instruction, MemArg, MemArgTarget, MemoryType, Module, TypeSection, ValType,
 };
+use wasm_encoder::Encode;
 
 const GUEST_BASE: u32 = 0;
 const DISPATCH: u32 = 1;
@@ -1128,6 +1129,26 @@ pub fn emit_linked_each<'a>(
     emit_module(addrs, function, resume_sites, Some(&links), progress)
 }
 
+/// [`emit_linked_each`], the module handed to `write` in pieces (its offset, the bytes) as it is
+/// made, never whole in memory: its start (the sections before the code, and the code section's
+/// size) last. Gives the module's size.
+pub fn emit_linked_each_to<'a>(
+    addrs: &[u32],
+    function: &mut dyn FnMut(usize) -> Result<Cow<'a, Function>, String>,
+    resume_sites: &BTreeSet<u32>,
+    hooked: &BTreeSet<u32>,
+    progress: &mut dyn FnMut(f64),
+    write: &mut dyn FnMut(usize, &[u8]),
+) -> Result<usize, String> {
+    let mut index = BTreeMap::new();
+    for (position, addr) in addrs.iter().enumerate() {
+        let callee = u32::try_from(position + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
+        index.insert(*addr, callee);
+    }
+    let links = Links { index, hooked: hooked.clone() };
+    emit_module_to(addrs, function, resume_sites, Some(&links), progress, write)
+}
+
 fn emit_module<'a>(
     addrs: &[u32],
     function: &mut dyn FnMut(usize) -> Result<Cow<'a, Function>, String>,
@@ -1135,6 +1156,24 @@ fn emit_module<'a>(
     links: Option<&Links>,
     progress: &mut dyn FnMut(f64),
 ) -> Result<Vec<u8>, String> {
+    let mut out = Vec::new();
+    emit_module_to(addrs, function, resume_sites, links, progress, &mut |at, bytes| {
+        if out.len() < at + bytes.len() {
+            out.resize(at + bytes.len(), 0);
+        }
+        out[at..at + bytes.len()].copy_from_slice(bytes);
+    })?;
+    Ok(out)
+}
+
+fn emit_module_to<'a>(
+    addrs: &[u32],
+    function: &mut dyn FnMut(usize) -> Result<Cow<'a, Function>, String>,
+    resume_sites: &BTreeSet<u32>,
+    links: Option<&Links>,
+    progress: &mut dyn FnMut(f64),
+    write: &mut dyn FnMut(usize, &[u8]),
+) -> Result<usize, String> {
     let mut module = Module::new();
     let mut types = TypeSection::new();
     types.ty().function([], [ValType::I32]);
@@ -1183,7 +1222,6 @@ fn emit_module<'a>(
 
     let mut declarations = FunctionSection::new();
     let mut exports = ExportSection::new();
-    let mut code = CodeSection::new();
     let mut entries = BTreeSet::new();
     for (position, &addr) in addrs.iter().enumerate() {
         if !entries.insert(addr) {
@@ -1192,18 +1230,48 @@ fn emit_module<'a>(
         let index = u32::try_from(position + HOST_FUNCTIONS).map_err(|_| "too many functions")?;
         declarations.function(2);
         exports.export(&format!("f_{addr:08x}"), ExportKind::Func, index);
+    }
+    module.section(&declarations).section(&exports);
+    // The code section (most of the module: 150 MB) handed on in pieces as its functions are
+    // made, its size and count (5-byte LEB128s) at the end with the start: never the whole code
+    // in memory (a phone's browser stopped the converter).
+    let mut head = module.finish();
+    head.push(10); // (the code section's id)
+    let size_at = head.len();
+    head.extend_from_slice(&[0; 10]);
+    const PIECE: usize = 8 << 20;
+    let mut piece = Vec::with_capacity(PIECE + (1 << 20));
+    let mut at = head.len(); // where `piece` goes
+    for (position, &addr) in addrs.iter().enumerate() {
         let function = function(position)?;
         debug_assert_eq!(function.addr, addr);
-        code.function(&emit_body(&function, resume_sites, links)?);
-        if index % 256 == 0 {
+        emit_body(&function, resume_sites, links)?.encode(&mut piece);
+        if piece.len() >= PIECE {
+            write(at, &piece);
+            at += piece.len();
+            piece.clear();
+        }
+        if (position + HOST_FUNCTIONS) % 256 == 0 {
             progress(position as f64 / addrs.len() as f64);
         }
     }
-    module
-        .section(&declarations)
-        .section(&exports)
-        .section(&code);
-    Ok(module.finish())
+    write(at, &piece);
+    let end = at + piece.len();
+    let leb5 = |v: u32| -> [u8; 5] {
+        [
+            (v as u8) | 0x80,
+            ((v >> 7) as u8) | 0x80,
+            ((v >> 14) as u8) | 0x80,
+            ((v >> 21) as u8) | 0x80,
+            (v >> 28) as u8,
+        ]
+    };
+    let size = u32::try_from(end - size_at - 5).map_err(|_| "too much code")?;
+    let count = u32::try_from(addrs.len()).map_err(|_| "too many functions")?;
+    head[size_at..size_at + 5].copy_from_slice(&leb5(size));
+    head[size_at + 5..size_at + 10].copy_from_slice(&leb5(count));
+    write(0, &head);
+    Ok(end)
 }
 
 #[cfg(test)]

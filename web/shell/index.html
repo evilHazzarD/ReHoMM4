@@ -223,12 +223,12 @@ async function isolate() {
   return new Promise(() => {});
 }
 
-function problem(text) {
+function problem(text, folded) {
   const p = $('problem');
   p.textContent = text;
   p.hidden = false;
   logLine(true, 'page: ' + text);
-  showLog(true);
+  showLog(!folded);
 }
 // The log under the page's box: its lines so far (the game's, the converter's, the page's errors).
 function showLog(open, title) {
@@ -295,7 +295,8 @@ $('logcopy').addEventListener('click', (e) => {
 {
   const carried = sessionStorage.getItem('h4-log-carry');
   sessionStorage.removeItem('h4-log-carry');
-  if (carried) logLines.push(...carried.split('\n'), '— the page reloaded (the game\'s code is ready) —');
+  if (carried) logLines.push(...carried.split('\n'), sessionStorage.getItem('h4-compile-after-reload')
+    ? '— the page reloaded (to prepare the game\'s code) —' : '— the page reloaded (the game\'s code is ready) —');
 }
 // A game that was running when this page was last left without the page knowing (the browser
 // closed or reloaded the tab: iOS does when memory runs short): its log, under the box.
@@ -352,6 +353,16 @@ let compilingLiftedCode = false;
 async function compileLiftedCode(digest) {
   if (compilingLiftedCode) return;
   compilingLiftedCode = true;
+  if (window.h4Module) {
+    // The installer's game still holds its memory (well over a gigabyte, kept until the page
+    // goes): the converter, which needs most of one more, ran out of it on an iPad ("Unreachable
+    // code should not be executed"). The page again first, the code prepared there.
+    logLine(false, 'converter: the page again first (the installer\'s memory freed)');
+    sessionStorage.setItem('h4-compile-after-reload', '1');
+    try { sessionStorage.setItem('h4-log-carry', logLines.slice(-200).join('\n')); } catch {}
+    setTimeout(() => location.reload(), 300);
+    return;
+  }
   if (document.fullscreenElement) leaveFullscreen();
   $('panel').classList.remove('hidden');
   $('loading').hidden = false;
@@ -395,7 +406,7 @@ async function compileLiftedCode(digest) {
     compilingLiftedCode = false;
     $('loading').hidden = true;
     $('start').disabled = false;
-    showState({ kind: 'ready' }, 'The game\'s code is ready.');
+    showState({ kind: 'ready' }, 'The game is installed and its code is ready.');
     $('start').focus();
   } catch (error) {
     $('loading').hidden = true;
@@ -415,7 +426,7 @@ function status(kind, a, b) {
   else if (kind === 'compile') void compileLiftedCode(a);
   // The game is installed (installer.cpp): the converter's site prepares its code at once, here
   // (the game asks for that too, once its installer has closed: whichever comes first).
-  else if (kind === 'installed' && CONVERTER) {
+  else if (kind === 'installed' && CONVERTER && !window.h4Module) {
     void gameState().then((s) => { if (s.kind === 'prepare') return compileLiftedCode(s.digest); })
       .catch((e) => console.error(e));
   }
@@ -435,9 +446,11 @@ function status(kind, a, b) {
     $('panel').classList.remove('hidden');
     $('intro').hidden = true;
     $('loading').hidden = true;
-    problem(a ? `The game stopped (code ${a}): its log is below.` : 'The game has ended.');
+    // (its log below, folded: opened by a tap when wanted)
+    problem(a ? `The game stopped (code ${a}): its log is below.` : 'The game has ended.', true);
     localStorage.removeItem('h4-running');
-    showLog(!!a);
+    showLog(false);
+    $('logbox').open = false;
     $('start').textContent = 'Back';
     $('start').disabled = false;
     $('start').onclick = () => location.reload();
@@ -857,6 +870,11 @@ void check().then(async () => {
   const restarted = sessionStorage.getItem('h4-restart');
   sessionStorage.removeItem('h4-start-after-compile');
   sessionStorage.removeItem('h4-restart');
+  // Reloaded to prepare the game's code (compileLiftedCode): now, in this fresh page.
+  if (sessionStorage.getItem('h4-compile-after-reload')) {
+    sessionStorage.removeItem('h4-compile-after-reload');
+    if (s.kind === 'prepare') { void compileLiftedCode(s.digest); return; }
+  }
   // (Not started by itself: without the player's click the browser gives the game neither the
   // focus, so no cursor, nor full screen.)
   showState(s, compiled && s.kind === 'ready' ? 'The game is installed and its code is ready.' : '');
